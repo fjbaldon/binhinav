@@ -18,7 +18,6 @@ export class CategoriesController {
     }
 
     // --- ADMIN-ONLY ENDPOINTS ---
-
     @Post()
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.Admin)
