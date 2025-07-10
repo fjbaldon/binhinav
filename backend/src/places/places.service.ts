@@ -9,6 +9,8 @@ import { Place } from './entities/place.entity';
 import { ForbiddenException } from '@nestjs/common';
 import { deleteFile } from '../shared/utils/file-helpers';
 import { Category } from 'src/categories/entities/category.entity';
+import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
+import { ActionType } from 'src/audit-logs/enums/action-type.enum';
 
 // Define a simple user payload type for clarity
 interface UserPayload {
@@ -27,6 +29,7 @@ export class PlacesService {
     constructor(
         @InjectRepository(Place)
         private placesRepository: Repository<Place>,
+        private readonly auditLogsService: AuditLogsService,
     ) { }
 
     async create(createPlaceDto: CreatePlaceDto, paths: { logoPath?: string, coverPath?: string }): Promise<Place> {
@@ -108,6 +111,29 @@ export class PlacesService {
 
         if (!placeToUpdate) {
             throw new NotFoundException(`Place with ID "${id}" not found`);
+        }
+
+        // We only log changes made by merchants, as per the requirement.
+        if (user.role === 'merchant') {
+            // You can build a more detailed "changes" object by comparing
+            // `placeToUpdate` with `updatePlaceDto` field by field.
+            // For now, a simple summary is fine.
+            const changes = {
+                updatedFields: Object.keys(updatePlaceDto),
+                newLogoUploaded: !!paths.logoPath,
+                newCoverUploaded: !!paths.coverPath,
+            };
+
+            // Non-blocking call to create the log entry
+            this.auditLogsService.create({
+                entityType: 'Place',
+                entityId: id,
+                action: ActionType.UPDATE,
+                changes: changes,
+                userId: user.userId,
+                username: user.username,
+                userRole: user.role,
+            });
         }
 
         // Cleanup old files if new ones are uploaded

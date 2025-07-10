@@ -15,6 +15,7 @@ import { join } from 'path';
 import { KiosksModule } from './kiosks/kiosks.module';
 import { AdsModule } from './ads/ads.module';
 import { CategoriesModule } from './categories/categories.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { CategoriesModule } from './categories/categories.module';
     KiosksModule,
     AdsModule,
     CategoriesModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
   providers: [
