@@ -10,7 +10,6 @@ import { ForbiddenException } from '@nestjs/common';
 import { deleteFile } from '../shared/utils/file-helpers';
 import { Category } from 'src/categories/entities/category.entity';
 
-
 // Define a simple user payload type for clarity
 interface UserPayload {
     userId: string;
@@ -29,7 +28,6 @@ export class PlacesService {
         @InjectRepository(Place)
         private placesRepository: Repository<Place>,
     ) { }
-
 
     async create(createPlaceDto: CreatePlaceDto, paths: { logoPath?: string, coverPath?: string }): Promise<Place> {
         const { floorPlanId, merchantId, categoryId, ...placeDetails } = createPlaceDto;
