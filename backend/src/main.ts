@@ -5,6 +5,8 @@ import { ValidationPipe } from '@nestjs/common'; // <-- Import
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.setGlobalPrefix('api');
+
   // Enable CORS
   app.enableCors({
     origin: '*', // In production, restrict this to your actual frontend domain
