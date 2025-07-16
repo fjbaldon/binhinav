@@ -16,6 +16,7 @@ import { KiosksModule } from './kiosks/kiosks.module';
 import { AdsModule } from './ads/ads.module';
 import { CategoriesModule } from './categories/categories.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
       serveRoot: '/uploads/',
     }),
 
+    DatabaseModule,
     PlacesModule,
     MerchantsModule,
     AdminsModule,

@@ -28,11 +28,13 @@ export class SeedingService implements OnModuleInit {
         const adminCount = await this.adminRepository.count();
         if (adminCount === 0) {
             this.logger.log('No admins found. Seeding initial admin...');
-            // constructor(private configService: ConfigService, ...)
-            await this.adminRepository.save({
+
+            const newAdmin = this.adminRepository.create({
                 username: this.configService.get<string>('SEED_ADMIN_USERNAME'),
                 password: this.configService.get<string>('SEED_ADMIN_PASSWORD'),
             });
+
+            await this.adminRepository.save(newAdmin);
         }
     }
 
