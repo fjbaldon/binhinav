@@ -44,7 +44,7 @@ import { DatabaseModule } from './database/database.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // Time-to-live: 60 seconds (in milliseconds for some versions, or check docs for seconds)
-        limit: 10, // Limit each IP to 10 requests per `ttl`
+        limit: 100, // Limit each IP to 100 requests per `ttl`. Increased from 10.
       }
     ]),
 
