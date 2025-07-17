@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { History, TvMinimal, KeyRound, Building, Users, LayoutDashboard, Shapes, LogOut } from 'lucide-react';
+import { History, TvMinimal, KeyRound, Building, Users, LayoutDashboard, Shapes, LogOut, Clapperboard } from 'lucide-react';
 
 const sidebarNavItems = [
     { title: "Recent Changes", href: "/admin/recent-changes", icon: History },
@@ -11,6 +11,7 @@ const sidebarNavItems = [
     { title: "Categories", href: "/admin/categories", icon: Shapes },
     { title: "Floor Plans", href: "/admin/floor-plans", icon: LayoutDashboard },
     { title: "Kiosks", href: "/admin/kiosks", icon: TvMinimal },
+    { title: "Ads", href: "/admin/ads", icon: Clapperboard },
     { title: "Credentials", href: "/admin/credentials", icon: KeyRound },
 ];
 

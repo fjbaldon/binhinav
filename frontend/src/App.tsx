@@ -18,6 +18,7 @@ import FloorPlansPage from './pages/admin/FloorPlansPage';
 import KiosksPage from './pages/admin/KiosksPage';
 import MerchantsPage from './pages/admin/MerchantsPage';
 import PlacesPage from './pages/admin/PlacesPage';
+import AdsPage from './pages/admin/AdsPage'; // <-- Import AdsPage
 
 // Merchant Pages
 import StoreInformationPage from './pages/merchant/StoreInformationPage';
@@ -42,6 +43,7 @@ function App() {
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="floor-plans" element={<FloorPlansPage />} />
             <Route path="kiosks" element={<KiosksPage />} />
+            <Route path="ads" element={<AdsPage />} /> {/* <-- Add AdsPage route */}
             <Route path="credentials" element={<AdminCredentialsPage />} />
           </Route>
         </Route>
