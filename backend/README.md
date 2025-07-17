@@ -1,98 +1,111 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Binhinav - Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This is the backend server for the Binhinav Interactive Kiosk System, built with NestJS. It provides a robust RESTful API for managing places, merchants, floor plans, advertisements, and more, with role-based authentication and data persistence using a PostgreSQL database.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- **Role-Based Authentication**: Secure login for Admins and Merchants using JWT (JSON Web Tokens).
+- **CRUD Operations**: Comprehensive APIs for managing:
+  - **Places**: Stores, restaurants, or points of interest.
+  - **Merchants**: User accounts for store owners.
+  - **Floor Plans**: Building layouts/maps.
+  - **Categories**: For filtering and organizing places.
+  - **Kiosks**: Physical kiosk terminal locations.
+  - **Advertisements**: Images for display on kiosks.
+- **File Uploads**: Handles image uploads for places (logos, covers), floor plans, and ads, storing them locally.
+- **Data Validation**: Uses DTOs and `class-validator` to ensure incoming data is well-formed.
+- **Database Seeding**: Automatically creates a default admin user and initial categories on first run.
+- **Audit Logging**: Tracks and logs changes made by merchants to their store information.
+- **Rate Limiting**: Basic protection against brute-force attacks.
+- **Static File Serving**: Serves uploaded images via a public endpoint.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Technology Stack
 
-## Project setup
+- **Framework**: [NestJS](https://nestjs.com/) (TypeScript)
+- **Database ORM**: [TypeORM](https://typeorm.io/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/)
+- **Authentication**: [Passport.js](http://www.passportjs.org/) (`passport-jwt`, `passport-local`)
+- **Validation**: `class-validator`, `class-transformer`
+- **File Handling**: `multer`
+- **Password Hashing**: `bcrypt`
 
-```bash
-$ npm install
-```
+---
 
-## Compile and run the project
+## Getting Started
 
-```bash
-# development
-$ npm run start
+### Prerequisites
 
-# watch mode
-$ npm run start:dev
+- [Node.js](https://nodejs.org/) (v18 or newer recommended)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- A running [PostgreSQL](https://www.postgresql.org/download/) instance or [Docker](https://www.docker.com/)
 
-# production mode
-$ npm run start:prod
-```
+### Installation
 
-## Run tests
+1.  **Clone the repository:**
+    ```bash
+    git clone <your-repo-url>
+    cd <repo-folder>/backend
+    ```
 
-```bash
-# unit tests
-$ npm run test
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-# e2e tests
-$ npm run test:e2e
+### Environment Variables
 
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Create a `.env` file in the `backend` directory. You can copy the example file to get started:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+cp .env.example .env
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Now, fill in the `.env` file with your specific configuration.
 
-## Resources
+```dotenv
+# Database Connection
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres      # Your PostgreSQL username
+DB_PASSWORD=your_password # Your PostgreSQL password
+DB_DATABASE=binhinav_db   # The name for your database
 
-Check out a few resources that may come in handy when working with NestJS:
+# JWT Authentication
+JWT_SECRET=aVeryStrongAndSecretKeyThatYouShouldChange
+JWT_EXPIRATION_TIME=3600s # e.g., 60s, 1h, 7d
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# Initial Admin User (for database seeding)
+SEED_ADMIN_USERNAME=admin
+SEED_ADMIN_PASSWORD=password123
+```
 
-## Support
+### Running the Application
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+-   **Development Mode (with hot-reloading):**
+    ```bash
+    npm run start:dev
+    ```
+    The server will start on `http://localhost:3000`. The first time you run it, it will attempt to connect to the database, synchronize the schema (`synchronize: true` is enabled), and seed the initial data.
 
-## Stay in touch
+-   **Production Mode:**
+    ```bash
+    npm run build
+    npm run start:prod
+    ```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## API Endpoints Overview
 
-## License
+The API is served with a global prefix of `/api`.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+-   `POST /api/auth/login`: Authenticate and receive a JWT.
+-   `GET /api/auth/profile`: Get the current user's profile from their token.
+-   `/api/places`: CRUD for places.
+-   `/api/merchants`: CRUD for merchants.
+-   `/api/admins`: Endpoints for admin self-management.
+-   `/api/floor-plans`: CRUD for floor plans.
+-   `/api/kiosks`: CRUD for kiosks.
+-   `/api/ads`: CRUD for advertisements.
+-   `/api/categories`: CRUD for categories.
+-   `/api/audit-logs/merchant-changes`: View changes made by merchants.
+
+Uploaded files are served from the `/uploads/` route. For example, a file stored at `uploads/places/logo.png` will be accessible at `http://localhost:3000/uploads/places/logo.png`.
