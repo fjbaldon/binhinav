@@ -62,7 +62,7 @@ Now, edit the `.env` file to point to your running backend API.
 
 ```dotenv
 # The full URL of your running backend server
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:3000/api
 ```
 
 ### Running the Application
