@@ -53,8 +53,8 @@ export default function PlacesPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingPlace, setEditingPlace] = useState<Place | null>(null);
 
-    const form = useForm<z.infer<typeof placeSchema>>({
-        resolver: zodResolver(placeSchema) as any,
+    const form = useForm({
+        resolver: zodResolver(placeSchema),
     });
 
     // Fetch all required data in parallel

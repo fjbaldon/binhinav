@@ -25,7 +25,7 @@ type StoreInfoFormValues = z.infer<typeof storeInfoSchema>;
 export default function StoreInformationPage() {
     const { user } = useAuth();
 
-    const form = useForm<StoreInfoFormValues>({
+    const form = useForm({
         resolver: zodResolver(storeInfoSchema),
     });
 

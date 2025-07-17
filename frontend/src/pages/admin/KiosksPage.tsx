@@ -37,7 +37,7 @@ export default function KiosksPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingKiosk, setEditingKiosk] = useState<Kiosk | null>(null);
 
-    const form = useForm<z.input<typeof kioskSchema>, any, KioskFormValues>({ resolver: zodResolver(kioskSchema) });
+    const form = useForm({ resolver: zodResolver(kioskSchema) });
 
     const fetchData = async () => {
         try {

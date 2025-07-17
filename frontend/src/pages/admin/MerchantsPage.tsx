@@ -34,7 +34,7 @@ export default function MerchantsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingMerchant, setEditingMerchant] = useState<Merchant | null>(null);
 
-    const form = useForm<MerchantFormValues>({
+    const form = useForm({
         resolver: zodResolver(merchantSchema),
     });
 

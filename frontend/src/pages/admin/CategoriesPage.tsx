@@ -31,7 +31,7 @@ export default function CategoriesPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-    const form = useForm<CategoryFormValues>({
+    const form = useForm({
         resolver: zodResolver(categorySchema),
         defaultValues: { name: "", iconKey: "" },
     });

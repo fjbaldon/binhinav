@@ -21,7 +21,7 @@ type CredentialsFormValues = z.infer<typeof credentialsSchema>;
 
 export default function MerchantCredentialsPage() {
     const { user } = useAuth();
-    const form = useForm<CredentialsFormValues>({
+    const form = useForm({
         resolver: zodResolver(credentialsSchema),
         defaultValues: { username: user?.username || '' }
     });

@@ -30,7 +30,7 @@ export default function FloorPlansPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingFloorPlan, setEditingFloorPlan] = useState<FloorPlan | null>(null);
 
-    const form = useForm<FloorPlanFormValues>({ resolver: zodResolver(floorPlanSchema) });
+    const form = useForm({ resolver: zodResolver(floorPlanSchema) });
 
     const fetchFloorPlans = async () => {
         try {
