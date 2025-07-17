@@ -1,42 +1,152 @@
-#root {
-  max-width: 1280px;
+/* Reset & global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f2f2f2;
+}
+
+/* Main container */
+.login-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Card */
+.login-box {
+  display: flex;
+  width: 850px;
+  height: 500px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  background-color: #fff;
+}
+
+/* Left panel */
+.left-panel {
+  flex: 1;
+  background-color: #022d38;
+  color: #fff;
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.left-panel h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.left-panel p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 90%;
   margin: 0 auto;
-  padding: 2rem;
+  color: #cfe9f3;
+}
+
+/* Right panel */
+.right-panel {
+  flex: 1;
+  padding: 3rem 2rem;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   text-align: center;
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  height: 60px;
+  margin-bottom: 0.5rem;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.right-panel h2 {
+  font-size: 1.2rem;
+  color: #022d38;
+  margin-bottom: 2rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Floating label group */
+.input-group {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1.5rem;
 }
 
-.card {
-  padding: 2em;
+.input-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #333;
+  outline: none;
+  height: 50px;
+  box-sizing: border-box;
 }
 
-.read-the-docs {
-  color: #888;
+.input-group input:focus {
+  border-color: #022d38;
+  box-shadow: 0 0 0 2px rgba(2, 45, 56, 0.2);
+}
+
+.input-group label {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  color: #999;
+  font-size: 0.95rem;
+  background-color: #fff;
+  padding: 0 0.25rem;
+  transition: 0.2s ease all;
+  pointer-events: none;
+}
+
+/* Animate label when focused or filled */
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label {
+  top: -0.6rem;
+  left: 0.8rem;
+  font-size: 0.75rem;
+  color: #022d38;
+}
+
+/* Button styling */
+.login-form button {
+  width: 100%;
+  height: 50px;
+  padding: 0.75rem;
+  background-color: #022d38;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 500;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+.login-form {
+  width: 70%;
+}
+
+.login-form button:hover {
+  background-color: #03475d;
 }
