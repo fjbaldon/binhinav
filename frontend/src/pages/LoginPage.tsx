@@ -55,7 +55,6 @@ export default function LoginPage() {
                             <Input
                                 id="username"
                                 type="text"
-                                placeholder="admin"
                                 {...form.register("username")}
                             />
                             {form.formState.errors.username && <p className="text-sm text-red-500">{form.formState.errors.username.message}</p>}
