@@ -41,8 +41,8 @@ export default function MerchantCredentialsPage() {
 
         try {
             await apiClient.patch('/merchants/me', payload);
-            toast.info("Nothing to update", {
-                description: "Please enter a new username or password.",
+            toast.success("Credentials updated.", {
+                description: "You may need to log in again if you changed your username.",
             });
             form.reset({ username: data.username, password: '' });
         } catch (error: any) {
