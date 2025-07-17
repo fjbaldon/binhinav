@@ -6,8 +6,8 @@ import { AdminsService } from './admins.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 
-@Controller('admins')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Controller('admins')
 export class AdminsController {
     constructor(private readonly adminsService: AdminsService) { }
 
