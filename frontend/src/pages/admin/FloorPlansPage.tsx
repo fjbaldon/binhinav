@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Eye } from 'lucide-react';
 
 interface FloorPlan {
     id: string;
@@ -29,6 +29,8 @@ export default function FloorPlansPage() {
     const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingFloorPlan, setEditingFloorPlan] = useState<FloorPlan | null>(null);
+
+    const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
 
     const form = useForm<FloorPlanFormValues>({ resolver: zodResolver(floorPlanSchema) });
 
@@ -130,6 +132,9 @@ export default function FloorPlansPage() {
                                     </TableCell>
                                     <TableCell className="font-medium">{fp.name}</TableCell>
                                     <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => setViewingImageUrl(fp.imageUrl)}>
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
                                         <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(fp)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -152,7 +157,6 @@ export default function FloorPlansPage() {
                             Provide a name and image for the floor layout.
                         </DialogDescription>
                     </DialogHeader>
-                    {/* --- FORM IMPROVEMENTS START HERE --- */}
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
                         <div className="space-y-2">
                             <Label htmlFor="name">Floor Name (e.g., "Ground Floor", "Level 1")</Label>
@@ -167,8 +171,6 @@ export default function FloorPlansPage() {
                             </p>
                             <p className="text-sm text-red-500">{typeof form.formState.errors.image?.message === "string" ? form.formState.errors.image?.message : ""}</p>
                         </div>
-
-                        {/* --- ADDED IMAGE PREVIEW --- */}
                         {editingFloorPlan && editingFloorPlan.imageUrl && (
                             <div className="space-y-2">
                                 <Label>Current Image</Label>
@@ -179,11 +181,25 @@ export default function FloorPlansPage() {
                                 />
                             </div>
                         )}
-
                         <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
                             {form.formState.isSubmitting ? "Saving..." : "Save Floor Plan"}
                         </Button>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!viewingImageUrl} onOpenChange={(isOpen) => !isOpen && setViewingImageUrl(null)}>
+                <DialogContent className="max-w-4xl p-4">
+                    <DialogHeader>
+                        <DialogTitle>Floor Plan Preview</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <img
+                            src={getAssetUrl(viewingImageUrl)}
+                            alt="Floor Plan Preview"
+                            className="w-full h-auto max-h-[80vh] object-contain rounded-md"
+                        />
+                    </div>
                 </DialogContent>
             </Dialog>
         </>
