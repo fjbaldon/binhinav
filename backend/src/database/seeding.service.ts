@@ -42,17 +42,19 @@ export class SeedingService implements OnModuleInit {
         const categoryCount = await this.categoryRepository.count();
         if (categoryCount === 0) {
             this.logger.log('No categories found. Seeding initial categories...');
+            // --- THE FIX IS HERE ---
+            // Updated iconKeys to match the lucide-react names from the frontend
             const defaultCategories = [
-                { name: 'General Merchandise', iconKey: 'FaStore' },
-                { name: 'Food & Beverage', iconKey: 'IoFastFood' },
-                { name: 'Apparel & Accessories', iconKey: 'IoShirt' },
-                { name: 'Home & Garden', iconKey: 'FaHome' },
-                { name: 'Electronics & Technology', iconKey: 'MdPhoneIphone' },
-                { name: 'Health & Beauty', iconKey: 'FaHeartbeat' },
-                { name: 'Books, Music & Entertainment', iconKey: 'FaMusic' },
-                { name: 'Automotive & Industrial', iconKey: 'FaCar' },
-                { name: 'Specialty & Niche Stores', iconKey: 'FaStar' },
-                { name: 'Services', iconKey: 'FaConciergeBell' },
+                { name: 'General Merchandise', iconKey: 'Store' },
+                { name: 'Food & Beverage', iconKey: 'Utensils' },
+                { name: 'Apparel & Accessories', iconKey: 'Shirt' },
+                { name: 'Home & Garden', iconKey: 'Home' },
+                { name: 'Electronics & Technology', iconKey: 'Smartphone' },
+                { name: 'Health & Beauty', iconKey: 'HeartPulse' },
+                { name: 'Books, Music & Entertainment', iconKey: 'Music' },
+                { name: 'Automotive & Industrial', iconKey: 'Car' },
+                { name: 'Specialty & Niche Stores', iconKey: 'Star' },
+                { name: 'Services', iconKey: 'ConciergeBell' },
             ];
             await this.categoryRepository.save(defaultCategories);
         }
