@@ -21,13 +21,11 @@ export class PlacesController {
 
     @Post()
     @Roles(Role.Admin)
-    // The FileFieldsInterceptor is removed as admins no longer upload images on creation.
     create(@Body() createPlaceDto: CreatePlaceDto) {
-        // The service call is simplified, no longer passing file paths.
         return this.placesService.create(createPlaceDto);
     }
 
-    // This endpoint is for the public kiosk view, so no roles needed, just needs to be a valid route
+    // This endpoint is for the public kiosk view, so no roles needed
     @Get()
     findAll(
         @Query('search') searchTerm?: string,
@@ -38,16 +36,16 @@ export class PlacesController {
     }
 
     @Get(':id')
-    // This could be public or admin-only, let's make it public for now
+    // This is public for fetching place details on the kiosk
     findOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.placesService.findOne(id);
     }
 
     @Patch(':id')
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.Admin, Role.Merchant) // <-- See secondary requirement below
+    @Roles(Role.Admin, Role.Merchant)
     @UseInterceptors(
-        FileFieldsInterceptor([ // Also use it here for updates
+        FileFieldsInterceptor([
             { name: 'logo', maxCount: 1 },
             { name: 'cover', maxCount: 1 },
         ], {

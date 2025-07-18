@@ -15,24 +15,23 @@ export class Kiosk {
     @Column({ unique: true })
     name: string; // e.g., "Main Entrance Kiosk", "West Wing Kiosk"
 
-    // Location on the map (e.g., pixel coordinates)
     @Column('float')
     locationX: number;
 
     @Column('float')
     locationY: number;
 
+    // By setting nullable to false and using JoinColumn, TypeORM ensures
+    // a `floorPlanId` column is created and required in the database.
     @ManyToOne(() => FloorPlan, (floorPlan) => floorPlan.kiosks, {
-        // Eager loading automatically includes the floor plan when we fetch a kiosk.
-        // This is useful for the public endpoint where the kiosk needs to know its floor.
         eager: true,
-        onDelete: 'SET NULL', // If a floor plan is deleted, the kiosk remains but its floorPlanId becomes null.
-        nullable: false, // A kiosk must always be on a floor plan.
+        onDelete: 'CASCADE', // If a floor plan is deleted, its kiosks are also deleted.
+        nullable: false, // A kiosk MUST belong to a floor plan.
     })
     @JoinColumn({ name: 'floorPlanId' }) // Explicitly name the foreign key column
     floorPlan: FloorPlan;
 
-    // TypeORM also automatically creates a `floorPlanId` column, but this makes it explicit.
-    @Column({ nullable: true })
-    floorPlanId: string;
+    // The explicit `floorPlanId` column is removed. TypeORM handles it.
+    // If you need the ID, you can get it from the loaded `floorPlan` object.
+    // For DTOs, you will continue to pass `floorPlanId` and the service will handle the relation.
 }

@@ -1,22 +1,24 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    ConflictException,
+    ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
-import { FloorPlan } from 'src/floor-plans/entities/floor-plan.entity';
-import { Merchant } from 'src/merchants/entities/merchant.entity';
+import { ILike, Repository, DeepPartial } from 'typeorm';
+import { Place } from './entities/place.entity';
 import { CreatePlaceDto } from './dto/create-place.dto';
 import { UpdatePlaceDto } from './dto/update-place.dto';
-import { Place } from './entities/place.entity';
-import { ForbiddenException } from '@nestjs/common';
 import { deleteFile } from '../shared/utils/file-helpers';
-import { Category } from 'src/categories/entities/category.entity';
 import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
 import { ActionType } from 'src/audit-logs/enums/action-type.enum';
+import { Role } from 'src/shared/enums/role.enum';
 
-// Define a simple user payload type for clarity
 interface UserPayload {
     userId: string;
     username: string;
     role: string;
+    placeId?: string;
 }
 
 interface FindAllPlacesOptions {
@@ -33,7 +35,7 @@ export class PlacesService {
     ) { }
 
     async create(createPlaceDto: CreatePlaceDto): Promise<Place> {
-        const { floorPlanId, merchantId, categoryId, ...placeDetails } = createPlaceDto;
+        const { floorPlanId, merchantId, ...placeDetails } = createPlaceDto;
 
         if (merchantId) {
             const existingPlace = await this.placesRepository.findOne({ where: { merchant: { id: merchantId } } });
@@ -42,48 +44,40 @@ export class PlacesService {
             }
         }
 
-        const newPlace = this.placesRepository.create({
+        const newPlaceData: DeepPartial<Place> = {
             ...placeDetails,
-            floorPlan: { id: floorPlanId } as FloorPlan,
-            ...(merchantId && { merchant: { id: merchantId } as Merchant }),
-            ...(categoryId && { category: { id: categoryId } as Category }),
-            // The lines for logoUrl and coverUrl are removed. They will be null by default.
-        });
+            floorPlan: { id: floorPlanId },
+            ...(merchantId && { merchant: { id: merchantId } }),
+        };
 
+        const newPlace = this.placesRepository.create(newPlaceData);
         return this.placesRepository.save(newPlace);
     }
 
     async findAll(options: FindAllPlacesOptions = {}): Promise<Place[]> {
         const { searchTerm, categoryId } = options;
+        const queryBuilder = this.placesRepository.createQueryBuilder('place');
 
-        // We will build the `where` clause for the find method.
-        // When `where` is an array, TypeORM treats it as an OR condition.
-        let whereConditions: any[] = [];
+        // Eagerly load relations for the final result
+        queryBuilder
+            .leftJoinAndSelect('place.floorPlan', 'floorPlan')
+            .leftJoinAndSelect('place.merchant', 'merchant')
+            .leftJoinAndSelect('place.category', 'category');
 
-        if (searchTerm) {
-            // If a search term is provided, search in both name and description.
-            // ILike is a case-insensitive LIKE operator.
-            whereConditions.push({ name: ILike(`%${searchTerm}%`) });
-            whereConditions.push({ description: ILike(`%${searchTerm}%`) });
-        } else {
-            // If there's no search term, start with a blank condition to match all places.
-            whereConditions.push({});
-        }
-
+        // Apply category filter if provided
         if (categoryId) {
-            whereConditions = whereConditions.map(condition => ({
-                ...condition,
-                // This tells TypeORM to filter places where the related category's id matches
-                category: { id: categoryId },
-            }));
+            queryBuilder.andWhere('place.categoryId = :categoryId', { categoryId });
         }
 
-        return this.placesRepository.find({
-            // The `where` clause handles our filtering.
-            where: whereConditions,
-            // We still load the relations so the frontend gets the full info.
-            relations: ['floorPlan', 'merchant', 'category'],
-        });
+        // Apply search term filter if provided
+        if (searchTerm) {
+            queryBuilder.andWhere(
+                '(place.name ILIKE :searchTerm OR place.description ILIKE :searchTerm)',
+                { searchTerm: `%${searchTerm}%` },
+            );
+        }
+
+        return queryBuilder.getMany();
     }
 
     async findOne(id: string): Promise<Place> {
@@ -101,7 +95,7 @@ export class PlacesService {
         id: string,
         updatePlaceDto: UpdatePlaceDto,
         user: UserPayload,
-        paths: { logoPath?: string, coverPath?: string },
+        paths: { logoPath?: string; coverPath?: string },
     ): Promise<Place> {
         const placeToUpdate = await this.placesRepository.findOne({
             where: { id },
@@ -112,92 +106,69 @@ export class PlacesService {
             throw new NotFoundException(`Place with ID "${id}" not found`);
         }
 
-        // We only log changes made by merchants, as per the requirement.
-        if (user.role === 'merchant') {
-            // You can build a more detailed "changes" object by comparing
-            // `placeToUpdate` with `updatePlaceDto` field by field.
-            // For now, a simple summary is fine.
+        if (user.role === Role.Merchant && placeToUpdate.merchant?.id !== user.userId) {
+            throw new ForbiddenException('You do not have permission to update this place.');
+        }
+
+        if (user.role === Role.Merchant) {
             const changes = {
                 updatedFields: Object.keys(updatePlaceDto),
                 newLogoUploaded: !!paths.logoPath,
                 newCoverUploaded: !!paths.coverPath,
             };
-
-            // Non-blocking call to create the log entry
             this.auditLogsService.create({
-                entityType: 'Place',
-                entityId: id,
-                action: ActionType.UPDATE,
-                changes: changes,
-                userId: user.userId,
-                username: user.username,
-                userRole: user.role,
+                entityType: 'Place', entityId: id, action: ActionType.UPDATE,
+                changes: changes, userId: user.userId, username: user.username, userRole: user.role,
             });
         }
 
-        // Cleanup old files if new ones are uploaded
-        if (paths.logoPath && placeToUpdate.logoUrl) {
-            await deleteFile(placeToUpdate.logoUrl);
-        }
-        if (paths.coverPath && placeToUpdate.coverUrl) {
-            await deleteFile(placeToUpdate.coverUrl);
-        }
+        if (paths.logoPath && placeToUpdate.logoUrl) await deleteFile(placeToUpdate.logoUrl);
+        if (paths.coverPath && placeToUpdate.coverUrl) await deleteFile(placeToUpdate.coverUrl);
 
-        if (user.role === 'merchant' && placeToUpdate.merchant?.id !== user.userId) {
-            throw new ForbiddenException('You do not have permission to update this place.');
-        }
+        const updatePayload: { [key: string]: any } = {};
 
-        const { floorPlanId, merchantId, categoryId, ...placeDetails } = updatePlaceDto;
+        if (user.role === Role.Admin) {
+            if (updatePlaceDto.name !== undefined) updatePayload.name = updatePlaceDto.name;
+            if (updatePlaceDto.locationX !== undefined) updatePayload.locationX = updatePlaceDto.locationX;
+            if (updatePlaceDto.locationY !== undefined) updatePayload.locationY = updatePlaceDto.locationY;
+            if (updatePlaceDto.floorPlanId) updatePayload.floorPlan = { id: updatePlaceDto.floorPlanId };
 
-        if (merchantId) {
-            // Check if the target merchant is already assigned to ANOTHER place
-            const existingPlace = await this.placesRepository.findOne({ where: { merchant: { id: merchantId } } });
-            if (existingPlace && existingPlace.id !== id) {
-                throw new ConflictException(`Merchant with ID ${merchantId} is already assigned to place "${existingPlace.name}".`);
+            if ('merchantId' in updatePlaceDto) {
+                if (updatePlaceDto.merchantId) {
+                    const existingPlace = await this.placesRepository.findOne({ where: { merchant: { id: updatePlaceDto.merchantId } } });
+                    if (existingPlace && existingPlace.id !== id) {
+                        throw new ConflictException(`Merchant is already assigned to place "${existingPlace.name}".`);
+                    }
+                }
+                updatePayload.merchant = updatePlaceDto.merchantId ? { id: updatePlaceDto.merchantId } : null;
             }
+        } else if (user.role === Role.Merchant) {
+            if (updatePlaceDto.name !== undefined) updatePayload.name = updatePlaceDto.name;
+            if (updatePlaceDto.description !== undefined) updatePayload.description = updatePlaceDto.description;
+            if (updatePlaceDto.businessHours !== undefined) updatePayload.businessHours = updatePlaceDto.businessHours;
+
+            if ('categoryId' in updatePlaceDto) {
+                updatePayload.category = updatePlaceDto.categoryId ? { id: updatePlaceDto.categoryId } : null;
+            }
+
+            if (paths.logoPath) updatePayload.logoUrl = paths.logoPath;
+            if (paths.coverPath) updatePayload.coverUrl = paths.coverPath;
         }
 
-        const updatePayload: any = { ...placeDetails };
+        const updatedPlace = await this.placesRepository.preload({
+            id,
+            ...updatePayload,
+        } as DeepPartial<Place>);
 
-        if (floorPlanId) updatePayload.floorPlan = { id: floorPlanId };
-
-        // --- THE FIX IS HERE ---
-        // This checks if 'merchantId' was present in the request body at all.
-        // It allows us to explicitly set the merchant to null (unassign).
-        if ('merchantId' in updatePlaceDto) {
-            // If a merchantId is provided, create the relation object.
-            // If the provided merchantId is null, it will set the relation to null, effectively removing it.
-            updatePayload.merchant = merchantId ? { id: merchantId } : null;
-        }
-
-
-        // This checks if 'categoryId' was present in the request body at all.
-        if ('categoryId' in updatePlaceDto) {
-            // If a categoryId is provided, create the relation object.
-            // If the provided categoryId is null, it will set the relation to null, effectively removing it.
-            updatePayload.category = categoryId ? { id: categoryId } : null;
-        }
-
-        // Add new paths to payload
-        if (paths.logoPath) updatePayload.logoUrl = paths.logoPath;
-        if (paths.coverPath) updatePayload.coverUrl = paths.coverPath;
-
-        const updatedPlace = await this.placesRepository.preload({ id, ...updatePayload });
-
-        if (!updatedPlace) throw new NotFoundException(`Place with ID "${id}" not found`);
+        if (!updatedPlace) throw new NotFoundException(`Place with ID "${id}" could not be preloaded.`);
         return this.placesRepository.save(updatedPlace);
     }
 
     async remove(id: string): Promise<void> {
         const placeToDelete = await this.findOne(id);
 
-        // Cleanup both files on deletion
-        if (placeToDelete.logoUrl) {
-            await deleteFile(placeToDelete.logoUrl);
-        }
-        if (placeToDelete.coverUrl) {
-            await deleteFile(placeToDelete.coverUrl);
-        }
+        if (placeToDelete.logoUrl) await deleteFile(placeToDelete.logoUrl);
+        if (placeToDelete.coverUrl) await deleteFile(placeToDelete.coverUrl);
 
         const result = await this.placesRepository.delete(id);
         if (result.affected === 0) {

@@ -54,8 +54,7 @@ export default function LoginPage() {
                 <img src="/binhinav-logo.svg" alt="Binhinav Logo" className="h-20 w-20 shrink-0 md:h-28 md:w-28" />
 
                 <div className="flex flex-col">
-                    {/* --- THE FIX IS HERE --- */}
-                    {/* Applying a small negative margin to optically align the text */}
+                    {/* A small negative margin helps optically align the text with the logo */}
                     <h1 className="text-5xl font-extrabold text-primary md:text-6xl -ml-0.5">binhinav</h1>
                     <p className="text-muted-foreground">locate indoors</p>
                 </div>

@@ -42,8 +42,7 @@ export class SeedingService implements OnModuleInit {
         const categoryCount = await this.categoryRepository.count();
         if (categoryCount === 0) {
             this.logger.log('No categories found. Seeding initial categories...');
-            // --- THE FIX IS HERE ---
-            // Updated iconKeys to match the lucide-react names from the frontend
+            // iconKeys match the lucide-react names from the frontend
             const defaultCategories = [
                 { name: 'General Merchandise', iconKey: 'Store' },
                 { name: 'Food & Beverage', iconKey: 'Utensils' },

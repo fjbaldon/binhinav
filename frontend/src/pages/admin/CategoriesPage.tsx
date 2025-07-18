@@ -19,7 +19,6 @@ import {
 
 import {
     PlusCircle, Edit, Trash2, Store, Utensils, Shirt, Home, Smartphone, HeartPulse, Music, Car, Star, ConciergeBell, ShoppingBag, Salad, Book, Watch, Gem, Gift, Building2, Ticket, Camera, Scissors, Banknote, ToyBrick,
-    // --- THE 10 NEW ICONS ---
     Landmark, Coffee, CakeSlice, Dumbbell, Pill, PawPrint, Film, Wrench, Glasses, Baby
 } from 'lucide-react';
 
@@ -32,7 +31,6 @@ interface Category {
 
 // Define the available icons for selection
 const availableIcons = [
-    // Existing Icons
     { name: 'Store', component: Store },
     { name: 'Utensils', component: Utensils },
     { name: 'Shirt', component: Shirt },

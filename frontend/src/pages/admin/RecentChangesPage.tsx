@@ -43,7 +43,6 @@ export default function RecentChangesPage() {
     const renderActionBadge = (action: string) => {
         switch (action) {
             case 'UPDATE': return <Badge variant="default" className="bg-blue-500 hover:bg-blue-600">Update</Badge>;
-            // --- A small visual improvement for badges ---
             case 'CREATE': return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Create</Badge>;
             case 'DELETE': return <Badge variant="destructive">Delete</Badge>;
             default: return <Badge variant="secondary">{action}</Badge>;
@@ -51,28 +50,28 @@ export default function RecentChangesPage() {
     }
 
     const renderChanges = (changes: any) => {
-        // --- IMPROVED CHANGE RENDERING ---
-        if (!changes || !changes.updatedFields || changes.updatedFields.length === 0) {
-            if (changes.newLogoUploaded || changes.newCoverUploaded) {
-                const uploads = [];
-                if (changes.newLogoUploaded) uploads.push('Logo');
-                if (changes.newCoverUploaded) uploads.push('Cover');
-                return `Uploaded new ${uploads.join(' & ')}`;
-            }
+        if (!changes) {
+            return <span className="text-muted-foreground">No details</span>;
+        }
+
+        const changeBadges = [];
+        if (changes.updatedFields) {
+            changes.updatedFields.forEach((field: string) => {
+                changeBadges.push(<Badge variant="outline" key={field}>{field}</Badge>);
+            });
+        }
+        if (changes.newLogoUploaded) {
+            changeBadges.push(<Badge variant="outline" key="logo">logo</Badge>);
+        }
+        if (changes.newCoverUploaded) {
+            changeBadges.push(<Badge variant="outline" key="cover">cover</Badge>);
+        }
+
+        if (changeBadges.length === 0) {
             return <span className="text-muted-foreground">No field changes</span>;
         }
 
-        // This part seems to be designed for a different `changes` structure. 
-        // Let's adjust it to work with the one from `places.service.ts`: `{ updatedFields: [...] }`
-        return (
-            <div className='flex flex-wrap gap-1'>
-                {changes.updatedFields.map((field: string) => (
-                    <Badge variant="outline" key={field}>{field}</Badge>
-                ))}
-                {changes.newLogoUploaded && <Badge variant="outline" key="logo">logo</Badge>}
-                {changes.newCoverUploaded && <Badge variant="outline" key="cover">cover</Badge>}
-            </div>
-        );
+        return <div className='flex flex-wrap gap-1'>{changeBadges}</div>;
     };
 
     return (

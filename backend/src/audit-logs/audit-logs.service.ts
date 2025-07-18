@@ -20,12 +20,9 @@ export class AuditLogsService {
     async create(createAuditLogDto: CreateAuditLogDto): Promise<void> {
         try {
             const newLog = this.auditLogRepository.create(createAuditLogDto);
-            // We just want to save it, not return it.
             await this.auditLogRepository.save(newLog);
         } catch (error) {
             this.logger.error('Failed to create audit log', error.stack);
-            // Now, this path implicitly returns 'undefined', which is compatible
-            // with the 'Promise<void>' return type. The error is gone!
         }
     }
 

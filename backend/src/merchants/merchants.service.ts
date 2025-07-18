@@ -24,9 +24,16 @@ export class MerchantsService {
             // The password will be hashed automatically by the @BeforeInsert hook.
             return await this.merchantsRepository.save(newMerchant);
         } catch (error) {
-            // Catch unique constraint violation on the placeId foreign key
+            // Catch unique constraint violation on the placeId or username
             if (error.code === '23505') { // PostgreSQL's unique violation code
-                throw new ConflictException(`The selected place is already assigned to another merchant.`);
+                if (error.detail?.includes('username')) {
+                    throw new ConflictException(`Username "${createMerchantDto.username}" is already taken.`);
+                }
+                if (error.detail?.includes('placeId')) {
+                    throw new ConflictException(`The selected place is already assigned to another merchant.`);
+                }
+                // Generic fallback for other unique constraints
+                throw new ConflictException('A unique constraint was violated. Please check the provided data.');
             }
             throw error; // Rethrow other errors
         }
@@ -39,7 +46,10 @@ export class MerchantsService {
     }
 
     async findOne(id: string): Promise<Merchant> {
-        const merchant = await this.merchantsRepository.findOne({ where: { id } });
+        const merchant = await this.merchantsRepository.findOne({
+            where: { id },
+            relations: ['place']
+        });
         if (!merchant) {
             throw new NotFoundException(`Merchant with ID "${id}" not found`);
         }
@@ -47,6 +57,7 @@ export class MerchantsService {
     }
 
     async update(id: string, updateMerchantDto: UpdateMerchantDto): Promise<Merchant> {
+        // The password hash logic is handled by the @BeforeUpdate hook in the entity
         const merchant = await this.merchantsRepository.preload({
             id: id,
             ...updateMerchantDto,
@@ -54,7 +65,14 @@ export class MerchantsService {
         if (!merchant) {
             throw new NotFoundException(`Merchant with ID "${id}" not found`);
         }
-        return this.merchantsRepository.save(merchant);
+        try {
+            return await this.merchantsRepository.save(merchant);
+        } catch (error) {
+            if (error.code === '23505' && error.detail?.includes('username')) {
+                throw new ConflictException(`Username "${updateMerchantDto.username}" is already taken.`);
+            }
+            throw error;
+        }
     }
 
     async remove(id: string): Promise<void> {

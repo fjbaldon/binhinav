@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
 
 // Your NestJS backend URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export const apiClient = axios.create({
     baseURL: API_URL,
@@ -27,11 +27,16 @@ apiClient.interceptors.request.use(
 export const getAssetUrl = (path?: string | null) => {
     if (!path) return '';
 
-    // The API_URL is likely 'http://localhost:3000/api'.
-    // Static assets are served from the server's root URL ('http://localhost:3000').
-    // We derive this base URL by removing the '/api' suffix if it exists.
-    const serverBaseUrl = API_URL.replace(/\/api$/, '');
+    try {
+        // The API_URL could be 'http://localhost:3000/api' or 'https://api.example.com'.
+        // new URL().origin provides a robust way to get the base URL (e.g., 'http://localhost:3000').
+        const serverOrigin = new URL(API_URL).origin;
 
-    // Construct the full URL to the static asset.
-    return `${serverBaseUrl}/${path}`;
+        // Construct the full URL to the static asset.
+        return `${serverOrigin}/${path}`;
+    } catch (error) {
+        console.error("Invalid API_URL for generating asset URL:", API_URL);
+        // Fallback for invalid URLs, though less likely with environment variables.
+        return path;
+    }
 }
