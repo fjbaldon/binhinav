@@ -52,7 +52,6 @@ export default function PlacesPage() {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingPlace, setEditingPlace] = useState<Place | null>(null);
-    const [, setIsLoading] = useState(true);
 
     const form = useForm({
         resolver: zodResolver(placeSchema),
@@ -74,8 +73,6 @@ export default function PlacesPage() {
             setMerchants(merchRes.data);
         } catch (error) {
             toast.error("Failed to fetch page data");
-        } finally {
-            setIsLoading(false);
         }
     };
 
