@@ -26,6 +26,12 @@ apiClient.interceptors.request.use(
 // Function to serve static files from the backend
 export const getAssetUrl = (path?: string | null) => {
     if (!path) return '';
-    // The backend should be configured to serve the 'uploads' directory
-    return `${API_URL}/${path}`;
+
+    // The API_URL is likely 'http://localhost:3000/api'.
+    // Static assets are served from the server's root URL ('http://localhost:3000').
+    // We derive this base URL by removing the '/api' suffix if it exists.
+    const serverBaseUrl = API_URL.replace(/\/api$/, '');
+
+    // Construct the full URL to the static asset.
+    return `${serverBaseUrl}/${path}`;
 }
