@@ -89,7 +89,7 @@ export class PlacesService {
     async findOne(id: string): Promise<Place> {
         const place = await this.placesRepository.findOne({
             where: { id },
-            relations: ['floorPlan', 'merchant'],
+            relations: ['floorPlan', 'merchant', 'category'],
         });
         if (!place) {
             throw new NotFoundException(`Place with ID "${id}" not found`);
@@ -160,7 +160,16 @@ export class PlacesService {
         const updatePayload: any = { ...placeDetails };
 
         if (floorPlanId) updatePayload.floorPlan = { id: floorPlanId };
-        if (merchantId) updatePayload.merchant = { id: merchantId };
+
+        // --- THE FIX IS HERE ---
+        // This checks if 'merchantId' was present in the request body at all.
+        // It allows us to explicitly set the merchant to null (unassign).
+        if ('merchantId' in updatePlaceDto) {
+            // If a merchantId is provided, create the relation object.
+            // If the provided merchantId is null, it will set the relation to null, effectively removing it.
+            updatePayload.merchant = merchantId ? { id: merchantId } : null;
+        }
+
 
         // This checks if 'categoryId' was present in the request body at all.
         if ('categoryId' in updatePlaceDto) {

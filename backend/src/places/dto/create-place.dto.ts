@@ -1,6 +1,7 @@
 import {
     IsNotEmpty, IsString, IsOptional, IsNumber, IsUUID,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreatePlaceDto {
     @IsString()
@@ -13,6 +14,7 @@ export class CreatePlaceDto {
 
     @IsUUID()
     @IsOptional()
+    @Transform(({ value }) => (value === '' || value === 'null' ? null : value))
     categoryId?: string;
 
     @IsString()

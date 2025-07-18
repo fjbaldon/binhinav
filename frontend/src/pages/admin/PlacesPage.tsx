@@ -35,7 +35,7 @@ const placeSchema = z.object({
     locationX: z.coerce.number({ message: "Please select a location on the map." }),
     locationY: z.coerce.number({ message: "Please select a location on the map." }),
     floorPlanId: z.uuid("A floor plan must be selected."),
-    merchantId: z.uuid().optional(),
+    merchantId: z.string().uuid().nullable().optional(), // Allow null for unassignment
 });
 
 type PlaceFormValues = z.infer<typeof placeSchema>;
@@ -61,7 +61,7 @@ export default function PlacesPage() {
     const [viewingPlace, setViewingPlace] = useState<Place | null>(null);
     const [selectedCoords, setSelectedCoords] = useState<[number, number] | null>(null);
 
-    const form = useForm({
+    const form = useForm({ // Use inferred type here
         resolver: zodResolver(placeSchema),
     });
 
@@ -217,7 +217,10 @@ export default function PlacesPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Assign Merchant (Optional)</Label>
-                                    <Select onValueChange={(v) => form.setValue('merchantId', v === 'none' ? undefined : v)} defaultValue={form.getValues('merchantId')}>
+                                    <Select
+                                        onValueChange={(v) => form.setValue('merchantId', v === 'none' ? null : v)}
+                                        defaultValue={form.getValues('merchantId') || 'none'}
+                                    >
                                         <SelectTrigger className="w-full"><SelectValue placeholder="Assign Merchant" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Unassigned</SelectItem>
