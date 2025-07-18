@@ -36,6 +36,7 @@ export default function KiosksPage() {
     const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingKiosk, setEditingKiosk] = useState<Kiosk | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     const form = useForm({ resolver: zodResolver(kioskSchema) });
 
@@ -49,6 +50,8 @@ export default function KiosksPage() {
             setFloorPlans(floorPlansRes.data);
         } catch (error) {
             toast.error("Failed to fetch data");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -108,11 +111,11 @@ export default function KiosksPage() {
                     <h2 className="text-3xl font-bold tracking-tight">Kiosks</h2>
                     <p className="text-muted-foreground">Manage physical kiosk locations.</p>
                 </div>
-                <Button onClick={() => handleOpenDialog()} disabled={floorPlans.length === 0}>
+                <Button onClick={() => handleOpenDialog()} disabled={isLoading || floorPlans.length === 0}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Kiosk
                 </Button>
             </div>
-            {floorPlans.length === 0 && <p className="text-orange-500 mb-4">You must create a Floor Plan before you can add a Kiosk.</p>}
+            {!isLoading && floorPlans.length === 0 && <p className="text-orange-500 mb-4">You must create a Floor Plan before you can add a Kiosk.</p>}
 
             <Card>
                 <CardContent className="pt-6">

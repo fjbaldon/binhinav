@@ -52,6 +52,7 @@ export default function PlacesPage() {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingPlace, setEditingPlace] = useState<Place | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     const form = useForm({
         resolver: zodResolver(placeSchema),
@@ -60,6 +61,7 @@ export default function PlacesPage() {
     // Fetch all required data in parallel
     const fetchData = async () => {
         try {
+            setIsLoading(true);
             const [placesRes, catRes, fpRes, merchRes] = await Promise.all([
                 apiClient.get<Place[]>("/places"),
                 apiClient.get<Category[]>("/categories"),
@@ -72,6 +74,8 @@ export default function PlacesPage() {
             setMerchants(merchRes.data);
         } catch (error) {
             toast.error("Failed to fetch page data");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -152,11 +156,11 @@ export default function PlacesPage() {
                     <h2 className="text-3xl font-bold tracking-tight">Places</h2>
                     <p className="text-muted-foreground">Manage all store locations, details, and assignments.</p>
                 </div>
-                <Button onClick={() => handleOpenDialog()} disabled={floorPlans.length === 0}>
+                <Button onClick={() => handleOpenDialog()} disabled={isLoading || floorPlans.length === 0}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Place
                 </Button>
             </div>
-            {floorPlans.length === 0 && <p className="text-orange-500 mb-4">You must create a Floor Plan before you can add a Place.</p>}
+            {!isLoading && floorPlans.length === 0 && <p className="text-orange-500 mb-4">You must create a Floor Plan before you can add a Place.</p>}
 
             <Card>
                 <CardContent className="pt-6">
