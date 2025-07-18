@@ -195,7 +195,7 @@ export default function KiosksPage() {
                             <div className="space-y-2">
                                 <Label>Floor Plan</Label>
                                 <Select onValueChange={(value) => { form.setValue('floorPlanId', value); setSelectedCoords(null); form.setValue('locationX', undefined); form.setValue('locationY', undefined); }} defaultValue={form.getValues('floorPlanId')}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Select a floor plan" />
                                     </SelectTrigger>
                                     <SelectContent>
