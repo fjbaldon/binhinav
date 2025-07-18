@@ -51,6 +51,7 @@ export default function AdsPage() {
     };
 
     useEffect(() => {
+        document.title = "Advertisements | Binhinav Admin";
         fetchAds();
     }, []);
 

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 const loginSchema = z.object({
     username: z.string().min(1, { message: "Username is required" }),
@@ -20,6 +21,10 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
     const navigate = useNavigate();
     const { login } = useAuth();
+
+    useEffect(() => {
+        document.title = "Login | Binhinav";
+    }, []);
 
     const form = useForm({
         resolver: zodResolver(loginSchema),
@@ -59,7 +64,7 @@ export default function LoginPage() {
             {/* Right Section: Login Form */}
             <Card className="w-full max-w-sm shrink-0">
                 <CardHeader>
-                    <CardTitle className="text-2xl">Panel Login</CardTitle>
+                    <CardTitle className="text-2xl">Login</CardTitle>
                     <CardDescription>Enter your credentials to access your panel.</CardDescription>
                 </CardHeader>
                 <CardContent>

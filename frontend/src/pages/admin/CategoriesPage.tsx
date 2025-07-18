@@ -46,6 +46,7 @@ export default function CategoriesPage() {
     };
 
     useEffect(() => {
+        document.title = "Categories | Binhinav Admin";
         fetchCategories();
     }, []);
 

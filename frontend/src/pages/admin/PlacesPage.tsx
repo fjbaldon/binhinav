@@ -76,6 +76,7 @@ export default function PlacesPage() {
     };
 
     useEffect(() => {
+        document.title = "Places | Binhinav Admin";
         fetchData();
     }, []);
 

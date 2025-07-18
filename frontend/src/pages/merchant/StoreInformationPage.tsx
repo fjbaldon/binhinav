@@ -30,6 +30,7 @@ export default function StoreInformationPage() {
     });
 
     useEffect(() => {
+        document.title = "Store Information | Binhinav Merchant";
         if (!user?.placeId) return;
 
         const fetchPlaceData = async () => {

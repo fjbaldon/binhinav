@@ -48,6 +48,7 @@ export default function MerchantsPage() {
     };
 
     useEffect(() => {
+        document.title = "Merchants | Binhinav Admin";
         fetchMerchants();
     }, []);
 

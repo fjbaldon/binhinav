@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useEffect } from "react";
 
 const credentialsSchema = z.object({
     username: z.string().min(4, "Username must be at least 4 characters.").optional().or(z.literal('')),
@@ -21,6 +22,11 @@ type CredentialsFormValues = z.infer<typeof credentialsSchema>;
 
 export default function MerchantCredentialsPage() {
     const { user } = useAuth();
+
+    useEffect(() => {
+        document.title = "Credentials | Binhinav Merchant";
+    }, []);
+    
     const form = useForm({
         resolver: zodResolver(credentialsSchema),
         defaultValues: { username: user?.username || '' }

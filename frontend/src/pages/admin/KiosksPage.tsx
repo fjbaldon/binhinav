@@ -53,6 +53,7 @@ export default function KiosksPage() {
     };
 
     useEffect(() => {
+        document.title = "Kiosks | Binhinav Admin";
         fetchData();
     }, []);
 

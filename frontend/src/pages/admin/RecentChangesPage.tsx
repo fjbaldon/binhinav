@@ -24,6 +24,7 @@ export default function RecentChangesPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        document.title = "Recent Changes | Binhinav Admin";
         const fetchLogs = async () => {
             try {
                 setLoading(true);
