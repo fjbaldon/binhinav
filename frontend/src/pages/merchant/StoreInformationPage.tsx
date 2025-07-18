@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Building2 } from "lucide-react";
 
 // Based on your Place entity and UpdatePlaceDto
 const storeInfoSchema = z.object({
@@ -31,6 +32,8 @@ export default function StoreInformationPage() {
 
     useEffect(() => {
         document.title = "Store Information | Binhinav Merchant";
+        // If there's no placeId, we don't need to fetch anything.
+        // The component will render the "Not Assigned" message.
         if (!user?.placeId) return;
 
         const fetchPlaceData = async () => {
@@ -59,6 +62,27 @@ export default function StoreInformationPage() {
 
         fetchPlaceData();
     }, [user, form]);
+
+    // If the merchant is not assigned to a place, show a message instead of the form.
+    if (!user?.placeId) {
+        return (
+            <Card className="mt-8">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Building2 className="h-6 w-6 text-muted-foreground" />
+                        <span>Store Not Assigned</span>
+                    </CardTitle>
+                    <CardDescription>
+                        Your merchant account is active, but it has not been assigned to a physical store location yet.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p>You can manage your login credentials, but you will not be able to edit store information until an administrator assigns you to a place.</p>
+                    <p className="mt-4">Please contact the system administrator to have your account linked to a store.</p>
+                </CardContent>
+            </Card>
+        );
+    }
 
     const onSubmit = async (data: StoreInfoFormValues) => {
         if (!user?.placeId) return;

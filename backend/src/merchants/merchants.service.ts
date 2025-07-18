@@ -52,7 +52,10 @@ export class MerchantsService {
     }
 
     async findOneByUsername(username: string): Promise<Merchant | undefined> {
-        const merchant = await this.merchantsRepository.findOne({ where: { username } });
+        const merchant = await this.merchantsRepository.findOne({
+            where: { username },
+            relations: ['place'], // Eagerly load the place relation
+        });
         return merchant ?? undefined;
     }
 }

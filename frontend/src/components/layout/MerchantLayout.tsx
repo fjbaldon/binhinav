@@ -49,6 +49,7 @@ export function MerchantLayout() {
                             <p className="text-sm text-muted-foreground">{user?.username || 'Merchant Panel'}</p>
                         </div>
                     </div>
+                    {/* The "Store Information" link is now always rendered */}
                     {mainNavItems.map(renderNavLink)}
                 </nav>
                 <div className="mt-auto p-4">
@@ -63,6 +64,7 @@ export function MerchantLayout() {
             </aside>
             <main className="flex flex-1 flex-col sm:pl-64">
                 <div className="flex-1 p-4 sm:p-8">
+                    {/* The Outlet remains unconditional, which is correct */}
                     <Outlet />
                 </div>
             </main>

@@ -27,6 +27,18 @@ export class MerchantsController {
         return this.merchantsService.findAll();
     }
 
+    // IMPORTANT: Specific string routes like 'me' must be defined *before*
+    // parameterized routes like ':id' for the same HTTP method to avoid
+    // the router treating 'me' as an ID.
+
+    // For a Merchant to update THEIR OWN profile/credentials
+    @Patch('me')
+    @Roles(Role.Merchant)
+    updateProfile(@Request() req, @Body() updateDto: UpdateMerchantDto) {
+        const merchantId = req.user.userId;
+        return this.merchantsService.update(merchantId, updateDto);
+    }
+
     @Get(':id')
     @Roles(Role.Admin) // Only Admins can fetch any merchant by ID
     findOne(@Param('id', ParseUUIDPipe) id: string) {
@@ -39,14 +51,6 @@ export class MerchantsController {
     @Roles(Role.Admin)
     update(@Param('id', ParseUUIDPipe) id: string, @Body() updateDto: UpdateMerchantDto) {
         return this.merchantsService.update(id, updateDto);
-    }
-
-    // For a Merchant to update THEIR OWN profile/credentials
-    @Patch('me')
-    @Roles(Role.Merchant)
-    updateProfile(@Request() req, @Body() updateDto: UpdateMerchantDto) {
-        const merchantId = req.user.userId;
-        return this.merchantsService.update(merchantId, updateDto);
     }
 
     @Delete(':id')
