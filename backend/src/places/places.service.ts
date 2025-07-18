@@ -99,7 +99,7 @@ export class PlacesService {
     ): Promise<Place> {
         const placeToUpdate = await this.placesRepository.findOne({
             where: { id },
-            relations: ['merchant'],
+            relations: ['merchant', 'category'], // Eager load category to get its name for logging
         });
 
         if (!placeToUpdate) {
@@ -110,17 +110,42 @@ export class PlacesService {
             throw new ForbiddenException('You do not have permission to update this place.');
         }
 
+        // --- IMPROVED AUDIT LOGGING ---
         if (user.role === Role.Merchant) {
-            const changes = {
-                updatedFields: Object.keys(updatePlaceDto),
-                newLogoUploaded: !!paths.logoPath,
-                newCoverUploaded: !!paths.coverPath,
-            };
-            this.auditLogsService.create({
-                entityType: 'Place', entityId: id, action: ActionType.UPDATE,
-                changes: changes, userId: user.userId, username: user.username, userRole: user.role,
-            });
+            const changes: { [key: string]: { from: any; to: any } } = {};
+
+            // Check for changes in text fields
+            if (updatePlaceDto.name !== undefined && placeToUpdate.name !== updatePlaceDto.name) {
+                changes.name = { from: placeToUpdate.name, to: updatePlaceDto.name };
+            }
+            if (updatePlaceDto.description !== undefined && placeToUpdate.description !== updatePlaceDto.description) {
+                changes.description = { from: placeToUpdate.description, to: updatePlaceDto.description };
+            }
+            if (updatePlaceDto.businessHours !== undefined && placeToUpdate.businessHours !== updatePlaceDto.businessHours) {
+                changes.businessHours = { from: placeToUpdate.businessHours, to: updatePlaceDto.businessHours };
+            }
+            // Check for category change
+            if ('categoryId' in updatePlaceDto && (placeToUpdate.category?.id || null) !== updatePlaceDto.categoryId) {
+                // Log the old category name and the new category ID. The frontend will map the ID to a name.
+                changes.category = { from: placeToUpdate.category?.name || 'None', to: updatePlaceDto.categoryId };
+            }
+            // Check for file uploads
+            if (paths.logoPath) {
+                changes.logo = { from: placeToUpdate.logoUrl || null, to: paths.logoPath };
+            }
+            if (paths.coverPath) {
+                changes.cover = { from: placeToUpdate.coverUrl || null, to: paths.coverPath };
+            }
+
+            // Only create a log entry if there were actual changes
+            if (Object.keys(changes).length > 0) {
+                this.auditLogsService.create({
+                    entityType: 'Place', entityId: id, action: ActionType.UPDATE,
+                    changes: changes, userId: user.userId, username: user.username, userRole: user.role,
+                });
+            }
         }
+        // --- END OF AUDIT LOGGING ---
 
         if (paths.logoPath && placeToUpdate.logoUrl) await deleteFile(placeToUpdate.logoUrl);
         if (paths.coverPath && placeToUpdate.coverUrl) await deleteFile(placeToUpdate.coverUrl);
