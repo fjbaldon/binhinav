@@ -52,7 +52,7 @@ export default function AdsPage() {
     };
 
     useEffect(() => {
-        document.title = "Advertisements | Binhinav Admin";
+        document.title = "Ads | Binhinav Admin";
         fetchAds();
     }, []);
 
@@ -120,8 +120,8 @@ export default function AdsPage() {
         <>
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Advertisements</h2>
-                    <p className="text-muted-foreground">Manage ads shown on kiosks during inactivity.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">Ads</h2>
+                    <p className="text-muted-foreground">Manage advertisements shown on kiosks during inactivity.</p>
                 </div>
                 <Button onClick={() => handleOpenDialog()}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Ad
