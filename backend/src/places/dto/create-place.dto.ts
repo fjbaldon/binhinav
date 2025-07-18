@@ -1,5 +1,5 @@
 import {
-    IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber, IsUUID,
+    IsNotEmpty, IsString, IsOptional, IsNumber, IsUUID,
 } from 'class-validator';
 
 export class CreatePlaceDto {
@@ -8,16 +8,16 @@ export class CreatePlaceDto {
     name: string;
 
     @IsString()
-    @IsNotEmpty()
-    description: string;
+    @IsOptional()
+    description?: string;
 
     @IsUUID()
     @IsOptional()
     categoryId?: string;
 
     @IsString()
-    @IsNotEmpty()
-    businessHours: string;
+    @IsOptional()
+    businessHours?: string;
 
     @IsNumber()
     locationX: number;

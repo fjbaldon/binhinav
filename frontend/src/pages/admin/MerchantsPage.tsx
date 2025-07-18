@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
@@ -149,19 +149,22 @@ export default function MerchantsPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{editingMerchant ? "Edit Merchant" : "Create New Merchant"}</DialogTitle>
+                        <DialogDescription>
+                            Enter the merchant's details below. They will use these credentials to log in.
+                        </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                        <div>
+                        <div className="space-y-2">
                             <Label htmlFor="name">Merchant's Full Name</Label>
                             <Input id="name" {...form.register("name")} />
                             <p className="text-sm text-red-500">{form.formState.errors.name?.message}</p>
                         </div>
-                        <div>
+                        <div className="space-y-2">
                             <Label htmlFor="username">Username</Label>
                             <Input id="username" {...form.register("username")} />
                             <p className="text-sm text-red-500">{form.formState.errors.username?.message}</p>
                         </div>
-                        <div>
+                        <div className="space-y-2">
                             <Label htmlFor="password">Password</Label>
                             <Input id="password" type="password" {...form.register("password")} placeholder={editingMerchant ? "Leave blank to keep unchanged" : ""} />
                             <p className="text-sm text-red-500">{form.formState.errors.password?.message}</p>

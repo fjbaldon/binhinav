@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MinLength, IsUUID } from 'class-validator';
 
 export class CreateMerchantDto {
     @IsString()
@@ -14,4 +14,8 @@ export class CreateMerchantDto {
     @IsNotEmpty()
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
     password: string;
+
+    @IsUUID()
+    @IsNotEmpty({ message: 'A place must be assigned to a new merchant.' })
+    placeId: string;
 }

@@ -32,7 +32,7 @@ export class PlacesService {
         private readonly auditLogsService: AuditLogsService,
     ) { }
 
-    async create(createPlaceDto: CreatePlaceDto, paths: { logoPath?: string, coverPath?: string }): Promise<Place> {
+    async create(createPlaceDto: CreatePlaceDto): Promise<Place> {
         const { floorPlanId, merchantId, categoryId, ...placeDetails } = createPlaceDto;
 
         if (merchantId) {
@@ -47,8 +47,7 @@ export class PlacesService {
             floorPlan: { id: floorPlanId } as FloorPlan,
             ...(merchantId && { merchant: { id: merchantId } as Merchant }),
             ...(categoryId && { category: { id: categoryId } as Category }),
-            ...(paths.logoPath && { logoUrl: paths.logoPath }), // Set logoUrl
-            ...(paths.coverPath && { coverUrl: paths.coverPath }), // Set coverUrl
+            // The lines for logoUrl and coverUrl are removed. They will be null by default.
         });
 
         return this.placesRepository.save(newPlace);

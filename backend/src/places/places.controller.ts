@@ -21,27 +21,10 @@ export class PlacesController {
 
     @Post()
     @Roles(Role.Admin)
-    @UseInterceptors(
-        // Use FileFieldsInterceptor to handle multiple named fields
-        FileFieldsInterceptor([
-            { name: 'logo', maxCount: 1 },
-            { name: 'cover', maxCount: 1 },
-        ], {
-            storage: diskStorage({
-                destination: './uploads/places', // A general folder for place images
-                filename: editFileName,
-            }),
-            fileFilter: imageFileFilter,
-        }),
-    )
-    create(
-        @Body() createPlaceDto: CreatePlaceDto,
-        @UploadedFiles() files: { logo?: Express.Multer.File[], cover?: Express.Multer.File[] },
-    ) {
-        const logoPath = files.logo?.[0]?.path.replace(/\\/g, '/');
-        const coverPath = files.cover?.[0]?.path.replace(/\\/g, '/');
-        // Pass both paths to the service
-        return this.placesService.create(createPlaceDto, { logoPath, coverPath });
+    // The FileFieldsInterceptor is removed as admins no longer upload images on creation.
+    create(@Body() createPlaceDto: CreatePlaceDto) {
+        // The service call is simplified, no longer passing file paths.
+        return this.placesService.create(createPlaceDto);
     }
 
     // This endpoint is for the public kiosk view, so no roles needed, just needs to be a valid route
@@ -82,8 +65,8 @@ export class PlacesController {
         @UploadedFiles() files: { logo?: Express.Multer.File[], cover?: Express.Multer.File[] },
     ) {
         const user = req.user;
-        const logoPath = files.logo?.[0]?.path.replace(/\\/g, '/');
-        const coverPath = files.cover?.[0]?.path.replace(/\\/g, '/');
+        const logoPath = files?.logo?.[0]?.path.replace(/\\/g, '/');
+        const coverPath = files?.cover?.[0]?.path.replace(/\\/g, '/');
 
         return this.placesService.update(id, updatePlaceDto, user, { logoPath, coverPath });
     }

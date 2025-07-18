@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
@@ -12,14 +12,30 @@ export class MerchantsService {
         private merchantsRepository: Repository<Merchant>,
     ) { }
 
-    create(createMerchantDto: CreateMerchantDto): Promise<Merchant> {
-        const newMerchant = this.merchantsRepository.create(createMerchantDto);
-        // The password will be hashed automatically by the @BeforeInsert hook in the entity
-        return this.merchantsRepository.save(newMerchant);
+    async create(createMerchantDto: CreateMerchantDto): Promise<Merchant> {
+        const { placeId, ...merchantDetails } = createMerchantDto;
+
+        const newMerchant = this.merchantsRepository.create({
+            ...merchantDetails,
+            place: { id: placeId }, // Associate the place during creation
+        });
+
+        try {
+            // The password will be hashed automatically by the @BeforeInsert hook.
+            return await this.merchantsRepository.save(newMerchant);
+        } catch (error) {
+            // Catch unique constraint violation on the placeId foreign key
+            if (error.code === '23505') { // PostgreSQL's unique violation code
+                throw new ConflictException(`The selected place is already assigned to another merchant.`);
+            }
+            throw error; // Rethrow other errors
+        }
     }
 
     findAll(): Promise<Merchant[]> {
-        return this.merchantsRepository.find();
+        return this.merchantsRepository.find({
+            relations: ['place'],
+        });
     }
 
     async findOne(id: string): Promise<Merchant> {
@@ -31,7 +47,6 @@ export class MerchantsService {
     }
 
     async update(id: string, updateMerchantDto: UpdateMerchantDto): Promise<Merchant> {
-        // Preload finds the entity and applies the new values from the DTO
         const merchant = await this.merchantsRepository.preload({
             id: id,
             ...updateMerchantDto,
@@ -39,8 +54,6 @@ export class MerchantsService {
         if (!merchant) {
             throw new NotFoundException(`Merchant with ID "${id}" not found`);
         }
-        // Note: If the password is updated, the @BeforeInsert hook will NOT run.
-        // We would need a @BeforeUpdate hook in the entity if we allow password changes here.
         return this.merchantsRepository.save(merchant);
     }
 

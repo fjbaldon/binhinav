@@ -17,7 +17,7 @@ export class Place {
   @Column()
   name: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', default: '' })
   description: string;
 
   @ManyToOne(() => Category, (category) => category.places, {
@@ -33,7 +33,7 @@ export class Place {
   @Column({ type: 'text', nullable: true })
   coverUrl: string; // URL to the uploaded cover image
 
-  @Column({ default: '9:00 AM - 9:00 PM' })
+  @Column({ default: '' })
   businessHours: string;
 
   // Location on the map (e.g., pixel coordinates)
