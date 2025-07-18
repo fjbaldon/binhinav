@@ -16,7 +16,7 @@ const sidebarNavItems = [
 ];
 
 export function AdminLayout() {
-    const { logout } = useAuth();
+    const { logout, user } = useAuth(); // Get the user object from the auth hook
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -28,9 +28,12 @@ export function AdminLayout() {
         <div className="flex min-h-screen w-full">
             <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r bg-background sm:flex">
                 <nav className="flex flex-col items-start gap-2 px-4 py-4">
-                    <div className="px-2 pb-4">
-                        <h1 className="text-xl font-bold tracking-tight">Binhinav Admin</h1>
-                        <p className="text-sm text-muted-foreground">by Binhitech</p>
+                    <div className="px-2 pb-4 flex items-center">
+                        <img src="/binhinav-logo.svg" alt="Binhinav Logo" className="w-10 h-10 mr-2" />
+                        <div>
+                            <h1 className="text-xl font-bold tracking-tight">binhinav</h1>
+                            <p className="text-sm text-muted-foreground">{user?.username || 'Admin Panel'}</p>
+                        </div>
                     </div>
                     {sidebarNavItems.map((item) => (
                         <NavLink
@@ -38,7 +41,7 @@ export function AdminLayout() {
                             to={item.href}
                             className={({ isActive }) => cn(
                                 "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                                isActive && "bg-muted text-primary"
+                                isActive && "bg-muted text-primary font-semibold"
                             )}
                         >
                             <item.icon className="h-4 w-4" />

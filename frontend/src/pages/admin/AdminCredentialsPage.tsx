@@ -55,7 +55,7 @@ export default function AdminCredentialsPage() {
     return (
         <div>
             <div className="mb-6">
-                <h2 className="text-3xl font-bold tracking-tight">My Credentials</h2>
+                <h2 className="text-3xl font-bold tracking-tight">Credentials</h2>
                 <p className="text-muted-foreground">Update your admin login information.</p>
             </div>
             <Card>

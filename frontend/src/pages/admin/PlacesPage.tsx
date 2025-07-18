@@ -148,7 +148,7 @@ export default function PlacesPage() {
         <>
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Places (Stores)</h2>
+                    <h2 className="text-3xl font-bold tracking-tight">Places</h2>
                     <p className="text-muted-foreground">Manage all store locations, details, and assignments.</p>
                 </div>
                 <Button onClick={() => handleOpenDialog()} disabled={floorPlans.length === 0}>

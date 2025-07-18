@@ -53,28 +53,34 @@ export default function MerchantCredentialsPage() {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Update Credentials</CardTitle>
-                <CardDescription>Change your login username or password. Leave fields blank to keep them unchanged.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-md">
-                    <div className="space-y-2">
-                        <Label htmlFor="username">Username</Label>
-                        <Input id="username" {...form.register("username")} />
-                        <p className="text-sm text-red-500">{form.formState.errors.username?.message}</p>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="password">New Password</Label>
-                        <Input id="password" type="password" {...form.register("password")} placeholder="Enter a new password" />
-                        <p className="text-sm text-red-500">{form.formState.errors.password?.message}</p>
-                    </div>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting ? "Saving..." : "Update Credentials"}
-                    </Button>
-                </form>
-            </CardContent>
-        </Card>
+        <div>
+            <div className="mb-6">
+                <h2 className="text-3xl font-bold tracking-tight">Credentials</h2>
+                <p className="text-muted-foreground">Update your merchant login information.</p>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Update Login Details</CardTitle>
+                    <CardDescription>Leave fields blank to keep them unchanged.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-md">
+                        <div className="space-y-2">
+                            <Label htmlFor="username">Username</Label>
+                            <Input id="username" {...form.register("username")} />
+                            <p className="text-sm text-red-500">{form.formState.errors.username?.message}</p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="password">New Password</Label>
+                            <Input id="password" type="password" {...form.register("password")} placeholder="Enter a new password" />
+                            <p className="text-sm text-red-500">{form.formState.errors.password?.message}</p>
+                        </div>
+                        <Button type="submit" disabled={form.formState.isSubmitting}>
+                            {form.formState.isSubmitting ? "Saving..." : "Update Credentials"}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
     )
 }

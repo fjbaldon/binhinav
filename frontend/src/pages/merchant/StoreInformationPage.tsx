@@ -57,7 +57,7 @@ export default function StoreInformationPage() {
         };
 
         fetchPlaceData();
-    }, [user, form, toast]);
+    }, [user, form]);
 
     const onSubmit = async (data: StoreInfoFormValues) => {
         if (!user?.placeId) return;
@@ -86,52 +86,58 @@ export default function StoreInformationPage() {
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Edit Store Information</CardTitle>
-                <CardDescription>Update the public details for your store.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Store Name</Label>
-                        <Input id="name" {...form.register("name")} />
-                        <p className="text-sm text-red-500">{form.formState.errors.name?.message}</p>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea id="description" {...form.register("description")} />
-                        <p className="text-sm text-red-500">{form.formState.errors.description?.message}</p>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="businessHours">Business Hours</Label>
-                        <Input id="businessHours" {...form.register("businessHours")} placeholder="e.g., 9:00 AM - 9:00 PM" />
-                        <p className="text-sm text-red-500">{form.formState.errors.businessHours?.message}</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <div className="mb-6">
+                <h2 className="text-3xl font-bold tracking-tight">Store Information</h2>
+                <p className="text-muted-foreground">Manage the public-facing details for your store.</p>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Edit Store Details</CardTitle>
+                    <CardDescription>Update the name, description, hours, and images for your store.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="logo">Logo Image</Label>
-                            <Input id="logo" type="file" accept="image/*" {...form.register("logo")} />
-                            <p className="text-sm text-muted-foreground">Current Logo:</p>
-                            <img id="logo-preview" className="h-24 w-24 object-cover rounded-md border" alt="Logo Preview" />
+                            <Label htmlFor="name">Store Name</Label>
+                            <Input id="name" {...form.register("name")} />
+                            <p className="text-sm text-red-500">{form.formState.errors.name?.message}</p>
                         </div>
+
                         <div className="space-y-2">
-                            <Label htmlFor="cover">Cover Image</Label>
-                            <Input id="cover" type="file" accept="image/*" {...form.register("cover")} />
-                            <p className="text-sm text-muted-foreground">Current Cover:</p>
-                            <img id="cover-preview" className="h-24 w-full object-cover rounded-md border" alt="Cover Preview" />
+                            <Label htmlFor="description">Description</Label>
+                            <Textarea id="description" {...form.register("description")} />
+                            <p className="text-sm text-red-500">{form.formState.errors.description?.message}</p>
                         </div>
-                    </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="businessHours">Business Hours</Label>
+                            <Input id="businessHours" {...form.register("businessHours")} placeholder="e.g., 9:00 AM - 9:00 PM" />
+                            <p className="text-sm text-red-500">{form.formState.errors.businessHours?.message}</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="logo">Logo Image</Label>
+                                <Input id="logo" type="file" accept="image/*" {...form.register("logo")} />
+                                <p className="text-sm text-muted-foreground">Current Logo:</p>
+                                <img id="logo-preview" className="h-24 w-24 object-cover rounded-md border" alt="Logo Preview" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="cover">Cover Image</Label>
+                                <Input id="cover" type="file" accept="image/*" {...form.register("cover")} />
+                                <p className="text-sm text-muted-foreground">Current Cover:</p>
+                                <img id="cover-preview" className="h-24 w-full object-cover rounded-md border" alt="Cover Preview" />
+                            </div>
+                        </div>
 
 
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                </form>
-            </CardContent>
-        </Card>
+                        <Button type="submit" disabled={form.formState.isSubmitting}>
+                            {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
