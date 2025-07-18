@@ -34,9 +34,9 @@ const placeSchema = z.object({
     businessHours: z.string().min(2, "Business hours are required."),
     locationX: z.coerce.number().refine(val => !isNaN(val), { message: "Must be a number" }),
     locationY: z.coerce.number().refine(val => !isNaN(val), { message: "Must be a number" }),
-    floorPlanId: z.uuid("A floor plan must be selected."),
-    categoryId: z.uuid().optional(),
-    merchantId: z.uuid().optional(),
+    floorPlanId: z.string().uuid("A floor plan must be selected."),
+    categoryId: z.string().uuid().optional(),
+    merchantId: z.string().uuid().optional(),
     logo: z.any().optional(),
     cover: z.any().optional(),
 });
@@ -60,7 +60,6 @@ export default function PlacesPage() {
     // Fetch all required data in parallel
     const fetchData = async () => {
         try {
-            // THE FIX: setIsLoading(true) is removed from here.
             const [placesRes, catRes, fpRes, merchRes] = await Promise.all([
                 apiClient.get<Place[]>("/places"),
                 apiClient.get<Category[]>("/categories"),
@@ -105,7 +104,18 @@ export default function PlacesPage() {
                 merchantId: fullPlace.merchant?.id,
             });
         } else {
-            form.reset();
+            form.reset({
+                name: '',
+                description: '',
+                businessHours: '',
+                locationX: 0,
+                locationY: 0,
+                floorPlanId: undefined,
+                categoryId: undefined,
+                merchantId: undefined,
+                logo: undefined,
+                cover: undefined,
+            });
         }
         setIsDialogOpen(true);
     };
@@ -113,14 +123,13 @@ export default function PlacesPage() {
     const onSubmit = async (data: PlaceFormValues) => {
         const formData = new FormData();
 
-        // Append all text/number fields
         Object.entries(data).forEach(([key, value]) => {
-            if (key !== 'logo' && key !== 'cover' && value !== undefined && value !== null) {
+            if (key === 'logo' || key === 'cover') return;
+            if (value !== undefined && value !== null && value !== '') {
                 formData.append(key, String(value));
             }
         });
 
-        // Append files if they exist
         if (data.logo && data.logo[0]) formData.append('logo', data.logo[0]);
         if (data.cover && data.cover[0]) formData.append('cover', data.cover[0]);
 
@@ -200,56 +209,81 @@ export default function PlacesPage() {
             </Card>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[625px]">
+                <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>{editingPlace ? "Edit Place" : "Create New Place"}</DialogTitle>
-                        <DialogDescription>Use the map in the main app to get X/Y coordinates.</DialogDescription>
+                        <DialogDescription>Manage the details for this location. Double-click the map to place it.</DialogDescription>
                     </DialogHeader>
                     <ScrollArea className="max-h-[70vh] pr-6">
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                            {/* Basic Info */}
-                            <Label>Basic Information</Label>
-                            <Input placeholder="Place Name" {...form.register("name")} />
-                            {form.formState.errors.name && <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>}
+                        {/* THE FIX IS HERE: Added `p-1` to the form's className */}
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 p-1">
 
-                            <Textarea placeholder="Description" {...form.register("description")} />
-                            {form.formState.errors.description && <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>}
-
-                            <Input placeholder="Business Hours (e.g., 9AM - 9PM)" {...form.register("businessHours")} />
-                            {form.formState.errors.businessHours && <p className="text-sm text-red-500">{form.formState.errors.businessHours.message}</p>}
-
-                            {/* Location */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input type="number" step="any" placeholder="Location X" {...form.register("locationX")} />
-                                <Input type="number" step="any" placeholder="Location Y" {...form.register("locationY")} />
-                            </div>
-
-                            {/* Assignments */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <Select onValueChange={(v) => form.setValue('floorPlanId', v)} defaultValue={form.getValues('floorPlanId')}>
-                                    <SelectTrigger><SelectValue placeholder="* Select Floor Plan" /></SelectTrigger>
-                                    <SelectContent>{floorPlans.map(fp => <SelectItem key={fp.id} value={fp.id}>{fp.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <Select onValueChange={(v) => form.setValue('categoryId', v)} defaultValue={form.getValues('categoryId')}>
-                                    <SelectTrigger><SelectValue placeholder="Select Category (Optional)" /></SelectTrigger>
-                                    <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <Select onValueChange={(v) => form.setValue('merchantId', v)} defaultValue={form.getValues('merchantId')}>
-                                    <SelectTrigger><SelectValue placeholder="Assign Merchant (Optional)" /></SelectTrigger>
-                                    <SelectContent>{merchants.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </div>
-                            {form.formState.errors.floorPlanId && <p className="text-sm text-red-500">{form.formState.errors.floorPlanId.message}</p>}
-
-                            {/* File Uploads */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="logo">Logo</Label>
-                                    <Input id="logo" type="file" {...form.register("logo")} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Place Name</Label>
+                                    <Input id="name" {...form.register("name")} />
+                                    {form.formState.errors.name && <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>}
                                 </div>
-                                <div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="businessHours">Business Hours</Label>
+                                    <Input id="businessHours" {...form.register("businessHours")} placeholder="e.g., 9AM - 9PM" />
+                                    {form.formState.errors.businessHours && <p className="text-sm text-red-500">{form.formState.errors.businessHours.message}</p>}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea id="description" {...form.register("description")} />
+                                {form.formState.errors.description && <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Floor Plan</Label>
+                                    <Select onValueChange={(v) => form.setValue('floorPlanId', v)} defaultValue={form.getValues('floorPlanId')}>
+                                        <SelectTrigger className="w-full"><SelectValue placeholder="* Select Floor Plan" /></SelectTrigger>
+                                        <SelectContent>{floorPlans.map(fp => <SelectItem key={fp.id} value={fp.id}>{fp.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    {form.formState.errors.floorPlanId && <p className="text-sm text-red-500">{form.formState.errors.floorPlanId.message}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Category</Label>
+                                    <Select onValueChange={(v) => form.setValue('categoryId', v === 'none' ? undefined : v)} defaultValue={form.getValues('categoryId')}>
+                                        <SelectTrigger className="w-full"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">None</SelectItem>
+                                            {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Merchant</Label>
+                                    <Select onValueChange={(v) => form.setValue('merchantId', v === 'none' ? undefined : v)} defaultValue={form.getValues('merchantId')}>
+                                        <SelectTrigger className="w-full"><SelectValue placeholder="Assign Merchant" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Unassigned</SelectItem>
+                                            {merchants.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="locationX">Location X</Label>
+                                    <Input id="locationX" type="number" step="any" {...form.register("locationX")} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="locationY">Location Y</Label>
+                                    <Input id="locationY" type="number" step="any" {...form.register("locationY")} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="logo">Logo Image</Label>
+                                    <Input id="logo" type="file" accept="image/*" {...form.register("logo")} />
+                                </div>
+                                <div className="space-y-2">
                                     <Label htmlFor="cover">Cover Image</Label>
-                                    <Input id="cover" type="file" {...form.register("cover")} />
+                                    <Input id="cover" type="file" accept="image/*" {...form.register("cover")} />
                                 </div>
                             </div>
 
