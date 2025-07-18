@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { apiClient, getAssetUrl } from "@/api";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Eye } from 'lucide-react';
 
 interface Ad {
     id: string;
@@ -35,6 +35,7 @@ export default function AdsPage() {
     const [ads, setAds] = useState<Ad[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingAd, setEditingAd] = useState<Ad | null>(null);
+    const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
 
     const form = useForm({
         resolver: zodResolver(adSchema),
@@ -51,6 +52,7 @@ export default function AdsPage() {
     };
 
     useEffect(() => {
+        document.title = "Ads | Binhinav Admin";
         fetchAds();
     }, []);
 
@@ -118,8 +120,8 @@ export default function AdsPage() {
         <>
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Advertisements</h2>
-                    <p className="text-muted-foreground">Manage ads shown on kiosks during inactivity.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">Ads</h2>
+                    <p className="text-muted-foreground">Manage advertisements shown on kiosks during inactivity.</p>
                 </div>
                 <Button onClick={() => handleOpenDialog()}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Ad
@@ -153,6 +155,9 @@ export default function AdsPage() {
                                     </TableCell>
                                     <TableCell>{ad.displayOrder ?? <span className="text-muted-foreground">N/A</span>}</TableCell>
                                     <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => setViewingImageUrl(ad.imageUrl)}>
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
                                         <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(ad)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -176,34 +181,40 @@ export default function AdsPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                        <div>
+                        <div className="space-y-2">
                             <Label htmlFor="name">Ad Name (for internal reference)</Label>
                             <Input id="name" {...form.register("name")} />
                             <p className="text-sm text-red-500">{form.formState.errors.name?.message}</p>
                         </div>
-                        <div>
+                        <div className="space-y-2">
                             <Label htmlFor="image">Ad Image</Label>
                             <Input id="image" type="file" accept="image/*" {...form.register("image")} />
                             {editingAd && <p className="text-sm text-muted-foreground mt-1">Leave blank to keep the current image.</p>}
                             <p className="text-sm text-red-500">{typeof form.formState.errors.image?.message === "string" ? form.formState.errors.image.message : ""}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
+                            <div className="space-y-2">
                                 <Label>Status</Label>
-                                <Select
-                                    onValueChange={(value) => form.setValue('isActive', value === 'true')}
-                                    defaultValue={String(form.getValues('isActive'))}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Set status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="true">Active</SelectItem>
-                                        <SelectItem value="false">Inactive</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Controller
+                                    name="isActive"
+                                    control={form.control}
+                                    render={({ field }) => (
+                                        <Select
+                                            onValueChange={(value) => field.onChange(value === 'true')}
+                                            value={String(field.value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Set status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="true">Active</SelectItem>
+                                                <SelectItem value="false">Inactive</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
                             </div>
-                            <div>
+                            <div className="space-y-2">
                                 <Label htmlFor="displayOrder">Display Order</Label>
                                 <Input id="displayOrder" type="number" {...form.register("displayOrder")} placeholder="e.g., 1, 2, 3..." />
                                 <p className="text-sm text-red-500">{form.formState.errors.displayOrder?.message}</p>
@@ -214,6 +225,21 @@ export default function AdsPage() {
                             {form.formState.isSubmitting ? "Saving..." : "Save Ad"}
                         </Button>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!viewingImageUrl} onOpenChange={(isOpen) => !isOpen && setViewingImageUrl(null)}>
+                <DialogContent className="max-w-4xl p-4">
+                    <DialogHeader>
+                        <DialogTitle>Ad Preview</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <img
+                            src={getAssetUrl(viewingImageUrl)}
+                            alt="Ad Preview"
+                            className="w-full h-auto max-h-[80vh] object-contain rounded-md"
+                        />
+                    </div>
                 </DialogContent>
             </Dialog>
         </>

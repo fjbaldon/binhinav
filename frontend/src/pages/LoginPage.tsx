@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 const loginSchema = z.object({
     username: z.string().min(1, { message: "Username is required" }),
@@ -20,6 +21,10 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
     const navigate = useNavigate();
     const { login } = useAuth();
+
+    useEffect(() => {
+        document.title = "Login | Binhinav";
+    }, []);
 
     const form = useForm({
         resolver: zodResolver(loginSchema),
@@ -42,11 +47,24 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background">
-            <Card className="mx-auto w-full max-w-sm">
+        <div className="flex min-h-screen w-full flex-col items-center justify-center gap-12 bg-background p-4 md:flex-row md:justify-evenly">
+
+            {/* Left Section: Branding */}
+            <div className="flex items-center gap-6">
+                <img src="/binhinav-logo.svg" alt="Binhinav Logo" className="h-20 w-20 shrink-0 md:h-28 md:w-28" />
+
+                <div className="flex flex-col">
+                    {/* A small negative margin helps optically align the text with the logo */}
+                    <h1 className="text-5xl font-extrabold text-primary md:text-6xl -ml-0.5">binhinav</h1>
+                    <p className="text-muted-foreground">locate indoors</p>
+                </div>
+            </div>
+
+            {/* Right Section: Login Form */}
+            <Card className="w-full max-w-sm shrink-0">
                 <CardHeader>
-                    <CardTitle className="text-2xl">Login to Binhinav</CardTitle>
-                    <CardDescription>Enter your username and password to access your panel.</CardDescription>
+                    <CardTitle className="text-2xl">Login</CardTitle>
+                    <CardDescription>Enter your credentials to access your panel.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

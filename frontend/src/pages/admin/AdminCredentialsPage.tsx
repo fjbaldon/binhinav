@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useEffect } from "react";
 
 // Schema is identical to the merchant's, but will hit a different endpoint
 const credentialsSchema = z.object({
@@ -22,6 +23,11 @@ type CredentialsFormValues = z.infer<typeof credentialsSchema>;
 
 export default function AdminCredentialsPage() {
     const { user } = useAuth();
+
+    useEffect(() => {
+        document.title = "Credentials | Binhinav Admin";
+    }, []);
+
     const form = useForm({
         resolver: zodResolver(credentialsSchema),
         defaultValues: { username: user?.username || '' }
@@ -55,7 +61,7 @@ export default function AdminCredentialsPage() {
     return (
         <div>
             <div className="mb-6">
-                <h2 className="text-3xl font-bold tracking-tight">My Credentials</h2>
+                <h2 className="text-3xl font-bold tracking-tight">Credentials</h2>
                 <p className="text-muted-foreground">Update your admin login information.</p>
             </div>
             <Card>

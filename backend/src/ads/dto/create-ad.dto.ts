@@ -5,22 +5,24 @@ import {
     IsOptional,
     IsString,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class CreateAdDto {
     @IsString()
     @IsNotEmpty()
     name: string;
 
-    // The 'isActive' field from form-data will be a string 'true' or 'false'.
-    // We need to transform it into a boolean.
     @IsOptional()
     @IsBoolean()
-    @Type(() => Boolean)
+    @Transform(({ value }) => {
+        if (value === 'true') return true;
+        if (value === 'false') return false;
+        return value;
+    })
     isActive?: boolean = true;
 
     @IsOptional()
     @IsInt()
-    @Type(() => Number) // Also transform from string if needed
+    @Type(() => Number) // Revert to the simpler Type decorator
     displayOrder?: number;
 }

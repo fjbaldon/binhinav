@@ -1,5 +1,5 @@
 export enum Role {
-    User = 'user', // Although we don't have user logins, this is good practice
+    User = 'user', // For potential future use, e.g., public user accounts
     Merchant = 'merchant',
     Admin = 'admin',
 }

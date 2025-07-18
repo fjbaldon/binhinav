@@ -7,10 +7,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Eye } from 'lucide-react';
 
 interface FloorPlan {
     id: string;
@@ -30,7 +30,9 @@ export default function FloorPlansPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingFloorPlan, setEditingFloorPlan] = useState<FloorPlan | null>(null);
 
-    const form = useForm({ resolver: zodResolver(floorPlanSchema) });
+    const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
+
+    const form = useForm<FloorPlanFormValues>({ resolver: zodResolver(floorPlanSchema) });
 
     const fetchFloorPlans = async () => {
         try {
@@ -42,6 +44,7 @@ export default function FloorPlansPage() {
     };
 
     useEffect(() => {
+        document.title = "Floor Plans | Binhinav Admin";
         fetchFloorPlans();
     }, []);
 
@@ -62,7 +65,6 @@ export default function FloorPlansPage() {
             formData.append('image', data.image[0]);
         }
 
-        // Image is required for creation, but not for update
         if (!editingFloorPlan && (!data.image || !data.image[0])) {
             form.setError('image', { message: 'Image is required for new floor plans.' });
             return;
@@ -73,10 +75,7 @@ export default function FloorPlansPage() {
                 await apiClient.patch(`/floor-plans/${editingFloorPlan.id}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
-
-                toast.success("Success", {
-                    description: "Floor plan updated.",
-                });
+                toast.success("Success", { description: "Floor plan updated." });
             } else {
                 await apiClient.post("/floor-plans", formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
@@ -133,6 +132,9 @@ export default function FloorPlansPage() {
                                     </TableCell>
                                     <TableCell className="font-medium">{fp.name}</TableCell>
                                     <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => setViewingImageUrl(fp.imageUrl)}>
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
                                         <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(fp)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -151,14 +153,17 @@ export default function FloorPlansPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{editingFloorPlan ? "Edit Floor Plan" : "Create New Floor Plan"}</DialogTitle>
+                        <DialogDescription>
+                            Provide a name and image for the floor layout.
+                        </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                        <div>
+                        <div className="space-y-2">
                             <Label htmlFor="name">Floor Name (e.g., "Ground Floor", "Level 1")</Label>
                             <Input id="name" {...form.register("name")} />
                             <p className="text-sm text-red-500">{form.formState.errors.name?.message}</p>
                         </div>
-                        <div>
+                        <div className="space-y-2">
                             <Label htmlFor="image">Floor Plan Image</Label>
                             <Input id="image" type="file" accept="image/*" {...form.register("image")} />
                             <p className="text-sm text-muted-foreground">
@@ -166,10 +171,35 @@ export default function FloorPlansPage() {
                             </p>
                             <p className="text-sm text-red-500">{typeof form.formState.errors.image?.message === "string" ? form.formState.errors.image?.message : ""}</p>
                         </div>
+                        {editingFloorPlan && editingFloorPlan.imageUrl && (
+                            <div className="space-y-2">
+                                <Label>Current Image</Label>
+                                <img
+                                    src={getAssetUrl(editingFloorPlan.imageUrl)}
+                                    alt={editingFloorPlan.name}
+                                    className="h-40 w-full object-contain rounded-md border bg-muted/30"
+                                />
+                            </div>
+                        )}
                         <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
                             {form.formState.isSubmitting ? "Saving..." : "Save Floor Plan"}
                         </Button>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!viewingImageUrl} onOpenChange={(isOpen) => !isOpen && setViewingImageUrl(null)}>
+                <DialogContent className="max-w-4xl p-4">
+                    <DialogHeader>
+                        <DialogTitle>Floor Plan Preview</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <img
+                            src={getAssetUrl(viewingImageUrl)}
+                            alt="Floor Plan Preview"
+                            className="w-full h-auto max-h-[80vh] object-contain rounded-md"
+                        />
+                    </div>
                 </DialogContent>
             </Dialog>
         </>

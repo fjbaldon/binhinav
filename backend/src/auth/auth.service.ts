@@ -40,11 +40,17 @@ export class AuthService {
      * Generates a JWT for a validated user.
      */
     async login(user: any) {
-        const payload = {
+        const payload: any = {
             username: user.username,
             sub: user.id, // 'sub' is standard for subject (user ID)
             role: user.role, // We include the role in the token!
         };
+
+        // If the user is a merchant and has an associated place, add its ID to the payload.
+        if (user.role === 'merchant' && user.place) {
+            payload.placeId = user.place.id;
+        }
+
         return {
             access_token: this.jwtService.sign(payload),
         };

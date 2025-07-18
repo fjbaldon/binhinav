@@ -16,18 +16,16 @@ export class FloorPlansService {
     async create(createFloorPlanDto: CreateFloorPlanDto, imagePath: string): Promise<FloorPlan> {
         const newFloorPlan = this.floorPlansRepository.create({
             ...createFloorPlanDto,
-            imageUrl: imagePath.replace(/\\/g, '/'), // Sanitize path for windows
+            imageUrl: imagePath.replace(/\\/g, '/'),
         });
         try {
             return await this.floorPlansRepository.save(newFloorPlan);
         } catch (error) {
-            // ... error handling
-            throw new ConflictException('Failed to create FloorPlan');
+            throw new ConflictException('A floor plan with this name already exists.');
         }
     }
 
     findAll(): Promise<FloorPlan[]> {
-        // Include the places associated with each floor plan
         return this.floorPlansRepository.find({ relations: ['places'] });
     }
 
@@ -47,16 +45,13 @@ export class FloorPlansService {
         updateFloorPlanDto: UpdateFloorPlanDto,
         imagePath?: string,
     ): Promise<FloorPlan> {
-        // <--- MODIFIED: Add file cleanup logic ---
-        const floorPlanToUpdate = await this.findOne(id); // Reuse findOne to get the entity
+        const floorPlanToUpdate = await this.findOne(id);
 
-        // If a new image is being uploaded and an old one exists, delete the old one
         if (imagePath && floorPlanToUpdate.imageUrl) {
             await deleteFile(floorPlanToUpdate.imageUrl);
         }
 
         const updatePayload: any = { ...updateFloorPlanDto };
-        // If a new image path is provided, add it to the payload
         if (imagePath) {
             updatePayload.imageUrl = imagePath;
         }
@@ -65,7 +60,7 @@ export class FloorPlansService {
             id,
             ...updatePayload,
         });
-        // The preload check for existence is now redundant because findOne does it, but it's harmless
+
         if (!floorPlan) {
             throw new NotFoundException(`FloorPlan with ID "${id}" not found`);
         }
@@ -73,16 +68,13 @@ export class FloorPlansService {
         try {
             return await this.floorPlansRepository.save(floorPlan);
         } catch (error) {
-            // You should handle the error appropriately, e.g., throw a ConflictException or log the error
-            throw new ConflictException('Failed to update FloorPlan');
+            throw new ConflictException('Failed to update FloorPlan. The name might already be in use.');
         }
     }
 
     async remove(id: string): Promise<void> {
-        // <--- MODIFIED: Add file cleanup ---
         const floorPlanToDelete = await this.findOne(id);
 
-        // If an image exists, delete it
         if (floorPlanToDelete && floorPlanToDelete.imageUrl) {
             await deleteFile(floorPlanToDelete.imageUrl);
         }

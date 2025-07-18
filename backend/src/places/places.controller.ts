@@ -21,30 +21,11 @@ export class PlacesController {
 
     @Post()
     @Roles(Role.Admin)
-    @UseInterceptors(
-        // Use FileFieldsInterceptor to handle multiple named fields
-        FileFieldsInterceptor([
-            { name: 'logo', maxCount: 1 },
-            { name: 'cover', maxCount: 1 },
-        ], {
-            storage: diskStorage({
-                destination: './uploads/places', // A general folder for place images
-                filename: editFileName,
-            }),
-            fileFilter: imageFileFilter,
-        }),
-    )
-    create(
-        @Body() createPlaceDto: CreatePlaceDto,
-        @UploadedFiles() files: { logo?: Express.Multer.File[], cover?: Express.Multer.File[] },
-    ) {
-        const logoPath = files.logo?.[0]?.path.replace(/\\/g, '/');
-        const coverPath = files.cover?.[0]?.path.replace(/\\/g, '/');
-        // Pass both paths to the service
-        return this.placesService.create(createPlaceDto, { logoPath, coverPath });
+    create(@Body() createPlaceDto: CreatePlaceDto) {
+        return this.placesService.create(createPlaceDto);
     }
 
-    // This endpoint is for the public kiosk view, so no roles needed, just needs to be a valid route
+    // This endpoint is for the public kiosk view, so no roles needed
     @Get()
     findAll(
         @Query('search') searchTerm?: string,
@@ -55,16 +36,16 @@ export class PlacesController {
     }
 
     @Get(':id')
-    // This could be public or admin-only, let's make it public for now
+    // This is public for fetching place details on the kiosk
     findOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.placesService.findOne(id);
     }
 
     @Patch(':id')
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.Admin, Role.Merchant) // <-- See secondary requirement below
+    @Roles(Role.Admin, Role.Merchant)
     @UseInterceptors(
-        FileFieldsInterceptor([ // Also use it here for updates
+        FileFieldsInterceptor([
             { name: 'logo', maxCount: 1 },
             { name: 'cover', maxCount: 1 },
         ], {
@@ -82,8 +63,8 @@ export class PlacesController {
         @UploadedFiles() files: { logo?: Express.Multer.File[], cover?: Express.Multer.File[] },
     ) {
         const user = req.user;
-        const logoPath = files.logo?.[0]?.path.replace(/\\/g, '/');
-        const coverPath = files.cover?.[0]?.path.replace(/\\/g, '/');
+        const logoPath = files?.logo?.[0]?.path.replace(/\\/g, '/');
+        const coverPath = files?.cover?.[0]?.path.replace(/\\/g, '/');
 
         return this.placesService.update(id, updatePlaceDto, user, { logoPath, coverPath });
     }

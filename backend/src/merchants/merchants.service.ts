@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
@@ -12,18 +12,44 @@ export class MerchantsService {
         private merchantsRepository: Repository<Merchant>,
     ) { }
 
-    create(createMerchantDto: CreateMerchantDto): Promise<Merchant> {
-        const newMerchant = this.merchantsRepository.create(createMerchantDto);
-        // The password will be hashed automatically by the @BeforeInsert hook in the entity
-        return this.merchantsRepository.save(newMerchant);
+    async create(createMerchantDto: CreateMerchantDto): Promise<Merchant> {
+        const { placeId, ...merchantDetails } = createMerchantDto;
+
+        const newMerchant = this.merchantsRepository.create({
+            ...merchantDetails,
+            place: { id: placeId }, // Associate the place during creation
+        });
+
+        try {
+            // The password will be hashed automatically by the @BeforeInsert hook.
+            return await this.merchantsRepository.save(newMerchant);
+        } catch (error) {
+            // Catch unique constraint violation on the placeId or username
+            if (error.code === '23505') { // PostgreSQL's unique violation code
+                if (error.detail?.includes('username')) {
+                    throw new ConflictException(`Username "${createMerchantDto.username}" is already taken.`);
+                }
+                if (error.detail?.includes('placeId')) {
+                    throw new ConflictException(`The selected place is already assigned to another merchant.`);
+                }
+                // Generic fallback for other unique constraints
+                throw new ConflictException('A unique constraint was violated. Please check the provided data.');
+            }
+            throw error; // Rethrow other errors
+        }
     }
 
     findAll(): Promise<Merchant[]> {
-        return this.merchantsRepository.find();
+        return this.merchantsRepository.find({
+            relations: ['place'],
+        });
     }
 
     async findOne(id: string): Promise<Merchant> {
-        const merchant = await this.merchantsRepository.findOne({ where: { id } });
+        const merchant = await this.merchantsRepository.findOne({
+            where: { id },
+            relations: ['place']
+        });
         if (!merchant) {
             throw new NotFoundException(`Merchant with ID "${id}" not found`);
         }
@@ -31,7 +57,7 @@ export class MerchantsService {
     }
 
     async update(id: string, updateMerchantDto: UpdateMerchantDto): Promise<Merchant> {
-        // Preload finds the entity and applies the new values from the DTO
+        // The password hash logic is handled by the @BeforeUpdate hook in the entity
         const merchant = await this.merchantsRepository.preload({
             id: id,
             ...updateMerchantDto,
@@ -39,9 +65,14 @@ export class MerchantsService {
         if (!merchant) {
             throw new NotFoundException(`Merchant with ID "${id}" not found`);
         }
-        // Note: If the password is updated, the @BeforeInsert hook will NOT run.
-        // We would need a @BeforeUpdate hook in the entity if we allow password changes here.
-        return this.merchantsRepository.save(merchant);
+        try {
+            return await this.merchantsRepository.save(merchant);
+        } catch (error) {
+            if (error.code === '23505' && error.detail?.includes('username')) {
+                throw new ConflictException(`Username "${updateMerchantDto.username}" is already taken.`);
+            }
+            throw error;
+        }
     }
 
     async remove(id: string): Promise<void> {
@@ -52,7 +83,10 @@ export class MerchantsService {
     }
 
     async findOneByUsername(username: string): Promise<Merchant | undefined> {
-        const merchant = await this.merchantsRepository.findOne({ where: { username } });
+        const merchant = await this.merchantsRepository.findOne({
+            where: { username },
+            relations: ['place'], // Eagerly load the place relation
+        });
         return merchant ?? undefined;
     }
 }

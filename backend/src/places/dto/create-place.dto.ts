@@ -1,35 +1,31 @@
 import {
-    IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber, IsUUID,
+    IsNotEmpty,
+    IsString,
+    IsOptional,
+    IsNumber,
+    IsUUID,
 } from 'class-validator';
 
+// DTO is now much leaner, reflecting that an admin only sets up the shell of a place.
+// Description, category, etc., are managed by the merchant after creation.
 export class CreatePlaceDto {
     @IsString()
     @IsNotEmpty()
     name: string;
 
-    @IsString()
-    @IsNotEmpty()
-    description: string;
-
-    @IsUUID()
-    @IsOptional()
-    categoryId?: string;
-
-    @IsString()
-    @IsNotEmpty()
-    businessHours: string;
-
     @IsNumber()
+    @IsNotEmpty()
     locationX: number;
 
     @IsNumber()
+    @IsNotEmpty()
     locationY: number;
 
     @IsUUID()
     @IsNotEmpty()
-    floorPlanId: string; // A place MUST belong to a floor plan
+    floorPlanId: string;
 
     @IsUUID()
     @IsOptional()
-    merchantId?: string; // A place might not have a merchant assigned initially
+    merchantId?: string;
 }
