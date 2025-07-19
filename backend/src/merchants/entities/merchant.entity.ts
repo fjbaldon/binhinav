@@ -3,7 +3,6 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToOne,
-  JoinColumn,
   BeforeInsert,
   BeforeUpdate,
 } from 'typeorm';
@@ -25,18 +24,23 @@ export class Merchant {
   password: string;
 
   @OneToOne(() => Place, (place) => place.merchant, {
-    nullable: true, // A merchant might be created before being assigned a place
-    onDelete: 'SET NULL', // If place is deleted, don't delete the merchant
+    nullable: true,
+    onDelete: 'SET NULL',
   })
-  // @JoinColumn() // This is now the inverse side of the relationship, so JoinColumn is removed.
   place: Place;
 
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
-    // Add this check to only hash if a password was actually provided
-    if (this.password) {
+    // Only hash the password if it exists and is NOT already hashed.
+    if (this.password && !this.password.startsWith('$2b$')) {
       this.password = await bcrypt.hash(this.password, 10);
     }
+  }
+
+  toJSON() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...rest } = this;
+    return rest;
   }
 }
