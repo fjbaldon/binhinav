@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AuditLog } from './entities/audit-log.entity';
 import { CreateAuditLogDto } from './dto/create-audit-log.dto';
+import { Role } from 'src/shared/enums/role.enum';
 
 @Injectable()
 export class AuditLogsService {
@@ -27,10 +28,13 @@ export class AuditLogsService {
     }
 
     /**
-     * Finds audit log entries based on given criteria.
-     * This will be used by the controller to show logs to the admin.
+     * Finds the latest 100 audit log entries created by merchants.
      */
-    async find(options?: FindManyOptions<AuditLog>): Promise<AuditLog[]> {
-        return this.auditLogRepository.find(options);
+    async findMerchantChanges(): Promise<AuditLog[]> {
+        return this.auditLogRepository.createQueryBuilder('log')
+            .where('log.userRole = :role', { role: Role.Merchant })
+            .orderBy('log.timestamp', 'DESC')
+            .take(100)
+            .getMany();
     }
 }

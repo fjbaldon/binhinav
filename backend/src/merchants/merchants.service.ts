@@ -40,16 +40,17 @@ export class MerchantsService {
     }
 
     findAll(): Promise<Merchant[]> {
-        return this.merchantsRepository.find({
-            relations: ['place'],
-        });
+        return this.merchantsRepository.createQueryBuilder('merchant')
+            .leftJoinAndSelect('merchant.place', 'place')
+            .getMany();
     }
 
     async findOne(id: string): Promise<Merchant> {
-        const merchant = await this.merchantsRepository.findOne({
-            where: { id },
-            relations: ['place']
-        });
+        const merchant = await this.merchantsRepository.createQueryBuilder('merchant')
+            .leftJoinAndSelect('merchant.place', 'place')
+            .where('merchant.id = :id', { id })
+            .getOne();
+
         if (!merchant) {
             throw new NotFoundException(`Merchant with ID "${id}" not found`);
         }
@@ -83,10 +84,11 @@ export class MerchantsService {
     }
 
     async findOneByUsername(username: string): Promise<Merchant | undefined> {
-        const merchant = await this.merchantsRepository.findOne({
-            where: { username },
-            relations: ['place'], // Eagerly load the place relation
-        });
+        const merchant = await this.merchantsRepository.createQueryBuilder('merchant')
+            .leftJoinAndSelect('merchant.place', 'place')
+            .where('merchant.username = :username', { username })
+            .getOne();
+
         return merchant ?? undefined;
     }
 }

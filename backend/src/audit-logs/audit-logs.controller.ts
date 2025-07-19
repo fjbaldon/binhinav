@@ -15,10 +15,7 @@ export class AuditLogsController {
     findMerchantChanges() {
         // This specific endpoint fulfills the requirement:
         // "see what merchants have changed"
-        return this.auditLogsService.find({
-            where: { userRole: Role.Merchant },
-            order: { timestamp: 'DESC' }, // Show the most recent changes first
-            take: 100, // Add some pagination/limit
-        });
+        // The logic is now correctly encapsulated in the service.
+        return this.auditLogsService.findMerchantChanges();
     }
 }

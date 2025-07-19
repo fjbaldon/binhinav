@@ -27,9 +27,9 @@ export class CategoriesService {
 
     // This is public for the kiosk to fetch filter buttons
     findAll(): Promise<Category[]> {
-        return this.categoriesRepository.find({
-            order: { name: 'ASC' }
-        });
+        return this.categoriesRepository.createQueryBuilder('category')
+            .orderBy('category.name', 'ASC')
+            .getMany();
     }
 
     async findOne(id: string): Promise<Category> {
