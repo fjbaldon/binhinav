@@ -203,7 +203,7 @@ export default function AdsPage() {
                                             onValueChange={(value) => field.onChange(value === 'true')}
                                             value={String(field.value)}
                                         >
-                                            <SelectTrigger>
+                                            <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Set status" />
                                             </SelectTrigger>
                                             <SelectContent>
