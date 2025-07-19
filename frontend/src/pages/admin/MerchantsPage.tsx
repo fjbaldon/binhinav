@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -10,7 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 
 // Based on your Merchant entity
@@ -21,26 +20,17 @@ interface Merchant {
     place?: { id: string, name: string }; // Optional place relationship
 }
 
-// Interface for a Place, needed for the assignment dropdown
-interface Place {
-    id: string;
-    name: string;
-    merchant?: { id: string }; // We only need to know if a merchant is present
-}
-
 // Schema for form validation
 const merchantSchema = z.object({
     name: z.string().min(2, "Name is required."),
     username: z.string().min(4, "Username must be at least 4 characters."),
     password: z.string().min(8, "Password must be at least 8 characters.").optional().or(z.literal('')),
-    placeId: z.string().uuid("A valid place must be selected.").optional(),
 });
 
 type MerchantFormValues = z.infer<typeof merchantSchema>;
 
 export default function MerchantsPage() {
     const [merchants, setMerchants] = useState<Merchant[]>([]);
-    const [places, setPlaces] = useState<Place[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingMerchant, setEditingMerchant] = useState<Merchant | null>(null);
 
@@ -50,21 +40,12 @@ export default function MerchantsPage() {
 
     const fetchData = async () => {
         try {
-            const [merchantsRes, placesRes] = await Promise.all([
-                apiClient.get<Merchant[]>("/merchants"),
-                apiClient.get<Place[]>("/places")
-            ]);
+            const merchantsRes = await apiClient.get<Merchant[]>("/merchants");
             setMerchants(merchantsRes.data);
-            setPlaces(placesRes.data);
         } catch (error) {
-            toast.error("Failed to fetch data for this page.");
+            toast.error("Failed to fetch merchants.");
         }
     };
-
-    // Get a list of places that are not currently assigned to any merchant
-    const unassignedPlaces = useMemo(() => {
-        return places.filter(place => !place.merchant);
-    }, [places]);
 
     useEffect(() => {
         document.title = "Merchants | Binhinav Admin";
@@ -74,9 +55,9 @@ export default function MerchantsPage() {
     const handleOpenDialog = (merchant: Merchant | null = null) => {
         setEditingMerchant(merchant);
         if (merchant) {
-            form.reset({ name: merchant.name, username: merchant.username, password: '', placeId: undefined });
+            form.reset({ name: merchant.name, username: merchant.username, password: '' });
         } else {
-            form.reset({ name: "", username: "", password: "", placeId: undefined });
+            form.reset({ name: "", username: "", password: "" });
         }
         setIsDialogOpen(true);
     };
@@ -92,16 +73,11 @@ export default function MerchantsPage() {
                 await apiClient.patch(`/merchants/${editingMerchant.id}`, payload);
                 toast.success("Merchant updated successfully.");
             } else {
-                // Password and placeId are required for creation
+                // Password is required for creation
                 if (!data.password) {
                     form.setError("password", { message: "Password is required for new merchants." });
+                    return;
                 }
-                if (!data.placeId) {
-                    form.setError("placeId", { message: "A place must be assigned to a new merchant." });
-                }
-                // If either check fails, stop submission
-                if (!data.password || !data.placeId) return;
-
                 await apiClient.post("/merchants", data);
                 toast.success("Merchant created successfully.");
             }
@@ -176,7 +152,7 @@ export default function MerchantsPage() {
                         <DialogDescription>
                             {editingMerchant
                                 ? "Edit the merchant's details below. To change the assigned place, go to the Places page."
-                                : "Enter the merchant's details. A new merchant must be assigned to an available place."}
+                                : "Enter the new merchant's details. You can assign them to a place from the Places page later."}
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
@@ -195,26 +171,6 @@ export default function MerchantsPage() {
                             <Input id="password" type="password" {...form.register("password")} placeholder={editingMerchant ? "Leave blank to keep unchanged" : ""} />
                             <p className="text-sm text-red-500">{form.formState.errors.password?.message}</p>
                         </div>
-                        {!editingMerchant && (
-                            <div className="space-y-2">
-                                <Label htmlFor="placeId">Assign to Place</Label>
-                                <Select onValueChange={(value) => form.setValue('placeId', value)} defaultValue={form.getValues('placeId')}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select an unassigned place" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {unassignedPlaces.length > 0 ? (
-                                            unassignedPlaces.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)
-                                        ) : (
-                                            <div className="p-2 text-center text-sm text-muted-foreground">
-                                                No unassigned places available.
-                                            </div>
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-sm text-red-500">{form.formState.errors.placeId?.message}</p>
-                            </div>
-                        )}
                         <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
                             {form.formState.isSubmitting ? "Saving..." : "Save Merchant"}
                         </Button>

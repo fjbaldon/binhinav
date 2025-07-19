@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { FloorPlan } from '../../floor-plans/entities/floor-plan.entity';
 import { Merchant } from '../../merchants/entities/merchant.entity';
@@ -48,6 +49,10 @@ export class Place {
   })
   floorPlan: FloorPlan;
 
-  @OneToOne(() => Merchant, (merchant) => merchant.place)
+  @OneToOne(() => Merchant, (merchant) => merchant.place, {
+    nullable: true, // A place doesn't need a merchant
+    onDelete: 'SET NULL', // If a merchant is deleted, this place's merchantId becomes null
+  })
+  @JoinColumn() // The Place entity now "owns" the relationship with the merchant.
   merchant: Merchant;
 }

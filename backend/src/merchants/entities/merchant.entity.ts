@@ -28,7 +28,7 @@ export class Merchant {
     nullable: true, // A merchant might be created before being assigned a place
     onDelete: 'SET NULL', // If place is deleted, don't delete the merchant
   })
-  @JoinColumn()
+  // @JoinColumn() // This is now the inverse side of the relationship, so JoinColumn is removed.
   place: Place;
 
   @BeforeInsert()

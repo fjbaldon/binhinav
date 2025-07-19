@@ -13,24 +13,17 @@ export class MerchantsService {
     ) { }
 
     async create(createMerchantDto: CreateMerchantDto): Promise<Merchant> {
-        const { placeId, ...merchantDetails } = createMerchantDto;
-
-        const newMerchant = this.merchantsRepository.create({
-            ...merchantDetails,
-            place: { id: placeId }, // Associate the place during creation
-        });
+        // placeId is no longer part of the creation DTO.
+        const newMerchant = this.merchantsRepository.create(createMerchantDto);
 
         try {
             // The password will be hashed automatically by the @BeforeInsert hook.
             return await this.merchantsRepository.save(newMerchant);
         } catch (error) {
-            // Catch unique constraint violation on the placeId or username
+            // Catch unique constraint violation on the username
             if (error.code === '23505') { // PostgreSQL's unique violation code
                 if (error.detail?.includes('username')) {
                     throw new ConflictException(`Username "${createMerchantDto.username}" is already taken.`);
-                }
-                if (error.detail?.includes('placeId')) {
-                    throw new ConflictException(`The selected place is already assigned to another merchant.`);
                 }
                 // Generic fallback for other unique constraints
                 throw new ConflictException('A unique constraint was violated. Please check the provided data.');

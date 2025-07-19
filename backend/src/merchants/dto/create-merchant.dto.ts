@@ -15,7 +15,6 @@ export class CreateMerchantDto {
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
     password: string;
 
-    @IsUUID()
-    @IsNotEmpty({ message: 'A place must be assigned to a new merchant.' })
-    placeId: string;
+    // A place is no longer assigned during merchant creation.
+    // This is now handled through the Places module.
 }
