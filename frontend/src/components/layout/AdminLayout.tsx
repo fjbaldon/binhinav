@@ -78,7 +78,7 @@ export function AdminLayout() {
                 </div>
             </aside>
             <main className="flex flex-1 flex-col sm:pl-64">
-                <div className="flex-1 p-4 sm:p-8">
+                <div className="flex-1 p-4 sm:p-8 w-full max-w-7xl mx-auto">
                     <Outlet />
                 </div>
             </main>

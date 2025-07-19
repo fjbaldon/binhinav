@@ -26,14 +26,17 @@ export class FloorPlansService {
     }
 
     findAll(): Promise<FloorPlan[]> {
-        return this.floorPlansRepository.find({ relations: ['places'] });
+        return this.floorPlansRepository.createQueryBuilder('floor_plan')
+            .leftJoinAndSelect('floor_plan.places', 'place')
+            .getMany();
     }
 
     async findOne(id: string): Promise<FloorPlan> {
-        const floorPlan = await this.floorPlansRepository.findOne({
-            where: { id },
-            relations: ['places'],
-        });
+        const floorPlan = await this.floorPlansRepository.createQueryBuilder('floor_plan')
+            .leftJoinAndSelect('floor_plan.places', 'place')
+            .where('floor_plan.id = :id', { id })
+            .getOne();
+
         if (!floorPlan) {
             throw new NotFoundException(`FloorPlan with ID "${id}" not found`);
         }

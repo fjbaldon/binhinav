@@ -53,21 +53,17 @@ export class AdsService {
 
     // For the admin dashboard to see all ads (active and inactive)
     findAllForAdmin(): Promise<Ad[]> {
-        return this.adsRepository.find({
-            order: {
-                displayOrder: 'ASC',
-            },
-        });
+        return this.adsRepository.createQueryBuilder('ad')
+            .orderBy('ad.displayOrder', 'ASC', 'NULLS LAST')
+            .getMany();
     }
 
     // For the public kiosk to get only the active ads
     findAllActive(): Promise<Ad[]> {
-        return this.adsRepository.find({
-            where: { isActive: true },
-            order: {
-                displayOrder: 'ASC',
-            },
-        });
+        return this.adsRepository.createQueryBuilder('ad')
+            .where('ad.isActive = :isActive', { isActive: true })
+            .orderBy('ad.displayOrder', 'ASC', 'NULLS LAST')
+            .getMany();
     }
 
     async findOne(id: string): Promise<Ad> {

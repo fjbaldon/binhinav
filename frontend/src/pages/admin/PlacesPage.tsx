@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -55,13 +55,12 @@ export default function PlacesPage() {
     const [places, setPlaces] = useState<Place[]>([]);
     const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
     const [merchants, setMerchants] = useState<Merchant[]>([]);
-
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingPlace, setEditingPlace] = useState<Place | null>(null);
     const [viewingPlace, setViewingPlace] = useState<Place | null>(null);
     const [selectedCoords, setSelectedCoords] = useState<[number, number] | null>(null);
 
-    const form = useForm({ // Use inferred type here
+    const form = useForm({
         resolver: zodResolver(placeSchema),
     });
 
@@ -83,6 +82,25 @@ export default function PlacesPage() {
             toast.error("Failed to fetch page data");
         }
     };
+
+    // This computes the list of merchants available for assignment in the dropdown.
+    const availableMerchants = useMemo(() => {
+        // Get a Set of all merchant IDs that are currently assigned to any place.
+        const assignedMerchantIds = new Set(
+            places.map(p => p.merchant?.id).filter((id): id is string => !!id)
+        );
+
+        return merchants.filter(m => {
+            // A merchant is available if:
+            // 1. They are not in the set of assigned merchants.
+            const isUnassigned = !assignedMerchantIds.has(m.id);
+            // 2. OR, they are the merchant currently assigned to the specific place being edited.
+            const isCurrentlyAssignedToThisPlace = editingPlace?.merchant?.id === m.id;
+
+            return isUnassigned || isCurrentlyAssignedToThisPlace;
+        });
+    }, [merchants, places, editingPlace]);
+
 
     useEffect(() => {
         document.title = "Places | Binhinav Admin";
@@ -224,7 +242,7 @@ export default function PlacesPage() {
                                         <SelectTrigger className="w-full"><SelectValue placeholder="Assign Merchant" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Unassigned</SelectItem>
-                                            {merchants.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                                            {availableMerchants.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>

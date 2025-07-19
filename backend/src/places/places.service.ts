@@ -81,10 +81,13 @@ export class PlacesService {
     }
 
     async findOne(id: string): Promise<Place> {
-        const place = await this.placesRepository.findOne({
-            where: { id },
-            relations: ['floorPlan', 'merchant', 'category'],
-        });
+        const place = await this.placesRepository.createQueryBuilder('place')
+            .leftJoinAndSelect('place.floorPlan', 'floorPlan')
+            .leftJoinAndSelect('place.merchant', 'merchant')
+            .leftJoinAndSelect('place.category', 'category')
+            .where('place.id = :id', { id })
+            .getOne();
+
         if (!place) {
             throw new NotFoundException(`Place with ID "${id}" not found`);
         }
@@ -97,10 +100,11 @@ export class PlacesService {
         user: UserPayload,
         paths: { logoPath?: string; coverPath?: string },
     ): Promise<Place> {
-        const placeToUpdate = await this.placesRepository.findOne({
-            where: { id },
-            relations: ['merchant', 'category'], // Eager load category to get its name for logging
-        });
+        const placeToUpdate = await this.placesRepository.createQueryBuilder('place')
+            .leftJoinAndSelect('place.merchant', 'merchant')
+            .leftJoinAndSelect('place.category', 'category')
+            .where('place.id = :id', { id })
+            .getOne();
 
         if (!placeToUpdate) {
             throw new NotFoundException(`Place with ID "${id}" not found`);
@@ -125,7 +129,7 @@ export class PlacesService {
                 changes.businessHours = { from: placeToUpdate.businessHours, to: updatePlaceDto.businessHours };
             }
             // Check for category change
-            if ('categoryId' in updatePlaceDto && (placeToUpdate.category?.id || null) !== updatePlaceDto.categoryId) {
+            if (updatePlaceDto.categoryId !== undefined && (placeToUpdate.category?.id || null) !== updatePlaceDto.categoryId) {
                 // Log the old category name and the new category ID. The frontend will map the ID to a name.
                 changes.category = { from: placeToUpdate.category?.name || 'None', to: updatePlaceDto.categoryId };
             }
@@ -172,7 +176,9 @@ export class PlacesService {
             if (updatePlaceDto.description !== undefined) updatePayload.description = updatePlaceDto.description;
             if (updatePlaceDto.businessHours !== undefined) updatePayload.businessHours = updatePlaceDto.businessHours;
 
-            if ('categoryId' in updatePlaceDto) {
+            // The check must be for `undefined`, not for key existence. A value of `null` is
+            // intentional (to unset the category), but `undefined` means the field was not sent.
+            if (updatePlaceDto.categoryId !== undefined) {
                 updatePayload.category = updatePlaceDto.categoryId ? { id: updatePlaceDto.categoryId } : null;
             }
 

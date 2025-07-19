@@ -15,8 +15,15 @@ export class Admin {
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
-    if (this.password) {
+    // Only hash the password if it exists and is NOT already hashed.
+    if (this.password && !this.password.startsWith('$2b$')) {
       this.password = await bcrypt.hash(this.password, 10);
     }
+  }
+
+  toJSON() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...rest } = this;
+    return rest;
   }
 }
