@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin } from 'lucide-react';
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
+import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 
 const kioskSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -121,7 +122,6 @@ export default function KiosksPage() {
     };
 
     const handleDelete = (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this kiosk?")) return;
         deleteMutation.mutate(id);
     }
 
@@ -155,8 +155,18 @@ export default function KiosksPage() {
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" title="View on map" onClick={() => setViewingKiosk(kiosk)}><MapPin className="h-4 w-4" /></Button>
                                             <Button variant="ghost" size="icon" title="Edit kiosk" onClick={() => handleOpenDialog(kiosk)}><Edit className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" title="Delete kiosk" className="text-red-500" onClick={() => handleDelete(kiosk.id)}><Trash2 className="h-4 w-4" /></Button>
-                                        </TableCell>
+                                            <ConfirmationDialog
+                                                title="Delete this kiosk?"
+                                                description="This action cannot be undone and will permanently remove the kiosk."
+                                                onConfirm={() => handleDelete(kiosk.id)}
+                                                variant="destructive"
+                                                confirmText="Delete"
+                                                triggerButton={
+                                                    <Button variant="ghost" size="icon" title="Delete kiosk" className="text-red-500">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                }
+                                            />                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

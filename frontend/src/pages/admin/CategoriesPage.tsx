@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 
 // Icons
 import {
@@ -122,7 +123,6 @@ export default function CategoriesPage() {
     };
 
     const handleDelete = (id: string) => {
-        if (!window.confirm("Are you sure?")) return;
         deleteMutation.mutate(id);
     };
 
@@ -175,9 +175,18 @@ export default function CategoriesPage() {
                                                 <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(category)} disabled={deleteMutation.isPending}>
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(category.id)} disabled={deleteMutation.isPending}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                <ConfirmationDialog
+                                                    title="Delete this category?"
+                                                    description="This action cannot be undone..."
+                                                    onConfirm={() => handleDelete(category.id)}
+                                                    variant="destructive"
+                                                    confirmText="Delete"
+                                                    triggerButton={
+                                                        <Button variant="ghost" size="icon" className="text-red-500">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    }
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     ))
