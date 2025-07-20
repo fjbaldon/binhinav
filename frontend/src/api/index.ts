@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
+import { toast } from 'sonner'; // Import the toast function
 
 // Your NestJS backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -8,6 +9,7 @@ export const apiClient = axios.create({
     baseURL: API_URL,
 });
 
+// --- Request Interceptor ---
 // Use an interceptor to add the auth token to every request
 apiClient.interceptors.request.use(
     (config) => {
@@ -22,6 +24,38 @@ apiClient.interceptors.request.use(
         return Promise.reject(error);
     }
 );
+
+// --- Response Interceptor ---
+// Use an interceptor to handle global errors, like expired tokens
+apiClient.interceptors.response.use(
+    // The first function handles successful responses (2xx status codes)
+    // We don't need to do anything here, so we just return the response.
+    (response) => response,
+
+    // The second function handles errors
+    (error) => {
+        // Check if the error is a 401 Unauthorized response
+        if (error.response && error.response.status === 401) {
+            const { logout, isAuthenticated } = useAuth.getState();
+
+            // Only perform the logout if the user was previously authenticated.
+            // This prevents a logout loop if an initial request fails before login.
+            if (isAuthenticated) {
+                toast.error("Session Expired", {
+                    description: "You have been logged out. Please log in again.",
+                });
+                logout();
+                // Perform a hard redirect to the login page to clear all state.
+                window.location.href = '/login';
+            }
+        }
+
+        // It's crucial to reject the promise so that the original caller
+        // (e.g., useQuery) still receives the error and can handle its own state.
+        return Promise.reject(error);
+    }
+);
+
 
 // Function to serve static files from the backend
 export const getAssetUrl = (path?: string | null) => {
