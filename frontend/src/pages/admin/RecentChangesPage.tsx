@@ -1,53 +1,36 @@
-import { useEffect, useState, useMemo } from 'react';
-import { apiClient } from '@/api';
+import { useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { getMerchantChanges } from '@/api/audit-logs';
+import { type AuditLog } from '@/api/types';
+import { getCategories } from '@/api/categories';
+
+// UI Components
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format } from 'date-fns';
-
-// Updated interface based on the new, richer log format
-interface AuditLog {
-    id: string;
-    changes: { [key: string]: { from: any; to: any } };
-    username: string;
-    timestamp: string;
-}
-
-// Interface to hold category data for context
-interface Category {
-    id: string;
-    name: string;
-}
 
 export default function RecentChangesPage() {
-    const [logs, setLogs] = useState<AuditLog[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
     useEffect(() => {
         document.title = "Recent Changes | Binhinav Admin";
-        const fetchPageData = async () => {
-            try {
-                setLoading(true);
-                // Fetch both logs and categories in parallel for efficiency
-                const [logsRes, catsRes] = await Promise.all([
-                    apiClient.get<AuditLog[]>('/audit-logs/merchant-changes'),
-                    apiClient.get<Category[]>('/categories')
-                ]);
-                setLogs(logsRes.data);
-                setCategories(catsRes.data);
-            } catch (err) {
-                setError('Failed to fetch recent changes.');
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPageData();
     }, []);
 
+    // --- DATA FETCHING ---
+    // Fetch logs and categories in parallel.
+    const { data: logs = [], isLoading: isLoadingLogs, isError: isErrorLogs } = useQuery({
+        queryKey: ['merchantChanges'],
+        queryFn: getMerchantChanges,
+    });
+
+    const { data: categories = [], isLoading: isLoadingCategories, isError: isErrorCategories } = useQuery({
+        queryKey: ['categories'],
+        queryFn: getCategories,
+    });
+
+    // --- CONTEXTUAL DATA MAPPING ---
     // Create a lookup map for category names. useMemo prevents recreating it on every render.
     const categoryMap = useMemo(() => {
+        if (!categories) return new Map<string | null, string>();
+
         const map = new Map<string | null, string>();
         categories.forEach(cat => map.set(cat.id, cat.name));
         map.set(null, 'None');
@@ -77,7 +60,8 @@ export default function RecentChangesPage() {
                     return 'Updated the store cover image.';
                 case 'category':
                     const fromName = value.from || 'None';
-                    const toName = categoryMap.get(to) || 'Uncategorized';
+                    // Use the map to get the new category name. Fallback if the map isn't ready.
+                    const toName = categoryMap.get(to) ?? `ID: ${to}`;
                     return `Changed category from "${fromName}" to "${toName}".`;
                 default:
                     return `Updated the ${fieldName}.`;
@@ -91,6 +75,9 @@ export default function RecentChangesPage() {
         );
     };
 
+    const isLoading = isLoadingLogs || isLoadingCategories;
+    const isError = isErrorLogs || isErrorCategories;
+
     return (
         <div>
             <div className="mb-6">
@@ -99,9 +86,9 @@ export default function RecentChangesPage() {
             </div>
             <Card>
                 <CardContent className="pt-6">
-                    {loading && <p>Loading changes...</p>}
-                    {error && <p className="text-red-500">{error}</p>}
-                    {!loading && !error && (
+                    {isLoading && <p>Loading changes...</p>}
+                    {isError && <p className="text-destructive">Failed to fetch recent changes.</p>}
+                    {!isLoading && !isError && (
                         <Table>
                             <TableHeader>
                                 <TableRow>
