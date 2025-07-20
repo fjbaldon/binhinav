@@ -7,16 +7,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getFloorPlans, createFloorPlan, updateFloorPlan, deleteFloorPlan } from "@/api/floor-plans";
 import { type FloorPlan } from "@/api/types";
 import { getAssetUrl } from "@/api";
+import { type ColumnDef } from "@tanstack/react-table";
 
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Edit, Trash2, Eye } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
+import { DataTable } from "@/components/shared/DataTable";
 
 const floorPlanSchema = z.object({
     name: z.string().min(1, "Name is required."),
@@ -39,7 +40,7 @@ export default function FloorPlansPage() {
         queryFn: getFloorPlans
     });
 
-    // --- DATA MUTATION (CREATE, UPDATE, DELETE) ---
+    // --- DATA MUTATIONS ---
     const createMutation = useMutation({
         mutationFn: createFloorPlan,
         onSuccess: () => {
@@ -47,9 +48,7 @@ export default function FloorPlansPage() {
             queryClient.invalidateQueries({ queryKey: ['floorPlans'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => {
-            toast.error("Creation Failed", { description: error.response?.data?.message || "Something went wrong." });
-        }
+        onError: (error: any) => toast.error("Creation Failed", { description: error.response?.data?.message || "Something went wrong." })
     });
 
     const updateMutation = useMutation({
@@ -59,9 +58,7 @@ export default function FloorPlansPage() {
             queryClient.invalidateQueries({ queryKey: ['floorPlans'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => {
-            toast.error("Update Failed", { description: error.response?.data?.message || "Something went wrong." });
-        }
+        onError: (error: any) => toast.error("Update Failed", { description: error.response?.data?.message || "Something went wrong." })
     });
 
     const deleteMutation = useMutation({
@@ -70,9 +67,7 @@ export default function FloorPlansPage() {
             toast.success("Floor plan deleted.");
             queryClient.invalidateQueries({ queryKey: ['floorPlans'] });
         },
-        onError: () => {
-            toast.error("Failed to delete floor plan.");
-        }
+        onError: () => toast.error("Failed to delete floor plan.")
     });
 
     useEffect(() => {
@@ -104,11 +99,65 @@ export default function FloorPlansPage() {
         }
     };
 
-    const handleDelete = (id: string) => {
-        deleteMutation.mutate(id);
-    }
+    const handleDelete = (id: string) => deleteMutation.mutate(id);
 
     const isMutating = createMutation.isPending || updateMutation.isPending;
+
+    // --- TABLE COLUMNS ---
+    const columns: ColumnDef<FloorPlan>[] = [
+        {
+            accessorKey: "imageUrl",
+            header: "Preview",
+            cell: ({ row }) => (
+                <img src={getAssetUrl(row.original.imageUrl)} alt={row.original.name} className="h-16 w-24 object-cover rounded-md border" />
+            ),
+        },
+        {
+            accessorKey: "name",
+            header: "Name",
+            cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
+        },
+        {
+            id: "usage",
+            header: "Usage",
+            cell: ({ row }) => {
+                const placesCount = row.original.places?.length || 0;
+                const kiosksCount = row.original.kiosks?.length || 0;
+                return (
+                    <div className="text-sm text-muted-foreground">
+                        <div>{placesCount} {placesCount === 1 ? 'Place' : 'Places'}</div>
+                        <div>{kiosksCount} {kiosksCount === 1 ? 'Kiosk' : 'Kiosks'}</div>
+                    </div>
+                );
+            },
+        },
+        {
+            id: 'actions',
+            header: () => <div className="text-right">Actions</div>,
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => setViewingImageUrl(row.original.imageUrl)} disabled={deleteMutation.isPending}>
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(row.original)} disabled={deleteMutation.isPending}>
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                    <ConfirmationDialog
+                        title="Delete this floor plan?"
+                        description="This will also delete all associated places and kiosks. This action cannot be undone."
+                        onConfirm={() => handleDelete(row.original.id)}
+                        variant="destructive"
+                        confirmText="Delete"
+                        triggerButton={
+                            <Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        }
+                    />
+                </div>
+            ),
+        },
+    ];
 
     return (
         <>
@@ -127,53 +176,7 @@ export default function FloorPlansPage() {
                     {isLoading && <p>Loading floor plans...</p>}
                     {isError && <p className="text-destructive">Failed to load floor plans.</p>}
                     {!isLoading && !isError && (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Image</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {floorPlans.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                                            No floor plans found. Click "Add New Floor Plan" to start.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    floorPlans.map((fp) => (
-                                        <TableRow key={fp.id}>
-                                            <TableCell>
-                                                <img src={getAssetUrl(fp.imageUrl)} alt={fp.name} className="h-16 w-24 object-cover rounded-md border" />
-                                            </TableCell>
-                                            <TableCell className="font-medium">{fp.name}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => setViewingImageUrl(fp.imageUrl)} disabled={deleteMutation.isPending}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(fp)} disabled={deleteMutation.isPending}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <ConfirmationDialog
-                                                    title="Delete this floor plan?"
-                                                    description="This will also delete all associated places and kiosks. This action cannot be undone."
-                                                    onConfirm={() => handleDelete(fp.id)}
-                                                    variant="destructive"
-                                                    confirmText="Delete"
-                                                    triggerButton={
-                                                        <Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}>
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    }
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                        <DataTable columns={columns} data={floorPlans} />
                     )}
                 </CardContent>
             </Card>

@@ -8,18 +8,19 @@ import { getKiosks, createKiosk, updateKiosk, deleteKiosk } from "@/api/kiosks";
 import { type Kiosk } from "@/api/types";
 import { getFloorPlans } from "@/api/floor-plans";
 import { getAssetUrl } from "@/api";
+import { type ColumnDef } from "@tanstack/react-table";
 
 // UI and Component Imports
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin, TvMinimal } from 'lucide-react';
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
+import { DataTable } from "@/components/shared/DataTable";
 
 const kioskSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -56,39 +57,26 @@ export default function KiosksPage() {
     const { data: floorPlans = [], isLoading: isLoadingFloorPlans } = useQuery({ queryKey: ['floorPlans'], queryFn: getFloorPlans });
     const selectedFloorPlan = floorPlans.find(fp => fp.id === watchedFloorPlanId);
 
-    // --- DATA MUTATIONS (CREATE, UPDATE, DELETE) ---
+    // --- DATA MUTATIONS ---
     const createMutation = useMutation({
         mutationFn: createKiosk,
-        onSuccess: () => {
-            toast.success("Kiosk created.");
-            queryClient.invalidateQueries({ queryKey: ['kiosks'] });
-            setIsDialogOpen(false);
-        },
+        onSuccess: () => { toast.success("Kiosk created."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); setIsDialogOpen(false); },
         onError: (err: any) => toast.error("Creation failed", { description: err.response?.data?.message })
     });
 
     const updateMutation = useMutation({
         mutationFn: updateKiosk,
-        onSuccess: () => {
-            toast.success("Kiosk updated.");
-            queryClient.invalidateQueries({ queryKey: ['kiosks'] });
-            setIsDialogOpen(false);
-        },
+        onSuccess: () => { toast.success("Kiosk updated."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); setIsDialogOpen(false); },
         onError: (err: any) => toast.error("Update failed", { description: err.response?.data?.message })
     });
 
     const deleteMutation = useMutation({
         mutationFn: deleteKiosk,
-        onSuccess: () => {
-            toast.success("Kiosk deleted.");
-            queryClient.invalidateQueries({ queryKey: ['kiosks'] });
-        },
+        onSuccess: () => { toast.success("Kiosk deleted."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); },
         onError: () => toast.error("Failed to delete kiosk")
     });
 
-    useEffect(() => {
-        document.title = "Kiosks | Binhinav Admin";
-    }, []);
+    useEffect(() => { document.title = "Kiosks | Binhinav Admin"; }, []);
 
     const handleOpenDialog = (kiosk: Kiosk | null = null) => {
         if (!kiosk && floorPlans.length === 0) {
@@ -121,11 +109,62 @@ export default function KiosksPage() {
         }
     };
 
-    const handleDelete = (id: string) => {
-        deleteMutation.mutate(id);
-    }
+    const handleDelete = (id: string) => deleteMutation.mutate(id);
 
     const isMutating = createMutation.isPending || updateMutation.isPending;
+
+    // --- TABLE COLUMNS ---
+    const columns: ColumnDef<Kiosk>[] = [
+        {
+            accessorKey: "name",
+            header: "Kiosk",
+            cell: ({ row }) => (
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
+                        <TvMinimal className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                        <div className="font-semibold">{row.original.name}</div>
+                        <div className="text-sm text-muted-foreground">({row.original.locationX.toFixed(0)}, {row.original.locationY.toFixed(0)})</div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            accessorKey: "floorPlan",
+            header: "Floor Plan",
+            cell: ({ row }) => (
+                row.original.floorPlan ? (
+                    <div className="flex items-center gap-3">
+                        <img src={getAssetUrl(row.original.floorPlan.imageUrl)} alt={row.original.floorPlan.name} className="h-10 w-16 object-cover rounded-md border" />
+                        <span>{row.original.floorPlan.name}</span>
+                    </div>
+                ) : ('N/A')
+            )
+        },
+        {
+            id: 'actions',
+            header: () => <div className="text-right">Actions</div>,
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <Button variant="ghost" size="icon" title="View on map" onClick={() => setViewingKiosk(row.original)}><MapPin className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" title="Edit kiosk" onClick={() => handleOpenDialog(row.original)}><Edit className="h-4 w-4" /></Button>
+                    <ConfirmationDialog
+                        title="Delete this kiosk?"
+                        description="This action cannot be undone and will permanently remove the kiosk."
+                        onConfirm={() => handleDelete(row.original.id)}
+                        variant="destructive"
+                        confirmText="Delete"
+                        triggerButton={
+                            <Button variant="ghost" size="icon" title="Delete kiosk" className="text-red-500">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        }
+                    />
+                </div>
+            )
+        }
+    ];
 
     return (
         <>
@@ -142,36 +181,7 @@ export default function KiosksPage() {
             <Card>
                 <CardContent className="pt-6">
                     {isLoadingKiosks && <p>Loading kiosks...</p>}
-                    {!isLoadingKiosks && (
-                        <Table>
-                            <TableHeader>
-                                <TableRow><TableHead>Name</TableHead><TableHead>Floor Plan</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {kiosks.map((kiosk) => (
-                                    <TableRow key={kiosk.id}>
-                                        <TableCell className="font-medium">{kiosk.name}</TableCell>
-                                        <TableCell>{kiosk.floorPlan?.name ?? 'N/A'}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" title="View on map" onClick={() => setViewingKiosk(kiosk)}><MapPin className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" title="Edit kiosk" onClick={() => handleOpenDialog(kiosk)}><Edit className="h-4 w-4" /></Button>
-                                            <ConfirmationDialog
-                                                title="Delete this kiosk?"
-                                                description="This action cannot be undone and will permanently remove the kiosk."
-                                                onConfirm={() => handleDelete(kiosk.id)}
-                                                variant="destructive"
-                                                confirmText="Delete"
-                                                triggerButton={
-                                                    <Button variant="ghost" size="icon" title="Delete kiosk" className="text-red-500">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                }
-                                            />                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                    {!isLoadingKiosks && <DataTable columns={columns} data={kiosks} />}
                 </CardContent>
             </Card>
 
