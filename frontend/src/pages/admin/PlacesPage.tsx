@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin } from 'lucide-react';
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
+import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 
 const placeSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -132,7 +133,6 @@ export default function PlacesPage() {
     };
 
     const handleDelete = (id: string) => {
-        if (!window.confirm("Are you sure? This will unassign any linked merchant.")) return;
         deleteMutation.mutate(id);
     };
 
@@ -160,8 +160,18 @@ export default function PlacesPage() {
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" title="View on map" onClick={() => setViewingPlace(place)}><MapPin className="h-4 w-4" /></Button>
                                             <Button variant="ghost" size="icon" title="Edit place" onClick={() => handleOpenDialog(place)}><Edit className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" title="Delete place" className="text-red-500" onClick={() => handleDelete(place.id)}><Trash2 className="h-4 w-4" /></Button>
-                                        </TableCell>
+                                            <ConfirmationDialog
+                                                title="Delete this place?"
+                                                description="This will unassign any linked merchant and permanently delete the place. This action cannot be undone."
+                                                onConfirm={() => handleDelete(place.id)}
+                                                variant="destructive"
+                                                confirmText="Delete"
+                                                triggerButton={
+                                                    <Button variant="ghost" size="icon" title="Delete place" className="text-red-500">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                }
+                                            />                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

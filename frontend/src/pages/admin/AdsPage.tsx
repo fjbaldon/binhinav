@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Edit, Trash2, Eye } from 'lucide-react';
+import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 
 const adSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -124,7 +125,6 @@ export default function AdsPage() {
     };
 
     const handleDelete = (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this ad?")) return;
         deleteMutation.mutate(id);
     }
 
@@ -185,9 +185,18 @@ export default function AdsPage() {
                                                 <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(ad)} disabled={deleteMutation.isPending}>
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(ad.id)} disabled={deleteMutation.isPending}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                <ConfirmationDialog
+                                                    title="Delete this ad?"
+                                                    description="This action cannot be undone and will permanently remove the ad."
+                                                    onConfirm={() => handleDelete(ad.id)}
+                                                    variant="destructive"
+                                                    confirmText="Delete"
+                                                    triggerButton={
+                                                        <Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    }
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     ))

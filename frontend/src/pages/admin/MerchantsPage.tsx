@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 
 const merchantSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -104,7 +105,6 @@ export default function MerchantsPage() {
     };
 
     const handleDelete = (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this merchant? This cannot be undone.")) return;
         deleteMutation.mutate(id);
     }
 
@@ -153,9 +153,18 @@ export default function MerchantsPage() {
                                                 <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(merchant)} disabled={deleteMutation.isPending}>
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(merchant.id)} disabled={deleteMutation.isPending}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                <ConfirmationDialog
+                                                    title="Delete this merchant?"
+                                                    description="This will permanently delete the merchant's account. This action cannot be undone."
+                                                    onConfirm={() => handleDelete(merchant.id)}
+                                                    variant="destructive"
+                                                    confirmText="Delete"
+                                                    triggerButton={
+                                                        <Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    }
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     ))
