@@ -7,11 +7,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAdminAds, createAd, updateAd, deleteAd } from "@/api/ads";
 import { type Ad } from "@/api/types";
 import { getAssetUrl } from "@/api";
+import { type ColumnDef } from "@tanstack/react-table";
 
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Edit, Trash2, Eye } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
+import { DataTable } from "@/components/shared/DataTable";
 
 const adSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -42,11 +43,11 @@ export default function AdsPage() {
 
     // --- DATA FETCHING (READ) ---
     const { data: ads = [], isLoading, isError } = useQuery({
-        queryKey: ['adminAds'], // Unique key for this data
+        queryKey: ['adminAds'],
         queryFn: getAdminAds,
     });
 
-    // --- DATA MUTATION (CREATE, UPDATE, DELETE) ---
+    // --- DATA MUTATIONS ---
     const createMutation = useMutation({
         mutationFn: createAd,
         onSuccess: () => {
@@ -54,9 +55,7 @@ export default function AdsPage() {
             queryClient.invalidateQueries({ queryKey: ['adminAds'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => {
-            toast.error("Creation Failed", { description: error.response?.data?.message || "Something went wrong." });
-        }
+        onError: (error: any) => toast.error("Creation Failed", { description: error.response?.data?.message || "Something went wrong." })
     });
 
     const updateMutation = useMutation({
@@ -66,9 +65,7 @@ export default function AdsPage() {
             queryClient.invalidateQueries({ queryKey: ['adminAds'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => {
-            toast.error("Update Failed", { description: error.response?.data?.message || "Something went wrong." });
-        }
+        onError: (error: any) => toast.error("Update Failed", { description: error.response?.data?.message || "Something went wrong." })
     });
 
     const deleteMutation = useMutation({
@@ -77,9 +74,7 @@ export default function AdsPage() {
             toast.success("Ad deleted.");
             queryClient.invalidateQueries({ queryKey: ['adminAds'] });
         },
-        onError: () => {
-            toast.error("Failed to delete ad");
-        }
+        onError: () => toast.error("Failed to delete ad")
     });
 
     useEffect(() => {
@@ -124,11 +119,65 @@ export default function AdsPage() {
         }
     };
 
-    const handleDelete = (id: string) => {
-        deleteMutation.mutate(id);
-    }
+    const handleDelete = (id: string) => deleteMutation.mutate(id);
 
     const isMutating = createMutation.isPending || updateMutation.isPending;
+
+    // --- TABLE COLUMNS ---
+    const columns: ColumnDef<Ad>[] = [
+        {
+            accessorKey: "imageUrl",
+            header: "Image",
+            cell: ({ row }) => (
+                <img src={getAssetUrl(row.original.imageUrl)} alt={row.original.name} className="h-16 w-28 object-cover rounded-md border" />
+            )
+        },
+        {
+            accessorKey: "name",
+            header: "Details",
+            cell: ({ row }) => (
+                <div className="align-top">
+                    <div className="font-semibold">{row.original.name}</div>
+                    <div className="text-sm text-muted-foreground">Order: {row.original.displayOrder ?? 'N/A'}</div>
+                </div>
+            )
+        },
+        {
+            accessorKey: "isActive",
+            header: "Status",
+            cell: ({ row }) => (
+                row.original.isActive ?
+                    <Badge className="bg-green-500 hover:bg-green-600">Active</Badge> :
+                    <Badge variant="secondary">Inactive</Badge>
+            )
+        },
+        {
+            id: 'actions',
+            header: () => <div className="text-right">Actions</div>,
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => setViewingImageUrl(row.original.imageUrl)} disabled={deleteMutation.isPending}>
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(row.original)} disabled={deleteMutation.isPending}>
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                    <ConfirmationDialog
+                        title="Delete this ad?"
+                        description="This action cannot be undone and will permanently remove the ad."
+                        onConfirm={() => handleDelete(row.original.id)}
+                        variant="destructive"
+                        confirmText="Delete"
+                        triggerButton={
+                            <Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        }
+                    />
+                </div>
+            )
+        },
+    ];
 
     return (
         <>
@@ -147,62 +196,7 @@ export default function AdsPage() {
                     {isLoading && <p>Loading ads...</p>}
                     {isError && <p className="text-destructive">Failed to load ads.</p>}
                     {!isLoading && !isError && (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Image</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Display Order</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {ads.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                            No ads found. Click "Add New Ad" to create one.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    ads.map((ad) => (
-                                        <TableRow key={ad.id}>
-                                            <TableCell>
-                                                <img src={getAssetUrl(ad.imageUrl)} alt={ad.name} className="h-16 w-28 object-cover rounded-md border" />
-                                            </TableCell>
-                                            <TableCell className="font-medium">{ad.name}</TableCell>
-                                            <TableCell>
-                                                {ad.isActive ?
-                                                    <Badge className="bg-green-500 hover:bg-green-600">Active</Badge> :
-                                                    <Badge variant="secondary">Inactive</Badge>
-                                                }
-                                            </TableCell>
-                                            <TableCell>{ad.displayOrder ?? <span className="text-muted-foreground">N/A</span>}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => setViewingImageUrl(ad.imageUrl)} disabled={deleteMutation.isPending}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(ad)} disabled={deleteMutation.isPending}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <ConfirmationDialog
-                                                    title="Delete this ad?"
-                                                    description="This action cannot be undone and will permanently remove the ad."
-                                                    onConfirm={() => handleDelete(ad.id)}
-                                                    variant="destructive"
-                                                    confirmText="Delete"
-                                                    triggerButton={
-                                                        <Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}>
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    }
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                        <DataTable columns={columns} data={ads} />
                     )}
                 </CardContent>
             </Card>

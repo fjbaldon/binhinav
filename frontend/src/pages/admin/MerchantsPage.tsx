@@ -6,16 +6,17 @@ import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMerchants, createMerchant, updateMerchant, deleteMerchant } from "@/api/merchants";
 import type { Merchant, MerchantPayload } from "@/api/types";
+import { type ColumnDef } from "@tanstack/react-table";
 
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, UserCircle2 } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
+import { DataTable } from "@/components/shared/DataTable";
 
 const merchantSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -40,7 +41,7 @@ export default function MerchantsPage() {
         queryFn: getMerchants,
     });
 
-    // --- DATA MUTATIONS (CREATE, UPDATE, DELETE) ---
+    // --- DATA MUTATIONS ---
     const createMutation = useMutation({
         mutationFn: createMerchant,
         onSuccess: () => {
@@ -48,9 +49,7 @@ export default function MerchantsPage() {
             queryClient.invalidateQueries({ queryKey: ['merchants'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => {
-            toast.error("Creation Failed", { description: error.response?.data?.message || "Username might already be in use." });
-        }
+        onError: (error: any) => toast.error("Creation Failed", { description: error.response?.data?.message || "Username might already be in use." })
     });
 
     const updateMutation = useMutation({
@@ -60,9 +59,7 @@ export default function MerchantsPage() {
             queryClient.invalidateQueries({ queryKey: ['merchants'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => {
-            toast.error("Update Failed", { description: error.response?.data?.message || "Username might already be in use." });
-        }
+        onError: (error: any) => toast.error("Update Failed", { description: error.response?.data?.message || "Username might already be in use." })
     });
 
     const deleteMutation = useMutation({
@@ -71,9 +68,7 @@ export default function MerchantsPage() {
             toast.success("Merchant deleted successfully.");
             queryClient.invalidateQueries({ queryKey: ['merchants'] });
         },
-        onError: () => {
-            toast.error("Failed to delete merchant.");
-        }
+        onError: () => toast.error("Failed to delete merchant.")
     });
 
     useEffect(() => {
@@ -89,13 +84,11 @@ export default function MerchantsPage() {
     const onSubmit = (data: MerchantFormValues) => {
         if (editingMerchant) {
             const payload: Partial<MerchantPayload> = { name: data.name, username: data.username };
-            // Only include the password in the payload if the user entered one
             if (data.password) {
                 payload.password = data.password;
             }
             updateMutation.mutate({ id: editingMerchant.id, payload });
         } else {
-            // Password is required for new merchants
             if (!data.password) {
                 form.setError("password", { message: "Password is required for new merchants." });
                 return;
@@ -104,11 +97,56 @@ export default function MerchantsPage() {
         }
     };
 
-    const handleDelete = (id: string) => {
-        deleteMutation.mutate(id);
-    }
+    const handleDelete = (id: string) => deleteMutation.mutate(id);
 
     const isMutating = createMutation.isPending || updateMutation.isPending;
+
+    // --- TABLE COLUMNS ---
+    const columns: ColumnDef<Merchant>[] = [
+        {
+            accessorKey: "name",
+            header: "Merchant",
+            cell: ({ row }) => (
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <UserCircle2 className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                        <div className="font-semibold">{row.original.name}</div>
+                        <div className="text-sm text-muted-foreground">@{row.original.username}</div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            accessorKey: "place.name",
+            header: "Assigned Place",
+            cell: ({ row }) => row.original.place?.name ?? <span className="text-muted-foreground">Unassigned</span>
+        },
+        {
+            id: 'actions',
+            header: () => <div className="text-right">Actions</div>,
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(row.original)} disabled={deleteMutation.isPending}>
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                    <ConfirmationDialog
+                        title="Delete this merchant?"
+                        description="This will permanently delete the merchant's account. This action cannot be undone."
+                        onConfirm={() => handleDelete(row.original.id)}
+                        variant="destructive"
+                        confirmText="Delete"
+                        triggerButton={
+                            <Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        }
+                    />
+                </div>
+            )
+        }
+    ];
 
     return (
         <>
@@ -127,50 +165,7 @@ export default function MerchantsPage() {
                     {isLoading && <p>Loading merchants...</p>}
                     {isError && <p className="text-destructive">Failed to load merchants.</p>}
                     {!isLoading && !isError && (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Username</TableHead>
-                                    <TableHead>Assigned Place</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {merchants.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                            No merchants found.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    merchants.map((merchant) => (
-                                        <TableRow key={merchant.id}>
-                                            <TableCell className="font-medium">{merchant.name}</TableCell>
-                                            <TableCell>{merchant.username}</TableCell>
-                                            <TableCell>{merchant.place?.name ?? <span className="text-muted-foreground">Unassigned</span>}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(merchant)} disabled={deleteMutation.isPending}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <ConfirmationDialog
-                                                    title="Delete this merchant?"
-                                                    description="This will permanently delete the merchant's account. This action cannot be undone."
-                                                    onConfirm={() => handleDelete(merchant.id)}
-                                                    variant="destructive"
-                                                    confirmText="Delete"
-                                                    triggerButton={
-                                                        <Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}>
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    }
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                        <DataTable columns={columns} data={merchants} />
                     )}
                 </CardContent>
             </Card>

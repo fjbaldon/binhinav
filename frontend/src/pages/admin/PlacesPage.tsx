@@ -9,19 +9,21 @@ import { type Place } from "@/api/types";
 import { getFloorPlans } from "@/api/floor-plans";
 import { getMerchants } from "@/api/merchants";
 import { getAssetUrl } from "@/api";
+import { type ColumnDef } from "@tanstack/react-table";
 
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin, Building2 } from 'lucide-react';
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
+import { DataTable } from "@/components/shared/DataTable";
+import { DynamicIcon } from "@/components/shared/DynamicIcon";
 
 const placeSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -52,7 +54,6 @@ export default function PlacesPage() {
     const queryClient = useQueryClient();
 
     // --- DATA FETCHING (READ) ---
-    // Fetch all necessary data in parallel
     const { data: places = [], isLoading: isLoadingPlaces } = useQuery({ queryKey: ['places'], queryFn: getPlaces });
     const { data: floorPlans = [], isLoading: isLoadingFloorPlans } = useQuery({ queryKey: ['floorPlans'], queryFn: getFloorPlans });
     const { data: merchants = [], isLoading: isLoadingMerchants } = useQuery({ queryKey: ['merchants'], queryFn: getMerchants });
@@ -62,30 +63,19 @@ export default function PlacesPage() {
     // --- DATA MUTATIONS ---
     const createMutation = useMutation({
         mutationFn: createPlace,
-        onSuccess: () => {
-            toast.success("Place created.");
-            queryClient.invalidateQueries({ queryKey: ['places'] });
-            setIsDialogOpen(false);
-        },
+        onSuccess: () => { toast.success("Place created."); queryClient.invalidateQueries({ queryKey: ['places'] }); setIsDialogOpen(false); },
         onError: (err: any) => toast.error("Creation failed", { description: err.response?.data?.message }),
     });
 
     const updateMutation = useMutation({
         mutationFn: updatePlace,
-        onSuccess: () => {
-            toast.success("Place updated.");
-            queryClient.invalidateQueries({ queryKey: ['places'] });
-            setIsDialogOpen(false);
-        },
+        onSuccess: () => { toast.success("Place updated."); queryClient.invalidateQueries({ queryKey: ['places'] }); setIsDialogOpen(false); },
         onError: (err: any) => toast.error("Update failed", { description: err.response?.data?.message }),
     });
 
     const deleteMutation = useMutation({
         mutationFn: deletePlace,
-        onSuccess: () => {
-            toast.success("Place deleted.");
-            queryClient.invalidateQueries({ queryKey: ['places'] });
-        },
+        onSuccess: () => { toast.success("Place deleted."); queryClient.invalidateQueries({ queryKey: ['places'] }); },
         onError: () => toast.error("Failed to delete place"),
     });
 
@@ -95,9 +85,7 @@ export default function PlacesPage() {
         return merchants.filter(m => !assignedMerchantIds.has(m.id) || m.id === editingPlace?.merchant?.id);
     }, [merchants, places, editingPlace]);
 
-    useEffect(() => {
-        document.title = "Places | Binhinav Admin";
-    }, []);
+    useEffect(() => { document.title = "Places | Binhinav Admin"; }, []);
 
     const handleOpenDialog = async (place: Place | null = null) => {
         if (!place && floorPlans.length === 0) {
@@ -106,7 +94,6 @@ export default function PlacesPage() {
         }
         setEditingPlace(place);
         if (place) {
-            // Fetch fresh data for the specific item being edited to ensure it's up to date.
             const fullPlace = await queryClient.fetchQuery({ queryKey: ['place', place.id], queryFn: () => getPlaceById(place.id) });
             form.reset({ name: fullPlace.name, locationX: fullPlace.locationX, locationY: fullPlace.locationY, floorPlanId: fullPlace.floorPlan.id, merchantId: fullPlace.merchant?.id });
             setSelectedCoords([fullPlace.locationX, fullPlace.locationY]);
@@ -132,12 +119,69 @@ export default function PlacesPage() {
         }
     };
 
-    const handleDelete = (id: string) => {
-        deleteMutation.mutate(id);
-    };
+    const handleDelete = (id: string) => deleteMutation.mutate(id);
 
     const isLoading = isLoadingPlaces || isLoadingFloorPlans || isLoadingMerchants;
     const isMutating = createMutation.isPending || updateMutation.isPending;
+
+    // --- TABLE COLUMNS ---
+    const columns: ColumnDef<Place>[] = [
+        {
+            accessorKey: "name",
+            header: "Place Details",
+            cell: ({ row }) => (
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
+                        {row.original.logoUrl ? (
+                            <img src={getAssetUrl(row.original.logoUrl)} alt={row.original.name} className="h-full w-full object-cover rounded-md" />
+                        ) : (
+                            <Building2 className="h-5 w-5 text-muted-foreground" />
+                        )}
+                    </div>
+                    <div>
+                        <div className="font-semibold">{row.original.name}</div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+                            {row.original.category ? (
+                                <><DynamicIcon name={row.original.category.iconKey} className="h-3 w-3" /><span>{row.original.category.name}</span></>
+                            ) : (<span>No Category</span>)}
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            accessorKey: "floorPlan.name",
+            header: "Floor Plan",
+            cell: ({ row }) => row.original.floorPlan?.name ?? 'N/A'
+        },
+        {
+            accessorKey: "merchant.name",
+            header: "Assigned Merchant",
+            cell: ({ row }) => row.original.merchant?.name ?? <span className="text-muted-foreground">Unassigned</span>
+        },
+        {
+            id: 'actions',
+            header: () => <div className="text-right">Actions</div>,
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <Button variant="ghost" size="icon" title="View on map" onClick={() => setViewingPlace(row.original)}><MapPin className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" title="Edit place" onClick={() => handleOpenDialog(row.original)}><Edit className="h-4 w-4" /></Button>
+                    <ConfirmationDialog
+                        title="Delete this place?"
+                        description="This will unassign any linked merchant and permanently delete the place. This action cannot be undone."
+                        onConfirm={() => handleDelete(row.original.id)}
+                        variant="destructive"
+                        confirmText="Delete"
+                        triggerButton={
+                            <Button variant="ghost" size="icon" title="Delete place" className="text-red-500">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        }
+                    />
+                </div>
+            )
+        }
+    ];
 
     return (
         <>
@@ -148,35 +192,7 @@ export default function PlacesPage() {
             <Card>
                 <CardContent className="pt-6">
                     {isLoading && <p>Loading data...</p>}
-                    {!isLoading && (
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Floor Plan</TableHead><TableHead>Assigned Merchant</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {places.map((place) => (
-                                    <TableRow key={place.id}>
-                                        <TableCell className="font-medium">{place.name}</TableCell>
-                                        <TableCell>{place.floorPlan?.name ?? 'N/A'}</TableCell>
-                                        <TableCell>{place.merchant?.name ?? <span className="text-muted-foreground">Unassigned</span>}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" title="View on map" onClick={() => setViewingPlace(place)}><MapPin className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" title="Edit place" onClick={() => handleOpenDialog(place)}><Edit className="h-4 w-4" /></Button>
-                                            <ConfirmationDialog
-                                                title="Delete this place?"
-                                                description="This will unassign any linked merchant and permanently delete the place. This action cannot be undone."
-                                                onConfirm={() => handleDelete(place.id)}
-                                                variant="destructive"
-                                                confirmText="Delete"
-                                                triggerButton={
-                                                    <Button variant="ghost" size="icon" title="Delete place" className="text-red-500">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                }
-                                            />                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                    {!isLoading && <DataTable columns={columns} data={places} />}
                 </CardContent>
             </Card>
 

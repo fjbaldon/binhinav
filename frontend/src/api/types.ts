@@ -11,12 +11,16 @@ export interface Category {
     id: string;
     name: string;
     iconKey: string;
+    placesCount?: number;
 }
 
 export interface FloorPlan {
     id: string;
     name: string;
     imageUrl: string;
+    // For displaying usage counts in the table
+    places?: Place[];
+    kiosks?: Kiosk[];
 }
 
 export interface Merchant {

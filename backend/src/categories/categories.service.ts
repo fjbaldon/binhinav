@@ -28,6 +28,7 @@ export class CategoriesService {
     // This is public for the kiosk to fetch filter buttons
     findAll(): Promise<Category[]> {
         return this.categoriesRepository.createQueryBuilder('category')
+            .loadRelationCountAndMap('category.placesCount', 'category.places')
             .orderBy('category.name', 'ASC')
             .getMany();
     }
