@@ -6,17 +6,18 @@ import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMerchants, createMerchant, updateMerchant, deleteMerchant } from "@/api/merchants";
 import type { Merchant, MerchantPayload } from "@/api/types";
-import { type ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
 
 // UI Components
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2, UserCircle2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, UserCircle2, AlertCircle, ArrowUpDown } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { DataTable } from "@/components/shared/DataTable";
+import { Badge } from "@/components/ui/badge";
 
 const merchantSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -29,6 +30,7 @@ type MerchantFormValues = z.infer<typeof merchantSchema>;
 export default function MerchantsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingMerchant, setEditingMerchant] = useState<Merchant | null>(null);
+    const [sorting, setSorting] = useState<SortingState>([]);
 
     const form = useForm({
         resolver: zodResolver(merchantSchema),
@@ -101,7 +103,10 @@ export default function MerchantsPage() {
 
     const isMutating = createMutation.isPending || updateMutation.isPending;
 
-    // --- TABLE COLUMNS ---
+    // Calculate unassigned merchants for the summary card
+    const unassignedCount = merchants.filter(m => !m.place).length;
+
+    // --- TABLE COLUMNS DEFINITION ---
     const columns: ColumnDef<Merchant>[] = [
         {
             accessorKey: "name",
@@ -120,8 +125,24 @@ export default function MerchantsPage() {
         },
         {
             accessorKey: "place.name",
-            header: "Assigned Place",
-            cell: ({ row }) => row.original.place?.name ?? <span className="text-muted-foreground">Unassigned</span>
+            header: ({ column }) => (
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    // FIX: Remove default button padding and adjust alignment
+                    className="justify-start -ml-4"
+                >
+                    Assigned Place
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            ),
+            cell: ({ row }) => (
+                row.original.place ? (
+                    <span>{row.original.place.name}</span>
+                ) : (
+                    <Badge variant="outline" className="text-amber-600 border-amber-500">Unassigned</Badge>
+                )
+            )
         },
         {
             id: 'actions',
@@ -160,12 +181,34 @@ export default function MerchantsPage() {
                 </Button>
             </div>
 
+            {unassignedCount > 0 && (
+                <Card className="mb-6 bg-amber-50 border-amber-200">
+                    <CardHeader>
+                        <div className="flex items-start gap-4">
+                            <AlertCircle className="h-6 w-6 text-amber-600 mt-1" />
+                            <div>
+                                <CardTitle className="text-amber-900">Action Required</CardTitle>
+                                <CardDescription className="text-amber-800">
+                                    You have {unassignedCount} unassigned {unassignedCount === 1 ? 'merchant' : 'merchants'}.
+                                    Assign them to a place from the <a href="/admin/places" className="underline font-semibold">Places page</a> to allow them to manage their store information.
+                                </CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                </Card>
+            )}
+
             <Card>
                 <CardContent className="pt-6">
                     {isLoading && <p>Loading merchants...</p>}
                     {isError && <p className="text-destructive">Failed to load merchants.</p>}
                     {!isLoading && !isError && (
-                        <DataTable columns={columns} data={merchants} />
+                        <DataTable
+                            columns={columns}
+                            data={merchants}
+                            sorting={sorting}
+                            setSorting={setSorting}
+                        />
                     )}
                 </CardContent>
             </Card>

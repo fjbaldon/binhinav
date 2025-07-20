@@ -168,7 +168,11 @@ export default function PlacesPage() {
                     <Button variant="ghost" size="icon" title="Edit place" onClick={() => handleOpenDialog(row.original)}><Edit className="h-4 w-4" /></Button>
                     <ConfirmationDialog
                         title="Delete this place?"
-                        description="This will unassign any linked merchant and permanently delete the place. This action cannot be undone."
+                        // MODIFICATION: Update the description to be more accurate
+                        description={
+                            "This action cannot be undone. It will permanently delete the place" +
+                            (row.original.merchant ? ` and the assigned merchant account for '${row.original.merchant.name}'.` : ".")
+                        }
                         onConfirm={() => handleDelete(row.original.id)}
                         variant="destructive"
                         confirmText="Delete"

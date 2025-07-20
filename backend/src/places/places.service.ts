@@ -5,7 +5,7 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository, DeepPartial } from 'typeorm';
+import { Repository, DeepPartial, EntityManager } from 'typeorm';
 import { Place } from './entities/place.entity';
 import { CreatePlaceDto } from './dto/create-place.dto';
 import { UpdatePlaceDto } from './dto/update-place.dto';
@@ -13,6 +13,7 @@ import { deleteFile } from '../shared/utils/file-helpers';
 import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
 import { ActionType } from 'src/audit-logs/enums/action-type.enum';
 import { Role } from 'src/shared/enums/role.enum';
+import { MerchantsService } from 'src/merchants/merchants.service'; // Import MerchantsService
 
 interface UserPayload {
     userId: string;
@@ -32,6 +33,8 @@ export class PlacesService {
         @InjectRepository(Place)
         private placesRepository: Repository<Place>,
         private readonly auditLogsService: AuditLogsService,
+        private readonly merchantsService: MerchantsService, // Inject MerchantsService
+        private readonly entityManager: EntityManager, // Inject EntityManager for transactions
     ) { }
 
     async create(createPlaceDto: CreatePlaceDto): Promise<Place> {
@@ -196,14 +199,39 @@ export class PlacesService {
     }
 
     async remove(id: string): Promise<void> {
-        const placeToDelete = await this.findOne(id);
+        await this.entityManager.transaction(async (transactionalEntityManager) => {
+            const placeToDelete = await transactionalEntityManager.findOne(Place, {
+                where: { id },
+                relations: ['merchant'], // Eagerly load the associated merchant
+            });
 
-        if (placeToDelete.logoUrl) await deleteFile(placeToDelete.logoUrl);
-        if (placeToDelete.coverUrl) await deleteFile(placeToDelete.coverUrl);
+            if (!placeToDelete) {
+                throw new NotFoundException(`Place with ID "${id}" not found`);
+            }
 
-        const result = await this.placesRepository.delete(id);
-        if (result.affected === 0) {
-            throw new NotFoundException(`Place with ID "${id}" not found`);
-        }
+            // If there's an associated merchant, delete them first.
+            if (placeToDelete.merchant) {
+                // The merchants service already handles cascading deletes or other logic.
+                // We don't need to call the repository directly.
+                await this.merchantsService.remove(placeToDelete.merchant.id);
+            }
+
+            // Delete associated images
+            if (placeToDelete.logoUrl) {
+                await deleteFile(placeToDelete.logoUrl);
+            }
+            if (placeToDelete.coverUrl) {
+                await deleteFile(placeToDelete.coverUrl);
+            }
+
+            // Finally, delete the place itself.
+            const result = await transactionalEntityManager.delete(Place, id);
+
+            // This check is good practice within a transaction as well.
+            if (result.affected === 0) {
+                // This would be unusual if findOne succeeded, but it's a safeguard.
+                throw new NotFoundException(`Place with ID "${id}" could not be deleted.`);
+            }
+        });
     }
 }
