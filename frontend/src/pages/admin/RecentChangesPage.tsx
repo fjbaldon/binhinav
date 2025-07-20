@@ -1,235 +1,126 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { toast } from "sonner";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getKiosks, createKiosk, updateKiosk, deleteKiosk } from "@/api/kiosks";
-import { type Kiosk } from "@/api/types";
-import { getFloorPlans } from "@/api/floor-plans";
-import { getAssetUrl } from "@/api";
-import { type ColumnDef } from "@tanstack/react-table";
+import { useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { getMerchantChanges } from '@/api/audit-logs';
+import { type AuditLog } from '@/api/types';
+import { getCategories } from '@/api/categories';
+import { type ColumnDef } from '@tanstack/react-table';
 
-// UI and Component Imports
-import { Button } from "@/components/ui/button";
+// UI Components
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin, TvMinimal } from 'lucide-react';
-import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
-import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
-import { DataTable } from "@/components/shared/DataTable";
+import { UserCircle2 } from "lucide-react";
+import { DataTable } from '@/components/shared/DataTable';
 
-const kioskSchema = z.object({
-    name: z.string().min(2, "Name is required."),
-    locationX: z.coerce.number({ error: "Please select a location on the map." }),
-    locationY: z.coerce.number({ error: "Please select a location on the map." }),
-    floorPlanId: z.uuid({ error: "A floor plan must be selected." }),
-});
+export default function RecentChangesPage() {
+    useEffect(() => {
+        document.title = "Recent Changes | Binhinav Admin";
+    }, []);
 
-type KioskFormValues = z.infer<typeof kioskSchema>;
-
-const Controls = () => {
-    const { zoomIn, zoomOut } = useControls();
-    return (
-        <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
-            <Button size="icon" type="button" onClick={() => zoomIn()}><ZoomIn /></Button>
-            <Button size="icon" type="button" onClick={() => zoomOut()}><ZoomOut /></Button>
-        </div>
-    );
-};
-
-export default function KiosksPage() {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingKiosk, setEditingKiosk] = useState<Kiosk | null>(null);
-    const [viewingKiosk, setViewingKiosk] = useState<Kiosk | null>(null);
-    const [selectedCoords, setSelectedCoords] = useState<[number, number] | null>(null);
-
-    const form = useForm({ resolver: zodResolver(kioskSchema) });
-    const watchedFloorPlanId = form.watch("floorPlanId");
-
-    const queryClient = useQueryClient();
-
-    // --- DATA FETCHING (READ) ---
-    const { data: kiosks = [], isLoading: isLoadingKiosks, isError: isErrorKiosks } = useQuery({ queryKey: ['kiosks'], queryFn: getKiosks });
-    const { data: floorPlans = [], isLoading: isLoadingFloorPlans, isError: isErrorFloorPlans } = useQuery({ queryKey: ['floorPlans'], queryFn: getFloorPlans });
-    const selectedFloorPlan = floorPlans.find(fp => fp.id === watchedFloorPlanId);
-
-    // --- DATA MUTATIONS ---
-    const createMutation = useMutation({
-        mutationFn: createKiosk,
-        onSuccess: () => { toast.success("Kiosk created."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); setIsDialogOpen(false); },
-        onError: (err: any) => toast.error("Creation failed", { description: err.response?.data?.message })
+    // --- DATA FETCHING ---
+    const { data: logs = [], isLoading: isLoadingLogs, isError: isErrorLogs } = useQuery({
+        queryKey: ['merchantChanges'],
+        queryFn: getMerchantChanges,
     });
 
-    const updateMutation = useMutation({
-        mutationFn: updateKiosk,
-        onSuccess: () => { toast.success("Kiosk updated."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); setIsDialogOpen(false); },
-        onError: (err: any) => toast.error("Update failed", { description: err.response?.data?.message })
+    const { data: categories = [], isLoading: isLoadingCategories, isError: isErrorCategories } = useQuery({
+        queryKey: ['categories'],
+        queryFn: getCategories,
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: deleteKiosk,
-        onSuccess: () => { toast.success("Kiosk deleted."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); },
-        onError: () => toast.error("Failed to delete kiosk")
-    });
+    // --- CONTEXTUAL DATA MAPPING ---
+    const categoryMap = useMemo(() => {
+        if (!categories) return new Map<string | null, string>();
 
-    useEffect(() => { document.title = "Kiosks | Binhinav Admin"; }, []);
+        const map = new Map<string | null, string>();
+        categories.forEach(cat => map.set(cat.id, cat.name));
+        map.set(null, 'None');
+        return map;
+    }, [categories]);
 
-    const handleOpenDialog = (kiosk: Kiosk | null = null) => {
-        if (!kiosk && floorPlans.length === 0) {
-            toast.warning("Cannot Add Kiosk", { description: "You must create a Floor Plan first." });
-            return;
+    const renderChanges = (changes: AuditLog['changes']) => {
+        if (!changes || Object.keys(changes).length === 0) {
+            return <span className="text-muted-foreground">No specific changes logged.</span>;
         }
-        setEditingKiosk(kiosk);
-        if (kiosk) {
-            form.reset({ name: kiosk.name, locationX: kiosk.locationX, locationY: kiosk.locationY, floorPlanId: kiosk.floorPlan.id });
-            setSelectedCoords([kiosk.locationX, kiosk.locationY]);
-        } else {
-            form.reset({ name: "", locationX: undefined, locationY: undefined, floorPlanId: undefined });
-            setSelectedCoords(null);
-        }
-        setIsDialogOpen(true);
+
+        const friendlyDescriptions = Object.entries(changes).map(([key, value]) => {
+            const { to } = value;
+            const fieldName = key.replace(/([A-Z])/g, ' $1').toLowerCase();
+
+            switch (key) {
+                case 'name':
+                case 'businessHours':
+                    return `Updated ${fieldName} to "${to}".`;
+                case 'description':
+                    return 'Updated the store description.';
+                case 'logo':
+                    return 'Updated the store logo.';
+                case 'cover':
+                    return 'Updated the store cover image.';
+                case 'category':
+                    const fromName = value.from || 'None';
+                    const toName = categoryMap.get(to) ?? `ID: ${to}`;
+                    return `Changed category from "${fromName}" to "${toName}".`;
+                default:
+                    return `Updated the ${fieldName}.`;
+            }
+        });
+
+        return (
+            <ul className="list-disc list-inside text-sm space-y-1">
+                {friendlyDescriptions.map((desc, index) => <li key={index}>{desc}</li>)}
+            </ul>
+        );
     };
 
-    const handleMapDoubleClick = (event: React.MouseEvent<HTMLDivElement>) => {
-        const { offsetX, offsetY } = event.nativeEvent;
-        setSelectedCoords([offsetX, offsetY]);
-        form.setValue("locationX", offsetX, { shouldValidate: true });
-        form.setValue("locationY", offsetY, { shouldValidate: true });
-    };
-
-    const onSubmit = (data: KioskFormValues) => {
-        if (editingKiosk) {
-            updateMutation.mutate({ id: editingKiosk.id, payload: data });
-        } else {
-            createMutation.mutate(data);
-        }
-    };
-
-    const handleDelete = (id: string) => deleteMutation.mutate(id);
-
-    const isLoading = isLoadingKiosks || isLoadingFloorPlans;
-    const isError = isErrorKiosks || isErrorFloorPlans;
-    const isMutating = createMutation.isPending || updateMutation.isPending;
+    const isLoading = isLoadingLogs || isLoadingCategories;
+    const isError = isErrorLogs || isErrorCategories;
 
     // --- TABLE COLUMNS ---
-    const columns: ColumnDef<Kiosk>[] = [
+    const columns: ColumnDef<AuditLog>[] = [
         {
-            accessorKey: "name",
-            header: "Kiosk",
+            accessorKey: 'timestamp',
+            header: 'Timestamp',
             cell: ({ row }) => (
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
-                        <TvMinimal className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <div>
-                        <div className="font-semibold">{row.original.name}</div>
-                        <div className="text-sm text-muted-foreground">({row.original.locationX.toFixed(0)}, {row.original.locationY.toFixed(0)})</div>
-                    </div>
+                <div className="align-top">
+                    <div className="font-medium">{format(new Date(row.original.timestamp), "MMM d, yyyy")}</div>
+                    <div className="text-xs text-muted-foreground">{format(new Date(row.original.timestamp), "h:mm a")}</div>
                 </div>
             )
         },
         {
-            accessorKey: "floorPlan",
-            header: "Floor Plan",
+            accessorKey: 'username',
+            header: 'Merchant',
             cell: ({ row }) => (
-                row.original.floorPlan ? (
-                    <div className="flex items-center gap-3">
-                        <img src={getAssetUrl(row.original.floorPlan.imageUrl)} alt={row.original.floorPlan.name} className="h-10 w-16 object-cover rounded-md border" />
-                        <span>{row.original.floorPlan.name}</span>
+                <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <UserCircle2 className="h-5 w-5 text-muted-foreground" />
                     </div>
-                ) : ('N/A')
+                    <span>{row.original.username}</span>
+                </div>
             )
         },
         {
-            id: 'actions',
-            header: () => <div className="text-right">Actions</div>,
-            cell: ({ row }) => (
-                <div className="text-right">
-                    <Button variant="ghost" size="icon" title="View on map" onClick={() => setViewingKiosk(row.original)}><MapPin className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" title="Edit kiosk" onClick={() => handleOpenDialog(row.original)}><Edit className="h-4 w-4" /></Button>
-                    <ConfirmationDialog
-                        title="Delete this kiosk?"
-                        description="This action cannot be undone and will permanently remove the kiosk."
-                        onConfirm={() => handleDelete(row.original.id)}
-                        variant="destructive"
-                        confirmText="Delete"
-                        triggerButton={
-                            <Button variant="ghost" size="icon" title="Delete kiosk" className="text-red-500">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        }
-                    />
-                </div>
-            )
+            accessorKey: 'changes',
+            header: 'Changes Made',
+            cell: ({ row }) => <div className="align-top">{renderChanges(row.original.changes)}</div>
         }
     ];
 
     return (
-        <>
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Kiosks</h2>
-                    <p className="text-muted-foreground">Manage physical kiosk locations and their positions on the map.</p>
-                </div>
-                <Button onClick={() => handleOpenDialog()}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Kiosk
-                </Button>
+        <div>
+            <div className="mb-6">
+                <h2 className="text-3xl font-bold tracking-tight">Recent Changes</h2>
+                <p className="text-muted-foreground">A log of all updates made by merchants to their store information.</p>
             </div>
-
             <Card>
                 <CardContent className="pt-6">
-                    {isLoading && <p>Loading kiosks...</p>}
-                    {isError && <p className="text-destructive">Failed to load data.</p>}
-                    {!isLoading && !isError && <DataTable columns={columns} data={kiosks} />}
+                    {isLoading && <p>Loading changes...</p>}
+                    {isError && <p className="text-destructive">Failed to fetch recent changes.</p>}
+                    {!isLoading && !isError && (
+                        <DataTable columns={columns} data={logs} />
+                    )}
                 </CardContent>
             </Card>
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader>
-                        <DialogTitle>{editingKiosk ? "Edit Kiosk" : "Create New Kiosk"}</DialogTitle>
-                        <DialogDescription>Provide a name, select a floor plan, and then double-click on the map to set the kiosk's location.</DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label htmlFor="name">Kiosk Name</Label><Input id="name" {...form.register("name")} /><p className="text-sm text-red-500">{form.formState.errors.name?.message}</p></div>
-                            <div className="space-y-2">
-                                <Label>Floor Plan</Label>
-                                <Select onValueChange={(value) => { form.setValue('floorPlanId', value, { shouldValidate: true }); setSelectedCoords(null); form.setValue('locationX', undefined, { shouldValidate: true }); form.setValue('locationY', undefined, { shouldValidate: true }); }} value={form.getValues('floorPlanId')}>
-                                    <SelectTrigger className="w-full" disabled={isLoadingFloorPlans}><SelectValue placeholder="Select a floor plan" /></SelectTrigger>
-                                    <SelectContent>{floorPlans.map(fp => <SelectItem key={fp.id} value={fp.id}>{fp.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <p className="text-sm text-red-500">{form.formState.errors.floorPlanId?.message}</p>
-                            </div>
-                        </div>
-                        {selectedFloorPlan && (
-                            <div className="space-y-2">
-                                <Label>Set Location</Label>
-                                <div className="relative w-full rounded-md border bg-muted/20 overflow-hidden">
-                                    <TransformWrapper doubleClick={{ disabled: true }} panning={{ disabled: false, velocityDisabled: true }}><Controls /><TransformComponent wrapperStyle={{ maxHeight: '60vh', width: '100%' }} contentStyle={{ width: '100%', height: '100%', cursor: 'crosshair' }} contentProps={{ onDoubleClick: handleMapDoubleClick }}>
-                                        <div className="relative"><img src={getAssetUrl(selectedFloorPlan.imageUrl)} alt={selectedFloorPlan.name} />{selectedCoords && (<Target className="absolute text-red-500 w-6 h-6 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: selectedCoords[0], top: selectedCoords[1] }} />)}</div>
-                                    </TransformComponent></TransformWrapper>
-                                </div>
-                                <p className="text-sm text-muted-foreground">Current Coordinates: {selectedCoords ? `(${selectedCoords[0].toFixed(0)}, ${selectedCoords[1].toFixed(0)})` : 'Double-click on the map to set'}</p>
-                                <p className="text-sm text-red-500">{form.formState.errors.locationX?.message}</p>
-                            </div>
-                        )}
-                        <Button type="submit" disabled={isMutating} className="w-full">{isMutating ? "Saving..." : "Save Kiosk"}</Button>
-
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={!!viewingKiosk} onOpenChange={(isOpen) => !isOpen && setViewingKiosk(null)}>
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader><DialogTitle>Location for: {viewingKiosk?.name}</DialogTitle><DialogDescription>Floor Plan: {viewingKiosk?.floorPlan.name}</DialogDescription></DialogHeader>
-                    <div className="relative mt-4 w-full rounded-md border bg-muted/20 overflow-hidden"><img src={getAssetUrl(viewingKiosk?.floorPlan.imageUrl)} alt={viewingKiosk?.floorPlan.name} className="max-h-[70vh] w-full object-contain" />{viewingKiosk && (<Target className="absolute text-red-500 w-8 h-8 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: viewingKiosk.locationX, top: viewingKiosk.locationY }} strokeWidth={2.5} />)}</div>
-                </DialogContent>
-            </Dialog>
-        </>
+        </div>
     );
 }
