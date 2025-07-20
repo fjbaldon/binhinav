@@ -2,59 +2,91 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@/hooks/useAuth";
-import { apiClient } from "@/api";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMutation } from '@tanstack/react-query';
+import { updateAdminProfile } from "@/api/admins";
+import { type AdminPayload } from "@/api/types";
+
+// UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEffect } from "react";
 import { KeyRound } from "lucide-react";
 
 const credentialsSchema = z.object({
     username: z.string().min(4, "Username must be at least 4 characters.").optional().or(z.literal('')),
     password: z.string().min(8, "Password must be at least 8 characters.").optional().or(z.literal('')),
-}).refine(data => data.username || data.password, {
+}).refine(data => !!data.username || !!data.password, {
     message: "At least one field must be filled.",
-    path: ["username"],
+    path: ["username"], // Point error to the first field
 });
 
 type CredentialsFormValues = z.infer<typeof credentialsSchema>;
 
 export default function AdminCredentialsPage() {
-    const { user } = useAuth();
-
-    useEffect(() => {
-        document.title = "Credentials | Binhinav Admin";
-    }, []);
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
     const form = useForm({
         resolver: zodResolver(credentialsSchema),
         defaultValues: { username: user?.username || '', password: '' }
     });
 
-    const onSubmit = async (data: CredentialsFormValues) => {
-        const payload: Partial<CredentialsFormValues> = {};
-        if (data.username && data.username !== user?.username) payload.username = data.username;
-        if (data.password) payload.password = data.password;
-
-        if (Object.keys(payload).length === 0) {
-            toast.info("Nothing to update", { description: "You didn't change the username or enter a new password." });
-            return;
-        }
-
-        try {
-            await apiClient.patch('/admins/me', payload);
-            toast.success("Credentials updated.", {
-                description: "You may need to log in again.",
-            });
-            form.reset({ username: data.username, password: '' });
-        } catch (error: any) {
+    // --- DATA MUTATION (UPDATE) ---
+    const updateMutation = useMutation({
+        mutationFn: updateAdminProfile,
+        onSuccess: (data, variables) => {
+            // Check if the username was changed in the submitted variables
+            if (variables.username) {
+                toast.success("Username updated!", {
+                    description: "For security, you will be logged out in 3 seconds.",
+                });
+                // Log the user out to force re-authentication with new credentials
+                setTimeout(() => {
+                    logout();
+                    navigate("/login");
+                }, 3000);
+            } else {
+                toast.success("Password updated successfully.");
+                // Reset password field on successful password change
+                form.reset({ username: data.username, password: '' });
+            }
+        },
+        onError: (error: any) => {
             toast.error("Update Failed", {
                 description: error.response?.data?.message || "Something went wrong.",
             });
         }
-    }
+    });
+
+
+    useEffect(() => {
+        document.title = "Credentials | Binhinav Admin";
+    }, []);
+
+    const onSubmit = (data: CredentialsFormValues) => {
+        const payload: AdminPayload = {};
+        // Only add fields to the payload if they have been changed by the user
+        if (data.username && data.username !== user?.username) {
+            payload.username = data.username;
+        }
+        if (data.password) {
+            payload.password = data.password;
+        }
+
+        // If the payload is empty, it means no changes were made
+        if (Object.keys(payload).length === 0) {
+            toast.info("Nothing to update", {
+                description: "You didn't change the username or enter a new password."
+            });
+            return;
+        }
+
+        updateMutation.mutate(payload);
+    };
 
     return (
         <div>
@@ -82,8 +114,8 @@ export default function AdminCredentialsPage() {
                                 <Input id="password" type="password" {...form.register("password")} placeholder="Enter a new password" />
                                 {form.formState.errors.password && <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>}
                             </div>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting ? "Saving..." : "Update Credentials"}
+                            <Button type="submit" disabled={updateMutation.isPending}>
+                                {updateMutation.isPending ? "Saving..." : "Update Credentials"}
                             </Button>
                         </form>
                         <div className="space-y-4 border-l md:pl-8">
@@ -95,7 +127,7 @@ export default function AdminCredentialsPage() {
                                 <li>Use a strong, unique password to protect your account.</li>
                                 <li>Your new password must be at least 8 characters long.</li>
                                 <li>Avoid using easily guessable information like your name or birthdate.</li>
-                                <li>If you change your username, you may be required to log in again.</li>
+                                <li>If you change your username, you will be automatically logged out.</li>
                             </ul>
                         </div>
                     </div>

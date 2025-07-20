@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { apiClient } from "@/api";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getMerchants, createMerchant, updateMerchant, deleteMerchant } from "@/api/merchants";
+import type { Merchant, MerchantPayload } from "@/api/types";
+
+// UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,15 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 
-// Based on your Merchant entity
-interface Merchant {
-    id: string;
-    name: string;
-    username: string;
-    place?: { id: string, name: string }; // Optional place relationship
-}
-
-// Schema for form validation
 const merchantSchema = z.object({
     name: z.string().min(2, "Name is required."),
     username: z.string().min(4, "Username must be at least 4 characters."),
@@ -30,76 +25,90 @@ const merchantSchema = z.object({
 type MerchantFormValues = z.infer<typeof merchantSchema>;
 
 export default function MerchantsPage() {
-    const [merchants, setMerchants] = useState<Merchant[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingMerchant, setEditingMerchant] = useState<Merchant | null>(null);
 
     const form = useForm({
         resolver: zodResolver(merchantSchema),
     });
+    const queryClient = useQueryClient();
 
-    const fetchData = async () => {
-        try {
-            const merchantsRes = await apiClient.get<Merchant[]>("/merchants");
-            setMerchants(merchantsRes.data);
-        } catch (error) {
-            toast.error("Failed to fetch merchants.");
+    // --- DATA FETCHING (READ) ---
+    const { data: merchants = [], isLoading, isError } = useQuery({
+        queryKey: ['merchants'],
+        queryFn: getMerchants,
+    });
+
+    // --- DATA MUTATIONS (CREATE, UPDATE, DELETE) ---
+    const createMutation = useMutation({
+        mutationFn: createMerchant,
+        onSuccess: () => {
+            toast.success("Merchant created successfully.");
+            queryClient.invalidateQueries({ queryKey: ['merchants'] });
+            setIsDialogOpen(false);
+        },
+        onError: (error: any) => {
+            toast.error("Creation Failed", { description: error.response?.data?.message || "Username might already be in use." });
         }
-    };
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: updateMerchant,
+        onSuccess: () => {
+            toast.success("Merchant updated successfully.");
+            queryClient.invalidateQueries({ queryKey: ['merchants'] });
+            setIsDialogOpen(false);
+        },
+        onError: (error: any) => {
+            toast.error("Update Failed", { description: error.response?.data?.message || "Username might already be in use." });
+        }
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: deleteMerchant,
+        onSuccess: () => {
+            toast.success("Merchant deleted successfully.");
+            queryClient.invalidateQueries({ queryKey: ['merchants'] });
+        },
+        onError: () => {
+            toast.error("Failed to delete merchant.");
+        }
+    });
 
     useEffect(() => {
         document.title = "Merchants | Binhinav Admin";
-        fetchData();
     }, []);
 
     const handleOpenDialog = (merchant: Merchant | null = null) => {
         setEditingMerchant(merchant);
-        if (merchant) {
-            form.reset({ name: merchant.name, username: merchant.username, password: '' });
-        } else {
-            form.reset({ name: "", username: "", password: "" });
-        }
+        form.reset(merchant ? { name: merchant.name, username: merchant.username, password: '' } : { name: "", username: "", password: "" });
         setIsDialogOpen(true);
     };
 
-    const onSubmit = async (data: MerchantFormValues) => {
-        try {
-            if (editingMerchant) {
-                // Filter out empty password so it's not sent on update unless changed
-                const payload: Partial<MerchantFormValues> = { name: data.name, username: data.username };
-                if (data.password) {
-                    payload.password = data.password;
-                }
-                await apiClient.patch(`/merchants/${editingMerchant.id}`, payload);
-                toast.success("Merchant updated successfully.");
-            } else {
-                // Password is required for creation
-                if (!data.password) {
-                    form.setError("password", { message: "Password is required for new merchants." });
-                    return;
-                }
-                await apiClient.post("/merchants", data);
-                toast.success("Merchant created successfully.");
+    const onSubmit = (data: MerchantFormValues) => {
+        if (editingMerchant) {
+            const payload: Partial<MerchantPayload> = { name: data.name, username: data.username };
+            // Only include the password in the payload if the user entered one
+            if (data.password) {
+                payload.password = data.password;
             }
-            fetchData();
-            setIsDialogOpen(false);
-        } catch (error: any) {
-            toast.error("An error occurred", {
-                description: error.response?.data?.message || "Username might already be in use.",
-            });
+            updateMutation.mutate({ id: editingMerchant.id, payload });
+        } else {
+            // Password is required for new merchants
+            if (!data.password) {
+                form.setError("password", { message: "Password is required for new merchants." });
+                return;
+            }
+            createMutation.mutate(data as MerchantPayload);
         }
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = (id: string) => {
         if (!window.confirm("Are you sure you want to delete this merchant? This cannot be undone.")) return;
-        try {
-            await apiClient.delete(`/merchants/${id}`);
-            toast.success("Merchant deleted successfully.");
-            fetchData();
-        } catch (error) {
-            toast.error("Failed to delete merchant");
-        }
+        deleteMutation.mutate(id);
     }
+
+    const isMutating = createMutation.isPending || updateMutation.isPending;
 
     return (
         <>
@@ -115,33 +124,45 @@ export default function MerchantsPage() {
 
             <Card>
                 <CardContent className="pt-6">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Username</TableHead>
-                                <TableHead>Assigned Place</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {merchants.map((merchant) => (
-                                <TableRow key={merchant.id}>
-                                    <TableCell className="font-medium">{merchant.name}</TableCell>
-                                    <TableCell>{merchant.username}</TableCell>
-                                    <TableCell>{merchant.place?.name ?? <span className="text-muted-foreground">Unassigned</span>}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(merchant)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(merchant.id)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
+                    {isLoading && <p>Loading merchants...</p>}
+                    {isError && <p className="text-destructive">Failed to load merchants.</p>}
+                    {!isLoading && !isError && (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Username</TableHead>
+                                    <TableHead>Assigned Place</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {merchants.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                            No merchants found.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    merchants.map((merchant) => (
+                                        <TableRow key={merchant.id}>
+                                            <TableCell className="font-medium">{merchant.name}</TableCell>
+                                            <TableCell>{merchant.username}</TableCell>
+                                            <TableCell>{merchant.place?.name ?? <span className="text-muted-foreground">Unassigned</span>}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(merchant)} disabled={deleteMutation.isPending}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(merchant.id)} disabled={deleteMutation.isPending}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    )}
                 </CardContent>
             </Card>
 
@@ -171,8 +192,8 @@ export default function MerchantsPage() {
                             <Input id="password" type="password" {...form.register("password")} placeholder={editingMerchant ? "Leave blank to keep unchanged" : ""} />
                             <p className="text-sm text-red-500">{form.formState.errors.password?.message}</p>
                         </div>
-                        <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
-                            {form.formState.isSubmitting ? "Saving..." : "Save Merchant"}
+                        <Button type="submit" disabled={isMutating} className="w-full">
+                            {isMutating ? "Saving..." : "Save Merchant"}
                         </Button>
                     </form>
                 </DialogContent>
