@@ -11,7 +11,7 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 export class CategoriesController {
     constructor(private readonly categoriesService: CategoriesService) { }
 
-    // --- PUBLIC ENDPOINT FOR KIOSK/FRONTEND ---
+    // --- PUBLIC ENDPOINT FOR KIOSK ---
     @Get()
     findAll() {
         return this.categoriesService.findAll();

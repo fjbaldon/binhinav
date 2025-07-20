@@ -1,5 +1,3 @@
-// frontend/src/api/types.ts
-
 // --- Core Entities ---
 
 export interface Admin {
