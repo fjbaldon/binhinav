@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin, TvMinimal } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin, TvMinimal, Copy } from 'lucide-react';
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { DataTable } from "@/components/shared/DataTable";
@@ -113,7 +113,6 @@ export default function KiosksPage() {
 
     const isMutating = createMutation.isPending || updateMutation.isPending;
 
-    // --- TABLE COLUMNS ---
     const columns: ColumnDef<Kiosk>[] = [
         {
             accessorKey: "name",
@@ -125,7 +124,20 @@ export default function KiosksPage() {
                     </div>
                     <div>
                         <div className="font-semibold">{row.original.name}</div>
-                        <div className="text-sm text-muted-foreground">({row.original.locationX.toFixed(0)}, {row.original.locationY.toFixed(0)})</div>
+                        <div className="text-xs text-muted-foreground font-mono flex items-center gap-2">
+                            <span>{row.original.id}</span>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(row.original.id);
+                                    toast.success("Kiosk ID copied to clipboard!");
+                                }}
+                            >
+                                <Copy className="h-3 w-3" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )
