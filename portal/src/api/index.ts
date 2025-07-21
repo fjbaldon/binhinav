@@ -45,8 +45,6 @@ apiClient.interceptors.response.use(
                     description: "You have been logged out. Please log in again.",
                 });
                 logout();
-                // Perform a hard redirect to the login page to clear all state.
-                window.location.href = '/login';
             }
         }
 
