@@ -13,16 +13,20 @@ interface MapViewProps {
     selectedPlace: Place | null;
     onPlaceSelect: (place: Place | null) => void;
     mapControllerRef: React.RefObject<ReactZoomPanPinchRef | null>;
-    children?: React.ReactNode; // Accept children to render map controls
+    children?: React.ReactNode;
 }
 
 export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect, mapControllerRef, children }: MapViewProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
+
+    // REVERTED: This effect now simply zooms to fit both the kiosk and the selected place.
+    // It does not contain the logic for handling different floors.
     useEffect(() => {
         const controller = mapControllerRef.current;
         const container = mapContainerRef.current;
         if (!controller || !container || !selectedPlace) return;
 
+        // Use a short timeout to ensure the DOM is ready for calculations
         setTimeout(() => {
             const viewSize = {
                 width: container.offsetWidth,
@@ -32,7 +36,8 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
             const transform = getTransformForBounds(
                 { x: kiosk.locationX, y: kiosk.locationY },
                 { x: selectedPlace.locationX, y: selectedPlace.locationY },
-                viewSize
+                viewSize,
+                150 // Padding
             );
 
             controller.setTransform(transform.x, transform.y, transform.scale, 300, 'easeOut');
@@ -55,7 +60,6 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                 limitToBounds={false}
                 panning={{ velocityDisabled: true }}
             >
-                {/* Render children (MapControls) here so they have access to the zoom context */}
                 {children}
                 <TransformComponent wrapperClass="!w-full !h-full" contentClass="!w-full !h-full">
                     <div

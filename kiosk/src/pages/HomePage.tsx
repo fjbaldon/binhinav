@@ -33,15 +33,7 @@ export default function HomePage() {
 
     // --- HOOKS ---
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-    // --- MODIFICATION ---
-    // Create a handler for inactivity that also closes the details sheet.
-    const handleInactivity = () => {
-        setIsInactive(true);
-        handlePlaceSelect(null); // This closes the sheet and clears the selection
-    };
-
-    useInactivityTimer(handleInactivity, 60000);
+    useInactivityTimer(() => setIsInactive(true), 60000);
 
     // --- DATA FETCHING ---
     const { data: kioskData, isLoading: isLoadingKiosk } = useQuery<KioskData>({
@@ -97,12 +89,10 @@ export default function HomePage() {
         setIsDetailSheetOpen(!!place);
     };
 
+    // REVERTED: This handler now only selects the place.
+    // The zoom logic is contained within MapView.
     const handleShowOnMap = (place: Place) => {
-        if (place.floorPlan.id !== currentFloorPlanId) {
-            setCurrentFloorPlanId(place.floorPlan.id);
-        }
         handlePlaceSelect(place);
-        setIsDetailSheetOpen(true);
     };
 
     const resetFilters = () => {
@@ -144,7 +134,7 @@ export default function HomePage() {
                         floorPlans={floorPlans}
                         currentFloorPlanId={currentFloorPlanId}
                         onFloorChange={setCurrentFloorPlanId}
-                        kioskFloorId={kioskData.floorPlan.id} // Pass the kiosk's floor ID here
+                        kioskFloorId={kioskData.floorPlan.id}
                     />
                 </MapView>
 

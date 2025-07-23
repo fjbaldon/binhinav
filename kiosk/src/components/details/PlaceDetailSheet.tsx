@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { getAssetUrl } from "@/api";
 import type { Place } from "@/api/types";
 import { DynamicIcon } from "../shared/DynamicIcon";
-import { Map, Info, Clock, X as CloseIcon } from "lucide-react";
+import { Map, Clock, Building, Info, ImageOff } from "lucide-react";
 
 interface PlaceDetailSheetProps {
     place: Place | null;
@@ -28,10 +28,17 @@ export function PlaceDetailSheet({
 }: PlaceDetailSheetProps) {
     if (!place) return null;
 
+    const handleShowOnMapClick = () => {
+        onShowOnMap(place);
+        onOpenChange(false); // Close the sheet to let the user see the map
+    };
+
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
-            <SheetContent className="w-full md:w-[450px] sm:max-w-none flex flex-col p-0">
+            <SheetContent className="w-full md:w-[450px] sm:max-w-none flex flex-col p-0 gap-0">
+                {/* Scrollable content area */}
                 <ScrollArea className="flex-1">
+                    {/* Image Section */}
                     <div className="relative">
                         {place.coverUrl ? (
                             <img
@@ -40,9 +47,11 @@ export function PlaceDetailSheet({
                                 className="w-full h-48 object-cover"
                             />
                         ) : (
-                            <div className="w-full h-48 bg-muted" />
+                            <div className="w-full h-48 bg-muted flex items-center justify-center">
+                                <ImageOff className="h-16 w-16 text-muted-foreground/50" />
+                            </div>
                         )}
-                        <div className="absolute -bottom-12 left-6 h-24 w-24 rounded-full bg-background border-4 border-background p-1">
+                        <div className="absolute -bottom-12 left-6 h-24 w-24 rounded-full bg-background border-4 border-background p-1 shadow-md">
                             {place.logoUrl ? (
                                 <img
                                     src={getAssetUrl(place.logoUrl)}
@@ -50,56 +59,70 @@ export function PlaceDetailSheet({
                                     className="w-full h-full object-cover rounded-full"
                                 />
                             ) : (
-                                <div className="w-full h-full rounded-full bg-muted" />
+                                <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                                    <Building className="h-10 w-10 text-muted-foreground/50" />
+                                </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="p-6 pt-16">
-                        <SheetHeader className="text-left">
+                    {/* Details Section */}
+                    <div className="p-6 pt-16 space-y-6">
+                        <SheetHeader className="text-left space-y-2 p-0">
                             <SheetTitle className="text-3xl font-bold">{place.name}</SheetTitle>
                             {place.category && (
                                 <SheetDescription>
-                                    <Badge variant="secondary" className="text-md">
-                                        <DynamicIcon name={place.category.iconKey} className="mr-2" />
+                                    <Badge variant="secondary" className="text-md py-1 px-3">
+                                        <DynamicIcon name={place.category.iconKey} className="mr-2 h-4 w-4" />
                                         {place.category.name}
                                     </Badge>
                                 </SheetDescription>
                             )}
                         </SheetHeader>
 
-                        {/* IMPROVEMENT: Structured information sections */}
-                        <div className="mt-8 space-y-6">
-                            <div>
-                                <h3 className="flex items-center gap-2 font-semibold mb-2 text-lg">
-                                    <Info className="h-5 w-5 text-primary" />
-                                    About
-                                </h3>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                    {place.description || 'No description provided.'}
-                                </p>
+                        {/* Info List */}
+                        <div className="space-y-4">
+                            <div className="flex items-start gap-4">
+                                <Info className="h-5 w-5 mt-1 text-muted-foreground shrink-0" />
+                                <div>
+                                    <h3 className="font-semibold">About</h3>
+                                    <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
+                                        {place.description || 'No description provided.'}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="flex items-center gap-2 font-semibold mb-2 text-lg">
-                                    <Clock className="h-5 w-5 text-primary" />
-                                    Business Hours
-                                </h3>
-                                <p className="text-sm font-medium">
-                                    {place.businessHours || 'Not specified'}
-                                </p>
+
+                            <div className="h-px bg-border" />
+
+                            <div className="flex items-start gap-4">
+                                <Clock className="h-5 w-5 mt-1 text-muted-foreground shrink-0" />
+                                <div>
+                                    <h3 className="font-semibold">Business Hours</h3>
+                                    <p className="text-muted-foreground text-sm">
+                                        {place.businessHours || 'Not available'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="h-px bg-border" />
+
+                            <div className="flex items-start gap-4">
+                                <Building className="h-5 w-5 mt-1 text-muted-foreground shrink-0" />
+                                <div>
+                                    <h3 className="font-semibold">Location</h3>
+                                    <p className="text-muted-foreground text-sm">
+                                        {place.floorPlan.name}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </ScrollArea>
-                {/* IMPROVEMENT: Enhanced footer with clear primary and secondary actions */}
-                <div className="p-4 border-t bg-background flex gap-2">
-                    <Button variant="outline" className="w-1/3 h-14 text-lg" onClick={() => onOpenChange(false)}>
-                        <CloseIcon className="mr-2 h-6 w-6" />
-                        Close
-                    </Button>
-                    <Button className="w-2/3 h-14 text-lg" onClick={() => onShowOnMap(place)}>
-                        <Map className="mr-2 h-6 w-6" />
-                        Show on Map
+
+                {/* Footer Action Button */}
+                <div className="p-4 border-t bg-background mt-auto">
+                    <Button className="w-full h-14 text-lg" onClick={handleShowOnMapClick}>
+                        <Map className="mr-2 h-6 w-6" /> Show on Map
                     </Button>
                 </div>
             </SheetContent>
