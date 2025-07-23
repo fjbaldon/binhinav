@@ -89,12 +89,6 @@ export default function HomePage() {
         setIsDetailSheetOpen(!!place);
     };
 
-    // REVERTED: This handler now only selects the place.
-    // The zoom logic is contained within MapView.
-    const handleShowOnMap = (place: Place) => {
-        handlePlaceSelect(place);
-    };
-
     const resetFilters = () => {
         setSearchTerm('');
         setActiveCategoryId(null);
@@ -151,7 +145,7 @@ export default function HomePage() {
                     place={selectedPlace}
                     isOpen={isDetailSheetOpen}
                     onOpenChange={setIsDetailSheetOpen}
-                    onShowOnMap={handleShowOnMap}
+                    onPlaceSelect={handlePlaceSelect}
                 />
 
                 {isInactive && <AdOverlay onInteraction={resetView} />}

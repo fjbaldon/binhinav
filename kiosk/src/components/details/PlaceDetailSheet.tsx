@@ -17,19 +17,19 @@ interface PlaceDetailSheetProps {
     place: Place | null;
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
-    onShowOnMap: (place: Place) => void;
+    onPlaceSelect: (place: Place) => void;
 }
 
 export function PlaceDetailSheet({
     place,
     isOpen,
     onOpenChange,
-    onShowOnMap,
+    onPlaceSelect,
 }: PlaceDetailSheetProps) {
     if (!place) return null;
 
-    const handleShowOnMapClick = () => {
-        onShowOnMap(place);
+    const handleSelectOnMapClick = () => {
+        onPlaceSelect(place);
         onOpenChange(false); // Close the sheet to let the user see the map
     };
 
@@ -121,7 +121,7 @@ export function PlaceDetailSheet({
 
                 {/* Footer Action Button */}
                 <div className="p-4 border-t bg-background mt-auto">
-                    <Button className="w-full h-14 text-lg" onClick={handleShowOnMapClick}>
+                    <Button className="w-full h-14 text-lg" onClick={handleSelectOnMapClick}>
                         <Map className="mr-2 h-6 w-6" /> Show on Map
                     </Button>
                 </div>
