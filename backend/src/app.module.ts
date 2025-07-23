@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { PlacesModule } from './places/places.module';
 import { MerchantsModule } from './merchants/merchants.module';
 import { AdminsModule } from './admins/admins.module';
@@ -64,9 +62,8 @@ import { DatabaseModule } from './database/database.module';
     CategoriesModule,
     AuditLogsModule,
   ],
-  controllers: [AppController],
+  controllers: [],
   providers: [
-    AppService,
     // Apply the ThrottlerGuard globally to all routes
     {
       provide: APP_GUARD,
