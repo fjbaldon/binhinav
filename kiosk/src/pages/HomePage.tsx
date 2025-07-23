@@ -33,7 +33,7 @@ export default function HomePage() {
 
     // --- HOOKS ---
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
-    useInactivityTimer(() => setIsInactive(true), 3000);
+    useInactivityTimer(() => setIsInactive(true), 60000);
 
     // --- EFFECT: Automatically close the detail sheet when ads start playing ---
     useEffect(() => {
