@@ -26,7 +26,7 @@ export function AdOverlay({ onInteraction }: AdOverlayProps) {
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center animate-in fade-in"
+            className="fixed inset-0 bg-black/80 z-[60] flex flex-col items-center justify-center animate-in fade-in" // This z-[60] is important
             onClick={onInteraction}
         >
             {/* This is the Viewport. It needs to hide the parts of the filmstrip that are off-screen. */}

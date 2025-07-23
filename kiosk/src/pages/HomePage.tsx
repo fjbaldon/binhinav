@@ -33,7 +33,16 @@ export default function HomePage() {
 
     // --- HOOKS ---
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
-    useInactivityTimer(() => setIsInactive(true), 60000);
+    useInactivityTimer(() => setIsInactive(true), 3000);
+
+    // --- EFFECT: Automatically close the detail sheet when ads start playing ---
+    useEffect(() => {
+        if (isInactive) {
+            setIsDetailSheetOpen(false);
+            setSelectedPlace(null);
+        }
+    }, [isInactive]);
+
 
     // --- DATA FETCHING ---
     const { data: kioskData, isLoading: isLoadingKiosk } = useQuery<KioskData>({
@@ -87,6 +96,14 @@ export default function HomePage() {
     const handlePlaceSelect = (place: Place | null) => {
         setSelectedPlace(place);
         setIsDetailSheetOpen(!!place);
+    };
+
+    // CLEANUP: Ensure that closing the sheet (via X button, swipe, etc.) also deselects the place.
+    const handleSheetOpenChange = (open: boolean) => {
+        setIsDetailSheetOpen(open);
+        if (!open) {
+            setSelectedPlace(null);
+        }
     };
 
     const resetFilters = () => {
@@ -144,7 +161,7 @@ export default function HomePage() {
                 <PlaceDetailSheet
                     place={selectedPlace}
                     isOpen={isDetailSheetOpen}
-                    onOpenChange={setIsDetailSheetOpen}
+                    onOpenChange={handleSheetOpenChange}
                     onPlaceSelect={handlePlaceSelect}
                 />
 
