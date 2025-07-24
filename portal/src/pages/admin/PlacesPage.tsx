@@ -339,7 +339,6 @@ export default function PlacesPage() {
                             <DialogTitle>Location for: {viewingPlace?.name}</DialogTitle>
                             <DialogDescription>Floor Plan: {viewingPlace?.floorPlan.name}</DialogDescription>
                         </DialogHeader>
-                        {/* THIS IS THE FIX: This structure is now an exact copy of the working KiosksPage "View" dialog. */}
                         <div className="relative mt-4 w-full rounded-md border bg-muted/20 overflow-hidden">
                             <img
                                 src={getAssetUrl(viewingPlace?.floorPlan.imageUrl)}
