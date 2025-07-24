@@ -15,6 +15,7 @@ import { ActionType } from 'src/audit-logs/enums/action-type.enum';
 import { Role } from 'src/shared/enums/role.enum';
 import { MerchantsService } from 'src/merchants/merchants.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Merchant } from 'src/merchants/entities/merchant.entity';
 
 interface UserPayload {
     userId: string;
@@ -40,69 +41,76 @@ export class PlacesService {
     ) { }
 
     async create(createPlaceDto: CreatePlaceDto): Promise<Place> {
-        const { floorPlanId, merchantId, ...placeDetails } = createPlaceDto;
+        return this.entityManager.transaction(async (transactionalEntityManager) => {
+            const {
+                floorPlanId,
+                merchantId,
+                newMerchantName,
+                newMerchantUsername,
+                newMerchantPassword,
+                ...placeDetails
+            } = createPlaceDto;
 
-        if (merchantId) {
-            const existingPlace = await this.placesRepository.findOne({ where: { merchant: { id: merchantId } } });
-            if (existingPlace) {
-                throw new ConflictException(`Merchant with ID ${merchantId} is already assigned to place "${existingPlace.name}".`);
+            let merchantToAssign: Merchant | null = null;
+
+            if (newMerchantUsername) {
+                const merchantRepository = transactionalEntityManager.getRepository(Merchant);
+                const existing = await merchantRepository.findOneBy({ username: newMerchantUsername });
+                if (existing) {
+                    throw new ConflictException(`Merchant username "${newMerchantUsername}" already exists.`);
+                }
+                const newMerchant = merchantRepository.create({
+                    name: newMerchantName,
+                    username: newMerchantUsername,
+                    password: newMerchantPassword,
+                });
+                merchantToAssign = await merchantRepository.save(newMerchant);
             }
-        }
+            else if (merchantId) {
+                const merchantRepository = transactionalEntityManager.getRepository(Merchant);
+                merchantToAssign = await merchantRepository.findOneBy({ id: merchantId });
+                if (!merchantToAssign) {
+                    throw new NotFoundException(`Merchant with ID ${merchantId} not found.`);
+                }
+                
+                const placeRepository = transactionalEntityManager.getRepository(Place);
+                const existingPlace = await placeRepository.findOne({ where: { merchant: { id: merchantId } } });
+                if (existingPlace) {
+                    throw new ConflictException(`Merchant with ID ${merchantId} is already assigned to place "${existingPlace.name}".`);
+                }
+            }
 
-        const newPlaceData: DeepPartial<Place> = {
-            ...placeDetails,
-            floorPlan: { id: floorPlanId },
-            ...(merchantId && { merchant: { id: merchantId } }),
-        };
+            const newPlaceData: DeepPartial<Place> = {
+                ...placeDetails,
+                floorPlan: { id: floorPlanId },
+                merchant: merchantToAssign,
+            };
 
-        const newPlace = this.placesRepository.create(newPlaceData);
-        return this.placesRepository.save(newPlace);
+            const placeRepository = transactionalEntityManager.getRepository(Place);
+            const newPlace = placeRepository.create(newPlaceData);
+            return placeRepository.save(newPlace);
+        });
     }
 
     async findAll(options: FindAllPlacesOptions = {}, kioskId?: string): Promise<Place[]> {
         const { searchTerm, categoryIds } = options;
         const queryBuilder = this.placesRepository.createQueryBuilder('place');
-
-        queryBuilder
-            .leftJoinAndSelect('place.floorPlan', 'floorPlan')
-            .leftJoinAndSelect('place.merchant', 'merchant')
-            .leftJoinAndSelect('place.category', 'category');
-
+        queryBuilder.leftJoinAndSelect('place.floorPlan', 'floorPlan').leftJoinAndSelect('place.merchant', 'merchant').leftJoinAndSelect('place.category', 'category');
         if (categoryIds && categoryIds.length > 0) {
             queryBuilder.andWhere('place.categoryId IN (:...ids)', { ids: categoryIds });
         }
-
         if (searchTerm) {
-            queryBuilder.andWhere(
-                '(place.name ILIKE :searchTerm OR place.description ILIKE :searchTerm)',
-                { searchTerm: `%${searchTerm}%` },
-            );
+            queryBuilder.andWhere('(place.name ILIKE :searchTerm OR place.description ILIKE :searchTerm)', { searchTerm: `%${searchTerm}%` });
         }
-
         const places = await queryBuilder.getMany();
-
         if (kioskId && searchTerm) {
-            this.eventEmitter.emit(
-                'search.performed',
-                {
-                    searchTerm,
-                    kioskId,
-                    foundResults: places.length > 0,
-                }
-            );
+            this.eventEmitter.emit('search.performed', { searchTerm, kioskId, foundResults: places.length > 0 });
         }
-
         return places;
     }
 
     async findOne(id: string): Promise<Place> {
-        const place = await this.placesRepository.createQueryBuilder('place')
-            .leftJoinAndSelect('place.floorPlan', 'floorPlan')
-            .leftJoinAndSelect('place.merchant', 'merchant')
-            .leftJoinAndSelect('place.category', 'category')
-            .where('place.id = :id', { id })
-            .getOne();
-
+        const place = await this.placesRepository.createQueryBuilder('place').leftJoinAndSelect('place.floorPlan', 'floorPlan').leftJoinAndSelect('place.merchant', 'merchant').leftJoinAndSelect('place.category', 'category').where('place.id = :id', { id }).getOne();
         if (!place) {
             throw new NotFoundException(`Place with ID "${id}" not found`);
         }
@@ -115,115 +123,137 @@ export class PlacesService {
         user: UserPayload,
         paths: { logoPath?: string; coverPath?: string },
     ): Promise<Place> {
-        const placeToUpdate = await this.placesRepository.createQueryBuilder('place')
-            .leftJoinAndSelect('place.merchant', 'merchant')
-            .leftJoinAndSelect('place.category', 'category')
-            .where('place.id = :id', { id })
-            .getOne();
+        return this.entityManager.transaction(async (transactionalEntityManager) => {
+            const placeRepository = transactionalEntityManager.getRepository(Place);
+            const merchantRepository = transactionalEntityManager.getRepository(Merchant);
+            
+            const placeToUpdate = await placeRepository.createQueryBuilder('place')
+                .leftJoinAndSelect('place.merchant', 'merchant')
+                .leftJoinAndSelect('place.category', 'category')
+                .where('place.id = :id', { id })
+                .getOne();
 
-        if (!placeToUpdate) {
-            throw new NotFoundException(`Place with ID "${id}" not found`);
-        }
-
-        if (user.role === Role.Merchant && placeToUpdate.merchant?.id !== user.userId) {
-            throw new ForbiddenException('You do not have permission to update this place.');
-        }
-
-        if (user.role === Role.Merchant) {
-            const changes: { [key: string]: { from: any; to: any } } = {};
-            if (updatePlaceDto.name !== undefined && placeToUpdate.name !== updatePlaceDto.name) {
-                changes.name = { from: placeToUpdate.name, to: updatePlaceDto.name };
-            }
-            if (updatePlaceDto.description !== undefined && placeToUpdate.description !== updatePlaceDto.description) {
-                changes.description = { from: placeToUpdate.description, to: updatePlaceDto.description };
-            }
-            if (updatePlaceDto.businessHours !== undefined && placeToUpdate.businessHours !== updatePlaceDto.businessHours) {
-                changes.businessHours = { from: placeToUpdate.businessHours, to: updatePlaceDto.businessHours };
-            }
-            if (updatePlaceDto.categoryId !== undefined && (placeToUpdate.category?.id || null) !== updatePlaceDto.categoryId) {
-                changes.category = { from: placeToUpdate.category?.name || 'None', to: updatePlaceDto.categoryId };
-            }
-            if (paths.logoPath) {
-                changes.logo = { from: placeToUpdate.logoUrl || null, to: paths.logoPath };
-            }
-            if (paths.coverPath) {
-                changes.cover = { from: placeToUpdate.coverUrl || null, to: paths.coverPath };
+            if (!placeToUpdate) {
+                throw new NotFoundException(`Place with ID "${id}" not found`);
             }
 
-            if (Object.keys(changes).length > 0) {
-                this.auditLogsService.create({
-                    entityType: 'Place', entityId: id, action: ActionType.UPDATE,
-                    changes: changes, userId: user.userId, username: user.username, userRole: user.role,
-                });
+            if (user.role === Role.Merchant && placeToUpdate.merchant?.id !== user.userId) {
+                throw new ForbiddenException('You do not have permission to update this place.');
             }
-        }
 
-        if (paths.logoPath && placeToUpdate.logoUrl) await deleteFile(placeToUpdate.logoUrl);
-        if (paths.coverPath && placeToUpdate.coverUrl) await deleteFile(placeToUpdate.coverUrl);
+            if (user.role === Role.Merchant) {
+                const changes: { [key: string]: { from: any; to: any } } = {};
 
-        const updatePayload: { [key: string]: any } = {};
+                if (updatePlaceDto.name !== undefined && placeToUpdate.name !== updatePlaceDto.name) {
+                    changes.name = { from: placeToUpdate.name, to: updatePlaceDto.name };
+                }
+                if (updatePlaceDto.description !== undefined && placeToUpdate.description !== updatePlaceDto.description) {
+                    changes.description = { from: placeToUpdate.description, to: updatePlaceDto.description };
+                }
+                if (updatePlaceDto.businessHours !== undefined && placeToUpdate.businessHours !== updatePlaceDto.businessHours) {
+                    changes.businessHours = { from: placeToUpdate.businessHours, to: updatePlaceDto.businessHours };
+                }
+                if (updatePlaceDto.categoryId !== undefined && (placeToUpdate.category?.id || null) !== updatePlaceDto.categoryId) {
+                    changes.category = { from: placeToUpdate.category?.name || 'None', to: updatePlaceDto.categoryId };
+                }
+                if (paths.logoPath) {
+                    changes.logo = { from: placeToUpdate.logoUrl || null, to: paths.logoPath };
+                }
+                if (paths.coverPath) {
+                    changes.cover = { from: placeToUpdate.coverUrl || null, to: paths.coverPath };
+                }
 
-        if (user.role === Role.Admin) {
-            if (updatePlaceDto.name !== undefined) updatePayload.name = updatePlaceDto.name;
-            if (updatePlaceDto.locationX !== undefined) updatePayload.locationX = updatePlaceDto.locationX;
-            if (updatePlaceDto.locationY !== undefined) updatePayload.locationY = updatePlaceDto.locationY;
-            if (updatePlaceDto.floorPlanId) updatePayload.floorPlan = { id: updatePlaceDto.floorPlanId };
+                if (Object.keys(changes).length > 0) {
+                    this.auditLogsService.create({
+                        entityType: 'Place', entityId: id, action: ActionType.UPDATE,
+                        changes: changes, userId: user.userId, username: user.username, userRole: user.role,
+                    });
+                }
+            }
 
-            if ('merchantId' in updatePlaceDto) {
-                if (updatePlaceDto.merchantId) {
-                    const existingPlace = await this.placesRepository.findOne({ where: { merchant: { id: updatePlaceDto.merchantId } } });
-                    if (existingPlace && existingPlace.id !== id) {
-                        throw new ConflictException(`Merchant is already assigned to place "${existingPlace.name}".`);
+            if (paths.logoPath && placeToUpdate.logoUrl) await deleteFile(placeToUpdate.logoUrl);
+            if (paths.coverPath && placeToUpdate.coverUrl) await deleteFile(placeToUpdate.coverUrl);
+
+            const updatePayload: { [key: string]: any } = {};
+            
+            if (user.role === Role.Admin) {
+                const { newMerchantName, newMerchantUsername, newMerchantPassword, ...adminFields } = updatePlaceDto;
+
+                if (adminFields.name !== undefined) updatePayload.name = adminFields.name;
+                if (adminFields.locationX !== undefined) updatePayload.locationX = adminFields.locationX;
+                if (adminFields.locationY !== undefined) updatePayload.locationY = adminFields.locationY;
+                if (adminFields.floorPlanId) updatePayload.floorPlan = { id: adminFields.floorPlanId };
+
+                let merchantToAssign: Merchant | null | undefined = undefined;
+
+                if (newMerchantUsername) {
+                    const existing = await merchantRepository.findOneBy({ username: newMerchantUsername });
+                    if (existing) {
+                        throw new ConflictException(`Merchant username "${newMerchantUsername}" already exists.`);
+                    }
+                    const newMerchant = merchantRepository.create({
+                        name: newMerchantName,
+                        username: newMerchantUsername,
+                        password: newMerchantPassword,
+                    });
+                    merchantToAssign = await merchantRepository.save(newMerchant);
+                }
+                else if ('merchantId' in adminFields) {
+                     if (adminFields.merchantId) {
+                        const existingPlace = await placeRepository.findOne({ where: { merchant: { id: adminFields.merchantId } } });
+                        if (existingPlace && existingPlace.id !== id) {
+                            throw new ConflictException(`Merchant is already assigned to place "${existingPlace.name}".`);
+                        }
+                        merchantToAssign = await merchantRepository.findOneBy({ id: adminFields.merchantId });
+                        if (!merchantToAssign) {
+                            throw new NotFoundException(`Merchant with ID "${adminFields.merchantId}" not found.`);
+                        }
+                    } else {
+                        merchantToAssign = null;
                     }
                 }
-                updatePayload.merchant = updatePlaceDto.merchantId ? { id: updatePlaceDto.merchantId } : null;
+                
+                if (merchantToAssign !== undefined) {
+                    updatePayload.merchant = merchantToAssign;
+                }
+
+            } else if (user.role === Role.Merchant) {
+                if (updatePlaceDto.name !== undefined) updatePayload.name = updatePlaceDto.name;
+                if (updatePlaceDto.description !== undefined) updatePayload.description = updatePlaceDto.description;
+                if (updatePlaceDto.businessHours !== undefined) updatePayload.businessHours = updatePlaceDto.businessHours;
+                if (updatePlaceDto.categoryId !== undefined) {
+                    updatePayload.category = updatePlaceDto.categoryId ? { id: updatePlaceDto.categoryId } : null;
+                }
+                if (paths.logoPath) updatePayload.logoUrl = paths.logoPath;
+                if (paths.coverPath) updatePayload.coverUrl = paths.coverPath;
             }
-        } else if (user.role === Role.Merchant) {
-            if (updatePlaceDto.name !== undefined) updatePayload.name = updatePlaceDto.name;
-            if (updatePlaceDto.description !== undefined) updatePayload.description = updatePlaceDto.description;
-            if (updatePlaceDto.businessHours !== undefined) updatePayload.businessHours = updatePlaceDto.businessHours;
 
-            if (updatePlaceDto.categoryId !== undefined) {
-                updatePayload.category = updatePlaceDto.categoryId ? { id: updatePlaceDto.categoryId } : null;
-            }
+            const updatedPlace = await placeRepository.preload({
+                id,
+                ...updatePayload,
+            } as DeepPartial<Place>);
 
-            if (paths.logoPath) updatePayload.logoUrl = paths.logoPath;
-            if (paths.coverPath) updatePayload.coverUrl = paths.coverPath;
-        }
-
-        const updatedPlace = await this.placesRepository.preload({
-            id,
-            ...updatePayload,
-        } as DeepPartial<Place>);
-
-        if (!updatedPlace) throw new NotFoundException(`Place with ID "${id}" could not be preloaded.`);
-        return this.placesRepository.save(updatedPlace);
+            if (!updatedPlace) throw new NotFoundException(`Place with ID "${id}" could not be preloaded.`);
+            return placeRepository.save(updatedPlace);
+        });
     }
 
     async remove(id: string): Promise<void> {
         await this.entityManager.transaction(async (transactionalEntityManager) => {
-            const placeToDelete = await transactionalEntityManager.findOne(Place, {
-                where: { id },
-                relations: ['merchant'],
-            });
-
+            const placeToDelete = await transactionalEntityManager.findOne(Place, { where: { id }, relations: ['merchant'] });
             if (!placeToDelete) {
                 throw new NotFoundException(`Place with ID "${id}" not found`);
             }
-
             if (placeToDelete.merchant) {
                 await this.merchantsService.remove(placeToDelete.merchant.id);
             }
-
             if (placeToDelete.logoUrl) {
                 await deleteFile(placeToDelete.logoUrl);
             }
             if (placeToDelete.coverUrl) {
                 await deleteFile(placeToDelete.coverUrl);
             }
-
             const result = await transactionalEntityManager.delete(Place, id);
-
             if (result.affected === 0) {
                 throw new NotFoundException(`Place with ID "${id}" could not be deleted.`);
             }

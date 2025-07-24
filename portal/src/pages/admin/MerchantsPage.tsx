@@ -1,57 +1,27 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMerchants, createMerchant, updateMerchant, deleteMerchant } from "@/api/merchants";
-import type { Merchant, MerchantPayload } from "@/api/types";
+import { getMerchants, updateMerchant, deleteMerchant } from "@/api/merchants";
+import type { Merchant } from "@/api/types";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
-
-// UI Components
+import { MerchantsEditDialog } from './components/MerchantsEditDialog';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2, UserCircle2, AlertCircle, ArrowUpDown } from 'lucide-react';
+import { Edit, Trash2, UserCircle2, AlertCircle, ArrowUpDown } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { DataTable } from "@/components/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
-
-const merchantSchema = z.object({
-    name: z.string().min(2, "Name is required."),
-    username: z.string().min(4, "Username must be at least 4 characters."),
-    password: z.string().min(8, "Password must be at least 8 characters.").optional().or(z.literal('')),
-});
-
-type MerchantFormValues = z.infer<typeof merchantSchema>;
 
 export default function MerchantsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingMerchant, setEditingMerchant] = useState<Merchant | null>(null);
     const [sorting, setSorting] = useState<SortingState>([]);
 
-    const form = useForm({
-        resolver: zodResolver(merchantSchema),
-    });
     const queryClient = useQueryClient();
 
-    // --- DATA FETCHING (READ) ---
     const { data: merchants = [], isLoading, isError } = useQuery({
         queryKey: ['merchants'],
         queryFn: getMerchants,
-    });
-
-    // --- DATA MUTATIONS ---
-    const createMutation = useMutation({
-        mutationFn: createMerchant,
-        onSuccess: () => {
-            toast.success("Merchant created successfully.");
-            queryClient.invalidateQueries({ queryKey: ['merchants'] });
-            setIsDialogOpen(false);
-        },
-        onError: (error: any) => toast.error("Creation Failed", { description: error.response?.data?.message || "Username might already be in use." })
     });
 
     const updateMutation = useMutation({
@@ -77,36 +47,15 @@ export default function MerchantsPage() {
         document.title = "Merchants | Binhinav Admin";
     }, []);
 
-    const handleOpenDialog = (merchant: Merchant | null = null) => {
+    const handleOpenDialog = (merchant: Merchant) => {
         setEditingMerchant(merchant);
-        form.reset(merchant ? { name: merchant.name, username: merchant.username, password: '' } : { name: "", username: "", password: "" });
         setIsDialogOpen(true);
-    };
-
-    const onSubmit = (data: MerchantFormValues) => {
-        if (editingMerchant) {
-            const payload: Partial<MerchantPayload> = { name: data.name, username: data.username };
-            if (data.password) {
-                payload.password = data.password;
-            }
-            updateMutation.mutate({ id: editingMerchant.id, payload });
-        } else {
-            if (!data.password) {
-                form.setError("password", { message: "Password is required for new merchants." });
-                return;
-            }
-            createMutation.mutate(data as MerchantPayload);
-        }
     };
 
     const handleDelete = (id: string) => deleteMutation.mutate(id);
 
-    const isMutating = createMutation.isPending || updateMutation.isPending;
-
-    // Calculate unassigned merchants for the summary card
     const unassignedCount = merchants.filter(m => !m.place).length;
 
-    // --- TABLE COLUMNS DEFINITION ---
     const columns: ColumnDef<Merchant>[] = [
         {
             accessorKey: "name",
@@ -126,12 +75,7 @@ export default function MerchantsPage() {
         {
             accessorKey: "place.name",
             header: ({ column }) => (
-                <Button
-                    variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    // FIX: Remove default button padding and adjust alignment
-                    className="justify-start -ml-4"
-                >
+                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="justify-start -ml-4">
                     Assigned Place
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
@@ -171,14 +115,11 @@ export default function MerchantsPage() {
 
     return (
         <>
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Merchants</h2>
-                    <p className="text-muted-foreground">Manage merchant accounts and credentials.</p>
-                </div>
-                <Button onClick={() => handleOpenDialog()}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Merchant
-                </Button>
+            <div className="mb-6">
+                <h2 className="text-3xl font-bold tracking-tight">Merchants</h2>
+                <p className="text-muted-foreground">
+                    Manage merchant accounts. New merchants are created and assigned on the Places page.
+                </p>
             </div>
 
             {unassignedCount > 0 && (
@@ -190,7 +131,7 @@ export default function MerchantsPage() {
                                 <CardTitle className="text-amber-900">Action Required</CardTitle>
                                 <CardDescription className="text-amber-800">
                                     You have {unassignedCount} unassigned {unassignedCount === 1 ? 'merchant' : 'merchants'}.
-                                    Assign them to a place from the <a href="/admin/places" className="underline font-semibold">Places page</a> to allow them to manage their store information.
+                                    Assign them to a place from the <a href="/admin/places" className="underline font-semibold">Places page</a>.
                                 </CardDescription>
                             </div>
                         </div>
@@ -203,48 +144,19 @@ export default function MerchantsPage() {
                     {isLoading && <p>Loading merchants...</p>}
                     {isError && <p className="text-destructive">Failed to load merchants.</p>}
                     {!isLoading && !isError && (
-                        <DataTable
-                            columns={columns}
-                            data={merchants}
-                            sorting={sorting}
-                            setSorting={setSorting}
-                        />
+                        <DataTable columns={columns} data={merchants} sorting={sorting} setSorting={setSorting} />
                     )}
                 </CardContent>
             </Card>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingMerchant ? "Edit Merchant" : "Create New Merchant"}</DialogTitle>
-                        <DialogDescription>
-                            {editingMerchant
-                                ? "Edit the merchant's details below. To change the assigned place, go to the Places page."
-                                : "Enter the new merchant's details. You can assign them to a place from the Places page later."}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Merchant's Full Name</Label>
-                            <Input id="name" {...form.register("name")} />
-                            <p className="text-sm text-red-500">{form.formState.errors.name?.message}</p>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="username">Username</Label>
-                            <Input id="username" {...form.register("username")} />
-                            <p className="text-sm text-red-500">{form.formState.errors.username?.message}</p>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input id="password" type="password" {...form.register("password")} placeholder={editingMerchant ? "Leave blank to keep unchanged" : ""} />
-                            <p className="text-sm text-red-500">{form.formState.errors.password?.message}</p>
-                        </div>
-                        <Button type="submit" disabled={isMutating} className="w-full">
-                            {isMutating ? "Saving..." : "Save Merchant"}
-                        </Button>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            {editingMerchant && (
+                <MerchantsEditDialog
+                    isOpen={isDialogOpen}
+                    setIsOpen={setIsDialogOpen}
+                    merchant={editingMerchant}
+                    updateMutation={updateMutation}
+                />
+            )}
         </>
     );
 }
