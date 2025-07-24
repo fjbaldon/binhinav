@@ -16,7 +16,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin, Building2, ArrowUpDown } from 'lucide-react';
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
@@ -266,79 +265,95 @@ export default function PlacesPage() {
             </Card>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-3xl">
+                <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto pr-6">
                     <DialogHeader>
                         <DialogTitle>{editingPlace ? "Edit Place" : "Create New Place"}</DialogTitle>
                         <DialogDescription>Set the place's name, floor plan, and location. You can also assign or create a new merchant.</DialogDescription>
                     </DialogHeader>
-                    <ScrollArea className="max-h-[70vh] pr-6">
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1 pt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Place Name</Label>
-                                    <Input id="name" {...form.register("name")} />
-                                    <p className="text-sm text-red-500">{form.formState.errors.name?.message}</p>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Assign Merchant</Label>
-                                    <Select onValueChange={(v) => form.setValue('merchantId', v, { shouldValidate: true })} value={form.getValues('merchantId') || 'none'}>
-                                        <SelectTrigger className="w-full"><SelectValue placeholder="Assign Merchant" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">Unassigned</SelectItem>
-                                            <SelectItem value="new">-- Create a new merchant --</SelectItem>
-                                            {availableMerchants.length > 0 && <Separator className="my-1" />}
-                                            {availableMerchants.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            {watchedMerchantId === 'new' && (
-                                <Card className="bg-muted/50 p-4">
-                                    <h3 className="text-sm font-semibold mb-2">New Merchant Details</h3>
-                                    <div className="space-y-2">
-                                        <div><Label htmlFor="newMerchantName">Merchant Name</Label><Input id="newMerchantName" {...form.register("newMerchantName")} /><p className="text-sm text-red-500 pt-1">{form.formState.errors.newMerchantName?.message}</p></div>
-                                        <div><Label htmlFor="newMerchantUsername">Username</Label><Input id="newMerchantUsername" {...form.register("newMerchantUsername")} /><p className="text-sm text-red-500 pt-1">{form.formState.errors.newMerchantUsername?.message}</p></div>
-                                        <div><Label htmlFor="newMerchantPassword">Password</Label><Input id="newMerchantPassword" type="password" {...form.register("newMerchantPassword")} /><p className="text-sm text-red-500 pt-1">{form.formState.errors.newMerchantPassword?.message}</p></div>
-                                    </div>
-                                </Card>
-                            )}
-
+                    {/* The extra div wrapper is removed from here to match KiosksPage structure */}
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Floor Plan</Label>
-                                <Select onValueChange={(v) => { form.setValue('floorPlanId', v, { shouldValidate: true }); setSelectedCoords(null); form.setValue('locationX', undefined, { shouldValidate: true }); form.setValue('locationY', undefined, { shouldValidate: true }); }} value={form.getValues('floorPlanId')}>
-                                    <SelectTrigger className="w-full"><SelectValue placeholder="* Select a Floor Plan to place the pin" /></SelectTrigger>
-                                    <SelectContent>{floorPlans.map(fp => <SelectItem key={fp.id} value={fp.id}>{fp.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <p className="text-sm text-red-500">{form.formState.errors.floorPlanId?.message}</p>
+                                <Label htmlFor="name">Place Name</Label>
+                                <Input id="name" {...form.register("name")} />
+                                <p className="text-sm text-red-500">{form.formState.errors.name?.message}</p>
                             </div>
+                            <div className="space-y-2">
+                                <Label>Assign Merchant</Label>
+                                <Select onValueChange={(v) => form.setValue('merchantId', v, { shouldValidate: true })} value={form.getValues('merchantId') || 'none'}>
+                                    <SelectTrigger className="w-full"><SelectValue placeholder="Assign Merchant" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Unassigned</SelectItem>
+                                        <SelectItem value="new">-- Create a new merchant --</SelectItem>
+                                        {availableMerchants.length > 0 && <Separator className="my-1" />}
+                                        {availableMerchants.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
 
-                            {selectedFloorPlan && (
+                        {watchedMerchantId === 'new' && (
+                            <Card className="bg-muted/50 p-4">
+                                <h3 className="text-sm font-semibold mb-2">New Merchant Details</h3>
                                 <div className="space-y-2">
-                                    <Label>Set Location</Label>
-                                    <div className="relative w-full rounded-md border bg-muted/20 overflow-hidden">
-                                        <TransformWrapper doubleClick={{ disabled: true }} panning={{ disabled: false, velocityDisabled: true }}>
-                                            <Controls />
-                                            <TransformComponent wrapperStyle={{ maxHeight: '60vh', width: '100%' }} contentStyle={{ width: '100%', height: '100%', cursor: 'crosshair' }} contentProps={{ onDoubleClick: handleMapDoubleClick }}>
-                                                <div className="relative"><img src={getAssetUrl(selectedFloorPlan.imageUrl)} alt={selectedFloorPlan.name} />{selectedCoords && (<Target className="absolute text-red-500 w-6 h-6 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: selectedCoords[0], top: selectedCoords[1] }} />)}</div>
-                                            </TransformComponent>
-                                        </TransformWrapper>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">Coordinates: {selectedCoords ? `(${selectedCoords[0].toFixed(0)}, ${selectedCoords[1].toFixed(0)})` : 'Double-click map to set'}</p>
-                                    <p className="text-sm text-red-500">{form.formState.errors.locationX?.message}</p>
+                                    <div><Label htmlFor="newMerchantName">Merchant Name</Label><Input id="newMerchantName" {...form.register("newMerchantName")} /><p className="text-sm text-red-500 pt-1">{form.formState.errors.newMerchantName?.message}</p></div>
+                                    <div><Label htmlFor="newMerchantUsername">Username</Label><Input id="newMerchantUsername" {...form.register("newMerchantUsername")} /><p className="text-sm text-red-500 pt-1">{form.formState.errors.newMerchantUsername?.message}</p></div>
+                                    <div><Label htmlFor="newMerchantPassword">Password</Label><Input id="newMerchantPassword" type="password" {...form.register("newMerchantPassword")} /><p className="text-sm text-red-500 pt-1">{form.formState.errors.newMerchantPassword?.message}</p></div>
                                 </div>
-                            )}
-                            <Button type="submit" disabled={isMutating} className="w-full">{isMutating ? "Saving..." : "Save Place"}</Button>
-                        </form>
-                    </ScrollArea>
+                            </Card>
+                        )}
+
+                        <div className="space-y-2">
+                            <Label>Floor Plan</Label>
+                            <Select onValueChange={(v) => { form.setValue('floorPlanId', v, { shouldValidate: true }); setSelectedCoords(null); form.setValue('locationX', undefined, { shouldValidate: true }); form.setValue('locationY', undefined, { shouldValidate: true }); }} value={form.getValues('floorPlanId')}>
+                                <SelectTrigger className="w-full"><SelectValue placeholder="* Select a Floor Plan to place the pin" /></SelectTrigger>
+                                <SelectContent>{floorPlans.map(fp => <SelectItem key={fp.id} value={fp.id}>{fp.name}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <p className="text-sm text-red-500">{form.formState.errors.floorPlanId?.message}</p>
+                        </div>
+
+                        {selectedFloorPlan && (
+                            <div className="space-y-2">
+                                <Label>Set Location</Label>
+                                <div className="relative w-full rounded-md border bg-muted/20 overflow-hidden">
+                                    <TransformWrapper doubleClick={{ disabled: true }} panning={{ disabled: false, velocityDisabled: true }}>
+                                        <Controls />
+                                        <TransformComponent wrapperStyle={{ maxHeight: '60vh', width: '100%' }} contentStyle={{ width: '100%', height: '100%', cursor: 'crosshair' }} contentProps={{ onDoubleClick: handleMapDoubleClick }}>
+                                            <div className="relative"><img src={getAssetUrl(selectedFloorPlan.imageUrl)} alt={selectedFloorPlan.name} />{selectedCoords && (<Target className="absolute text-red-500 w-6 h-6 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: selectedCoords[0], top: selectedCoords[1] }} />)}</div>
+                                        </TransformComponent>
+                                    </TransformWrapper>
+                                </div>
+                                <p className="text-sm text-muted-foreground">Coordinates: {selectedCoords ? `(${selectedCoords[0].toFixed(0)}, ${selectedCoords[1].toFixed(0)})` : 'Double-click map to set'}</p>
+                                <p className="text-sm text-red-500">{form.formState.errors.locationX?.message}</p>
+                            </div>
+                        )}
+                        <Button type="submit" disabled={isMutating} className="w-full">{isMutating ? "Saving..." : "Save Place"}</Button>
+                    </form>
                 </DialogContent>
             </Dialog>
 
             {viewingPlace && (
                 <Dialog open={!!viewingPlace} onOpenChange={(isOpen) => !isOpen && setViewingPlace(null)}>
                     <DialogContent className="sm:max-w-3xl">
-                        <DialogHeader><DialogTitle>Location for: {viewingPlace?.name}</DialogTitle><DialogDescription>Floor Plan: {viewingPlace?.floorPlan.name}</DialogDescription></DialogHeader>
-                        <div className="relative mt-4 w-full rounded-md border bg-muted/20 overflow-hidden"><img src={getAssetUrl(viewingPlace?.floorPlan.imageUrl)} alt={viewingPlace?.floorPlan.name} className="max-h-[70vh] w-full object-contain" />{viewingPlace && (<Target className="absolute text-red-500 w-8 h-8 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: viewingPlace.locationX, top: viewingPlace.locationY }} strokeWidth={2.5} />)}</div>
+                        <DialogHeader>
+                            <DialogTitle>Location for: {viewingPlace?.name}</DialogTitle>
+                            <DialogDescription>Floor Plan: {viewingPlace?.floorPlan.name}</DialogDescription>
+                        </DialogHeader>
+                        {/* THIS IS THE FIX: This structure is now an exact copy of the working KiosksPage "View" dialog. */}
+                        <div className="relative mt-4 w-full rounded-md border bg-muted/20 overflow-hidden">
+                            <img
+                                src={getAssetUrl(viewingPlace?.floorPlan.imageUrl)}
+                                alt={viewingPlace?.floorPlan.name}
+                                className="max-h-[70vh] w-full object-contain"
+                            />
+                            {viewingPlace && (
+                                <Target
+                                    className="absolute text-red-500 w-8 h-8 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                                    style={{ left: viewingPlace.locationX, top: viewingPlace.locationY }}
+                                    strokeWidth={2.5}
+                                />
+                            )}
+                        </div>
                     </DialogContent>
                 </Dialog>
             )}
