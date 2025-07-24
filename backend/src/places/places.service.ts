@@ -14,7 +14,7 @@ import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
 import { ActionType } from 'src/audit-logs/enums/action-type.enum';
 import { Role } from 'src/shared/enums/role.enum';
 import { MerchantsService } from 'src/merchants/merchants.service';
-import { EventEmitter2 } from '@nestjs/event-emitter'; // --- ADDED ---
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 interface UserPayload {
     userId: string;
@@ -25,7 +25,7 @@ interface UserPayload {
 
 interface FindAllPlacesOptions {
     searchTerm?: string;
-    categoryId?: string;
+    categoryIds?: string[];
 }
 
 @Injectable()
@@ -36,11 +36,10 @@ export class PlacesService {
         private readonly auditLogsService: AuditLogsService,
         private readonly merchantsService: MerchantsService,
         private readonly entityManager: EntityManager,
-        private eventEmitter: EventEmitter2, // --- ADDED ---
+        private eventEmitter: EventEmitter2,
     ) { }
 
     async create(createPlaceDto: CreatePlaceDto): Promise<Place> {
-        // ... (existing code is unchanged)
         const { floorPlanId, merchantId, ...placeDetails } = createPlaceDto;
 
         if (merchantId) {
@@ -60,8 +59,8 @@ export class PlacesService {
         return this.placesRepository.save(newPlace);
     }
 
-    async findAll(options: FindAllPlacesOptions = {}, kioskId?: string): Promise<Place[]> { // --- UPDATED ---
-        const { searchTerm, categoryId } = options;
+    async findAll(options: FindAllPlacesOptions = {}, kioskId?: string): Promise<Place[]> {
+        const { searchTerm, categoryIds } = options;
         const queryBuilder = this.placesRepository.createQueryBuilder('place');
 
         queryBuilder
@@ -69,8 +68,8 @@ export class PlacesService {
             .leftJoinAndSelect('place.merchant', 'merchant')
             .leftJoinAndSelect('place.category', 'category');
 
-        if (categoryId) {
-            queryBuilder.andWhere('place.categoryId = :categoryId', { categoryId });
+        if (categoryIds && categoryIds.length > 0) {
+            queryBuilder.andWhere('place.categoryId IN (:...ids)', { ids: categoryIds });
         }
 
         if (searchTerm) {
@@ -82,7 +81,6 @@ export class PlacesService {
 
         const places = await queryBuilder.getMany();
 
-        // --- ADDED: Emit event for search logging ---
         if (kioskId && searchTerm) {
             this.eventEmitter.emit(
                 'search.performed',
@@ -93,13 +91,11 @@ export class PlacesService {
                 }
             );
         }
-        // --- END OF ADDED CODE ---
 
         return places;
     }
 
     async findOne(id: string): Promise<Place> {
-        // ... (existing code is unchanged)
         const place = await this.placesRepository.createQueryBuilder('place')
             .leftJoinAndSelect('place.floorPlan', 'floorPlan')
             .leftJoinAndSelect('place.merchant', 'merchant')
@@ -119,7 +115,6 @@ export class PlacesService {
         user: UserPayload,
         paths: { logoPath?: string; coverPath?: string },
     ): Promise<Place> {
-        // ... (existing code is unchanged, no need to copy it all here)
         const placeToUpdate = await this.placesRepository.createQueryBuilder('place')
             .leftJoinAndSelect('place.merchant', 'merchant')
             .leftJoinAndSelect('place.category', 'category')
@@ -206,7 +201,6 @@ export class PlacesService {
     }
 
     async remove(id: string): Promise<void> {
-        // ... (existing code is unchanged)
         await this.entityManager.transaction(async (transactionalEntityManager) => {
             const placeToDelete = await transactionalEntityManager.findOne(Place, {
                 where: { id },

@@ -3,7 +3,7 @@ import type { KioskData, FloorPlan, Place, Category, Ad } from "./types";
 
 interface GetPlacesParams {
     searchTerm?: string;
-    categoryId?: string | null;
+    categoryIds?: string[];
     kioskId?: string;
 }
 
@@ -24,7 +24,11 @@ export const getFloorPlans = async (): Promise<FloorPlan[]> => {
 };
 
 export const getPlaces = async (params: GetPlacesParams): Promise<Place[]> => {
-    const response = await apiClient.get('/places', { params });
+    const requestParams = {
+        ...params,
+        categoryIds: params.categoryIds?.join(','),
+    };
+    const response = await apiClient.get('/places', { params: requestParams });
     return response.data;
 };
 

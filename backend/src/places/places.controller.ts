@@ -13,6 +13,7 @@ import { diskStorage } from 'multer';
 import { imageFileFilter, editFileName } from '../shared/utils/file-helpers';
 import { Query } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { ParseUuidArrayPipe } from 'src/shared/pipes/parse-uuid-array.pipe'; // --- ADDED ---
 
 @Controller('places')
 export class PlacesController {
@@ -20,27 +21,23 @@ export class PlacesController {
 
     @Post()
     @Roles(Role.Admin)
-    @UseGuards(JwtAuthGuard, RolesGuard) // --- MOVED TO BE CONSISTENT ---
+    @UseGuards(JwtAuthGuard, RolesGuard)
     create(@Body() createPlaceDto: CreatePlaceDto) {
         return this.placesService.create(createPlaceDto);
     }
 
-    // This endpoint is for the public kiosk view, so no roles needed
     @Get()
     findAll(
         @Query('search') searchTerm?: string,
-        @Query('categoryId', new ParseUUIDPipe({ optional: true, version: '4' }))
-        categoryId?: string,
-        // --- ADDED: Kiosk ID for logging ---
+        @Query('categoryIds', new ParseUuidArrayPipe())
+        categoryIds?: string[],
         @Query('kioskId', new ParseUUIDPipe({ optional: true, version: '4' }))
         kioskId?: string,
     ) {
-        // Pass kioskId to the service
-        return this.placesService.findAll({ searchTerm, categoryId }, kioskId);
+        return this.placesService.findAll({ searchTerm, categoryIds }, kioskId);
     }
 
     @Get(':id')
-    // This is public for fetching place details on the kiosk
     findOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.placesService.findOne(id);
     }

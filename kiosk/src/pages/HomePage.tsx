@@ -18,7 +18,7 @@ export default function HomePage() {
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
     const [currentFloorPlanId, setCurrentFloorPlanId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+    const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([]);
     const [isInactive, setIsInactive] = useState(false);
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
     const mapControllerRef = useRef<ReactZoomPanPinchRef>(null);
@@ -42,16 +42,11 @@ export default function HomePage() {
             }
             return api.getKioskData(KIOSK_ID);
         },
-        enabled: !!KIOSK_ID,
-        retry: false,
-        refetchOnWindowFocus: false,
-        staleTime: Infinity,
+        enabled: !!KIOSK_ID, retry: false, refetchOnWindowFocus: false, staleTime: Infinity,
     });
 
     useEffect(() => {
-        if (kioskData && !currentFloorPlanId) {
-            setCurrentFloorPlanId(kioskData.floorPlan.id);
-        }
+        if (kioskData && !currentFloorPlanId) setCurrentFloorPlanId(kioskData.floorPlan.id);
     }, [kioskData, currentFloorPlanId]);
 
     const { data: floorPlans = [] } = useQuery<FloorPlan[]>({
@@ -61,10 +56,10 @@ export default function HomePage() {
     });
 
     const { data: places = [] } = useQuery<Place[]>({
-        queryKey: ['places', debouncedSearchTerm, activeCategoryId, kioskData?.id],
+        queryKey: ['places', debouncedSearchTerm, activeCategoryIds, kioskData?.id],
         queryFn: () => api.getPlaces({
             searchTerm: debouncedSearchTerm,
-            categoryId: activeCategoryId,
+            categoryIds: activeCategoryIds,
             kioskId: kioskData?.id,
         }),
         enabled: !!kioskData?.id,
@@ -76,18 +71,12 @@ export default function HomePage() {
         staleTime: 1000 * 60 * 5,
     });
 
-    const currentFloorPlan = useMemo(() => {
-        return floorPlans.find(fp => fp.id === currentFloorPlanId);
-    }, [floorPlans, currentFloorPlanId]);
-
-    const placesOnCurrentFloor = useMemo(() => {
-        return places.filter(p => p.floorPlan.id === currentFloorPlanId);
-    }, [places, currentFloorPlanId]);
+    const currentFloorPlan = useMemo(() => floorPlans.find(fp => fp.id === currentFloorPlanId), [floorPlans, currentFloorPlanId]);
+    const placesOnCurrentFloor = useMemo(() => places.filter(p => p.floorPlan.id === currentFloorPlanId), [places, currentFloorPlanId]);
 
     const handlePlaceSelect = (place: Place | null) => {
         setSelectedPlace(place);
         setIsDetailSheetOpen(!!place);
-
         if (debouncedSearchTerm && place && kioskData) {
             api.logPlaceSelection({
                 searchTerm: debouncedSearchTerm,
@@ -97,34 +86,41 @@ export default function HomePage() {
         }
     };
 
+    const handleCategoryToggle = (categoryId: string | null) => {
+        if (categoryId === null) {
+            setActiveCategoryIds([]);
+            return;
+        }
+
+        setActiveCategoryIds(prevIds => {
+            if (prevIds.includes(categoryId)) {
+                return prevIds.filter(id => id !== categoryId);
+            } else {
+                return [...prevIds, categoryId];
+            }
+        });
+    };
+
     const handleSheetOpenChange = (open: boolean) => {
         setIsDetailSheetOpen(open);
-        if (!open) {
-            setSelectedPlace(null);
-        }
+        if (!open) setSelectedPlace(null);
     };
 
     const resetFilters = () => {
         setSearchTerm('');
-        setActiveCategoryId(null);
+        setActiveCategoryIds([]);
     }
 
     const resetView = () => {
         setIsInactive(false);
         handlePlaceSelect(null);
         resetFilters();
-        if (kioskData) {
-            setCurrentFloorPlanId(kioskData.floorPlan.id);
-        }
+        if (kioskData) setCurrentFloorPlanId(kioskData.floorPlan.id);
         mapControllerRef.current?.resetTransform(300);
     };
 
-    if (isLoadingKiosk) {
-        return <div className="flex items-center justify-center h-screen text-lg">Initializing Kiosk...</div>;
-    }
-    if (!kioskData) {
-        return <div className="flex items-center justify-center h-screen text-lg text-destructive">Kiosk could not be loaded. Check configuration.</div>;
-    }
+    if (isLoadingKiosk) return <div className="flex items-center justify-center h-screen text-lg">Initializing Kiosk...</div>;
+    if (!kioskData) return <div className="flex items-center justify-center h-screen text-lg text-destructive">Kiosk could not be loaded. Check configuration.</div>;
 
     return (
         <div className="h-screen w-screen">
@@ -144,23 +140,20 @@ export default function HomePage() {
                         kioskFloorId={kioskData.floorPlan.id}
                     />
                 </MapView>
-
                 <Sidebar
                     categories={categories}
-                    activeCategoryId={activeCategoryId}
-                    onCategoryChange={setActiveCategoryId}
+                    activeCategoryIds={activeCategoryIds}
+                    onCategoryToggle={handleCategoryToggle}
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
                     onClearFilters={resetFilters}
                 />
-
                 <PlaceDetailSheet
                     place={selectedPlace}
                     isOpen={isDetailSheetOpen}
                     onOpenChange={handleSheetOpenChange}
                     onPlaceSelect={handlePlaceSelect}
                 />
-
                 {isInactive && <AdOverlay onInteraction={resetView} />}
             </div>
         </div>
