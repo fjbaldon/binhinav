@@ -13,7 +13,8 @@ import { deleteFile } from '../shared/utils/file-helpers';
 import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
 import { ActionType } from 'src/audit-logs/enums/action-type.enum';
 import { Role } from 'src/shared/enums/role.enum';
-import { MerchantsService } from 'src/merchants/merchants.service'; // Import MerchantsService
+import { MerchantsService } from 'src/merchants/merchants.service';
+import { EventEmitter2 } from '@nestjs/event-emitter'; // --- ADDED ---
 
 interface UserPayload {
     userId: string;
@@ -33,11 +34,13 @@ export class PlacesService {
         @InjectRepository(Place)
         private placesRepository: Repository<Place>,
         private readonly auditLogsService: AuditLogsService,
-        private readonly merchantsService: MerchantsService, // Inject MerchantsService
-        private readonly entityManager: EntityManager, // Inject EntityManager for transactions
+        private readonly merchantsService: MerchantsService,
+        private readonly entityManager: EntityManager,
+        private eventEmitter: EventEmitter2, // --- ADDED ---
     ) { }
 
     async create(createPlaceDto: CreatePlaceDto): Promise<Place> {
+        // ... (existing code is unchanged)
         const { floorPlanId, merchantId, ...placeDetails } = createPlaceDto;
 
         if (merchantId) {
@@ -57,22 +60,19 @@ export class PlacesService {
         return this.placesRepository.save(newPlace);
     }
 
-    async findAll(options: FindAllPlacesOptions = {}): Promise<Place[]> {
+    async findAll(options: FindAllPlacesOptions = {}, kioskId?: string): Promise<Place[]> { // --- UPDATED ---
         const { searchTerm, categoryId } = options;
         const queryBuilder = this.placesRepository.createQueryBuilder('place');
 
-        // Eagerly load relations for the final result
         queryBuilder
             .leftJoinAndSelect('place.floorPlan', 'floorPlan')
             .leftJoinAndSelect('place.merchant', 'merchant')
             .leftJoinAndSelect('place.category', 'category');
 
-        // Apply category filter if provided
         if (categoryId) {
             queryBuilder.andWhere('place.categoryId = :categoryId', { categoryId });
         }
 
-        // Apply search term filter if provided
         if (searchTerm) {
             queryBuilder.andWhere(
                 '(place.name ILIKE :searchTerm OR place.description ILIKE :searchTerm)',
@@ -80,10 +80,26 @@ export class PlacesService {
             );
         }
 
-        return queryBuilder.getMany();
+        const places = await queryBuilder.getMany();
+
+        // --- ADDED: Emit event for search logging ---
+        if (kioskId && searchTerm) {
+            this.eventEmitter.emit(
+                'search.performed',
+                {
+                    searchTerm,
+                    kioskId,
+                    foundResults: places.length > 0,
+                }
+            );
+        }
+        // --- END OF ADDED CODE ---
+
+        return places;
     }
 
     async findOne(id: string): Promise<Place> {
+        // ... (existing code is unchanged)
         const place = await this.placesRepository.createQueryBuilder('place')
             .leftJoinAndSelect('place.floorPlan', 'floorPlan')
             .leftJoinAndSelect('place.merchant', 'merchant')
@@ -103,6 +119,7 @@ export class PlacesService {
         user: UserPayload,
         paths: { logoPath?: string; coverPath?: string },
     ): Promise<Place> {
+        // ... (existing code is unchanged, no need to copy it all here)
         const placeToUpdate = await this.placesRepository.createQueryBuilder('place')
             .leftJoinAndSelect('place.merchant', 'merchant')
             .leftJoinAndSelect('place.category', 'category')
@@ -117,11 +134,8 @@ export class PlacesService {
             throw new ForbiddenException('You do not have permission to update this place.');
         }
 
-        // --- IMPROVED AUDIT LOGGING ---
         if (user.role === Role.Merchant) {
             const changes: { [key: string]: { from: any; to: any } } = {};
-
-            // Check for changes in text fields
             if (updatePlaceDto.name !== undefined && placeToUpdate.name !== updatePlaceDto.name) {
                 changes.name = { from: placeToUpdate.name, to: updatePlaceDto.name };
             }
@@ -131,12 +145,9 @@ export class PlacesService {
             if (updatePlaceDto.businessHours !== undefined && placeToUpdate.businessHours !== updatePlaceDto.businessHours) {
                 changes.businessHours = { from: placeToUpdate.businessHours, to: updatePlaceDto.businessHours };
             }
-            // Check for category change
             if (updatePlaceDto.categoryId !== undefined && (placeToUpdate.category?.id || null) !== updatePlaceDto.categoryId) {
-                // Log the old category name and the new category ID. The frontend will map the ID to a name.
                 changes.category = { from: placeToUpdate.category?.name || 'None', to: updatePlaceDto.categoryId };
             }
-            // Check for file uploads
             if (paths.logoPath) {
                 changes.logo = { from: placeToUpdate.logoUrl || null, to: paths.logoPath };
             }
@@ -144,7 +155,6 @@ export class PlacesService {
                 changes.cover = { from: placeToUpdate.coverUrl || null, to: paths.coverPath };
             }
 
-            // Only create a log entry if there were actual changes
             if (Object.keys(changes).length > 0) {
                 this.auditLogsService.create({
                     entityType: 'Place', entityId: id, action: ActionType.UPDATE,
@@ -152,7 +162,6 @@ export class PlacesService {
                 });
             }
         }
-        // --- END OF AUDIT LOGGING ---
 
         if (paths.logoPath && placeToUpdate.logoUrl) await deleteFile(placeToUpdate.logoUrl);
         if (paths.coverPath && placeToUpdate.coverUrl) await deleteFile(placeToUpdate.coverUrl);
@@ -179,8 +188,6 @@ export class PlacesService {
             if (updatePlaceDto.description !== undefined) updatePayload.description = updatePlaceDto.description;
             if (updatePlaceDto.businessHours !== undefined) updatePayload.businessHours = updatePlaceDto.businessHours;
 
-            // The check must be for `undefined`, not for key existence. A value of `null` is
-            // intentional (to unset the category), but `undefined` means the field was not sent.
             if (updatePlaceDto.categoryId !== undefined) {
                 updatePayload.category = updatePlaceDto.categoryId ? { id: updatePlaceDto.categoryId } : null;
             }
@@ -199,24 +206,21 @@ export class PlacesService {
     }
 
     async remove(id: string): Promise<void> {
+        // ... (existing code is unchanged)
         await this.entityManager.transaction(async (transactionalEntityManager) => {
             const placeToDelete = await transactionalEntityManager.findOne(Place, {
                 where: { id },
-                relations: ['merchant'], // Eagerly load the associated merchant
+                relations: ['merchant'],
             });
 
             if (!placeToDelete) {
                 throw new NotFoundException(`Place with ID "${id}" not found`);
             }
 
-            // If there's an associated merchant, delete them first.
             if (placeToDelete.merchant) {
-                // The merchants service already handles cascading deletes or other logic.
-                // We don't need to call the repository directly.
                 await this.merchantsService.remove(placeToDelete.merchant.id);
             }
 
-            // Delete associated images
             if (placeToDelete.logoUrl) {
                 await deleteFile(placeToDelete.logoUrl);
             }
@@ -224,12 +228,9 @@ export class PlacesService {
                 await deleteFile(placeToDelete.coverUrl);
             }
 
-            // Finally, delete the place itself.
             const result = await transactionalEntityManager.delete(Place, id);
 
-            // This check is good practice within a transaction as well.
             if (result.affected === 0) {
-                // This would be unusual if findOne succeeded, but it's a safeguard.
                 throw new NotFoundException(`Place with ID "${id}" could not be deleted.`);
             }
         });

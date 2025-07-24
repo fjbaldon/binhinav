@@ -2,27 +2,19 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from "sonner";
 import type { ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
-
-// API and types
 import * as api from '@/api/kiosk';
 import type { Place, Category, KioskData, FloorPlan } from '@/api/types';
-
-// Hooks
 import { useDebounce } from '@/hooks/useDebounce';
 import { useInactivityTimer } from '@/hooks/useInactivityTimer';
-
-// Components
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MapView } from '@/components/map/MapView';
 import { PlaceDetailSheet } from '@/components/details/PlaceDetailSheet';
 import { AdOverlay } from '@/components/ads/AdOverlay';
 import { MapControls } from '@/components/layout/MapControls';
 
-// Get Kiosk ID from environment variables
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID;
 
 export default function HomePage() {
-    // --- STATE MANAGEMENT ---
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
     const [currentFloorPlanId, setCurrentFloorPlanId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -31,11 +23,9 @@ export default function HomePage() {
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
     const mapControllerRef = useRef<ReactZoomPanPinchRef>(null);
 
-    // --- HOOKS ---
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     useInactivityTimer(() => setIsInactive(true), 60000);
 
-    // --- EFFECT: Automatically close the detail sheet when ads start playing ---
     useEffect(() => {
         if (isInactive) {
             setIsDetailSheetOpen(false);
@@ -43,8 +33,6 @@ export default function HomePage() {
         }
     }, [isInactive]);
 
-
-    // --- DATA FETCHING ---
     const { data: kioskData, isLoading: isLoadingKiosk } = useQuery<KioskData>({
         queryKey: ['kioskData', KIOSK_ID],
         queryFn: () => {
@@ -73,8 +61,13 @@ export default function HomePage() {
     });
 
     const { data: places = [] } = useQuery<Place[]>({
-        queryKey: ['places', debouncedSearchTerm, activeCategoryId],
-        queryFn: () => api.getPlaces({ searchTerm: debouncedSearchTerm, categoryId: activeCategoryId }),
+        queryKey: ['places', debouncedSearchTerm, activeCategoryId, kioskData?.id],
+        queryFn: () => api.getPlaces({
+            searchTerm: debouncedSearchTerm,
+            categoryId: activeCategoryId,
+            kioskId: kioskData?.id,
+        }),
+        enabled: !!kioskData?.id,
     });
 
     const { data: categories = [] } = useQuery<Category[]>({
@@ -83,7 +76,6 @@ export default function HomePage() {
         staleTime: 1000 * 60 * 5,
     });
 
-    // --- MEMOIZED VALUES ---
     const currentFloorPlan = useMemo(() => {
         return floorPlans.find(fp => fp.id === currentFloorPlanId);
     }, [floorPlans, currentFloorPlanId]);
@@ -92,13 +84,19 @@ export default function HomePage() {
         return places.filter(p => p.floorPlan.id === currentFloorPlanId);
     }, [places, currentFloorPlanId]);
 
-    // --- EVENT HANDLERS ---
     const handlePlaceSelect = (place: Place | null) => {
         setSelectedPlace(place);
         setIsDetailSheetOpen(!!place);
+
+        if (debouncedSearchTerm && place && kioskData) {
+            api.logPlaceSelection({
+                searchTerm: debouncedSearchTerm,
+                placeId: place.id,
+                kioskId: kioskData.id,
+            });
+        }
     };
 
-    // CLEANUP: Ensure that closing the sheet (via X button, swipe, etc.) also deselects the place.
     const handleSheetOpenChange = (open: boolean) => {
         setIsDetailSheetOpen(open);
         if (!open) {
@@ -121,11 +119,9 @@ export default function HomePage() {
         mapControllerRef.current?.resetTransform(300);
     };
 
-    // --- RENDER LOGIC ---
     if (isLoadingKiosk) {
         return <div className="flex items-center justify-center h-screen text-lg">Initializing Kiosk...</div>;
     }
-
     if (!kioskData) {
         return <div className="flex items-center justify-center h-screen text-lg text-destructive">Kiosk could not be loaded. Check configuration.</div>;
     }

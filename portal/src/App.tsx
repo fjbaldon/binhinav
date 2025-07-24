@@ -2,15 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from './hooks/useAuth';
 import { ProtectedRoute } from './components/protected-route';
-
-// Layouts
 import { AdminLayout } from './components/layout/AdminLayout';
 import { MerchantLayout } from './components/layout/MerchantLayout';
-
-// Pages
 import LoginPage from './pages/LoginPage';
-
-// Admin Pages
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import RecentChangesPage from './pages/admin/RecentChangesPage';
 import AdminCredentialsPage from './pages/admin/AdminCredentialsPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
@@ -19,11 +14,8 @@ import KiosksPage from './pages/admin/KiosksPage';
 import MerchantsPage from './pages/admin/MerchantsPage';
 import PlacesPage from './pages/admin/PlacesPage';
 import AdsPage from './pages/admin/AdsPage';
-
-// Merchant Pages
 import StoreInformationPage from './pages/merchant/StoreInformationPage';
 import MerchantCredentialsPage from './pages/merchant/MerchantCredentialsPage';
-
 
 function App() {
   const { isAuthenticated, user } = useAuth();
@@ -33,10 +25,10 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Admin Routes */}
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Navigate to="recent-changes" replace />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="recent-changes" element={<RecentChangesPage />} />
             <Route path="places" element={<PlacesPage />} />
             <Route path="merchants" element={<MerchantsPage />} />
@@ -48,7 +40,6 @@ function App() {
           </Route>
         </Route>
 
-        {/* Merchant Routes */}
         <Route element={<ProtectedRoute allowedRoles={['merchant']} />}>
           <Route path="/merchant" element={<MerchantLayout />}>
             <Route index element={<Navigate to="store-information" replace />} />
@@ -57,7 +48,6 @@ function App() {
           </Route>
         </Route>
 
-        {/* Redirect based on role after login */}
         <Route
           path="/"
           element={

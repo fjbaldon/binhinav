@@ -4,6 +4,13 @@ import type { KioskData, FloorPlan, Place, Category, Ad } from "./types";
 interface GetPlacesParams {
     searchTerm?: string;
     categoryId?: string | null;
+    kioskId?: string;
+}
+
+interface LogSelectionParams {
+    searchTerm: string;
+    placeId: string;
+    kioskId: string;
 }
 
 export const getKioskData = async (id: string): Promise<KioskData> => {
@@ -20,6 +27,14 @@ export const getPlaces = async (params: GetPlacesParams): Promise<Place[]> => {
     const response = await apiClient.get('/places', { params });
     return response.data;
 };
+
+export const logPlaceSelection = async (params: LogSelectionParams): Promise<void> => {
+    try {
+        await apiClient.post('/search-logs/select', params);
+    } catch (error) {
+        console.error("Failed to log place selection:", error);
+    }
+}
 
 export const getCategories = async (): Promise<Category[]> => {
     const response = await apiClient.get('/categories');

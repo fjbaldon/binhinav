@@ -1,7 +1,6 @@
 import {
     Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseUUIDPipe, HttpCode, HttpStatus,
     UseInterceptors, UploadedFiles, Request,
-    ParseEnumPipe,
 } from '@nestjs/common';
 import { PlacesService } from './places.service';
 import { CreatePlaceDto } from './dto/create-place.dto';
@@ -21,6 +20,7 @@ export class PlacesController {
 
     @Post()
     @Roles(Role.Admin)
+    @UseGuards(JwtAuthGuard, RolesGuard) // --- MOVED TO BE CONSISTENT ---
     create(@Body() createPlaceDto: CreatePlaceDto) {
         return this.placesService.create(createPlaceDto);
     }
@@ -31,8 +31,12 @@ export class PlacesController {
         @Query('search') searchTerm?: string,
         @Query('categoryId', new ParseUUIDPipe({ optional: true, version: '4' }))
         categoryId?: string,
+        // --- ADDED: Kiosk ID for logging ---
+        @Query('kioskId', new ParseUUIDPipe({ optional: true, version: '4' }))
+        kioskId?: string,
     ) {
-        return this.placesService.findAll({ searchTerm, categoryId });
+        // Pass kioskId to the service
+        return this.placesService.findAll({ searchTerm, categoryId }, kioskId);
     }
 
     @Get(':id')

@@ -22,22 +22,21 @@ export class Place {
   description: string;
 
   @ManyToOne(() => Category, (category) => category.places, {
-    nullable: true, // Category is optional
-    onDelete: 'SET NULL', // If a category is deleted, the place's category is set to null
-    eager: true, // Automatically load the category when fetching a place
+    nullable: true,
+    onDelete: 'SET NULL',
+    eager: true,
   })
-  category: Category;
+  category: Category | null;
 
   @Column({ type: 'text', nullable: true })
-  logoUrl: string; // URL to the uploaded logo image
+  logoUrl: string;
 
   @Column({ type: 'text', nullable: true })
-  coverUrl: string; // URL to the uploaded cover image
+  coverUrl: string;
 
   @Column({ default: '' })
   businessHours: string;
 
-  // Location on the map (e.g., pixel coordinates)
   @Column('float')
   locationX: number;
 
@@ -45,14 +44,14 @@ export class Place {
   locationY: number;
 
   @ManyToOne(() => FloorPlan, (floorPlan) => floorPlan.places, {
-    onDelete: 'CASCADE', // If a floor plan is deleted, delete its places
+    onDelete: 'CASCADE',
   })
   floorPlan: FloorPlan;
 
   @OneToOne(() => Merchant, (merchant) => merchant.place, {
-    nullable: true, // A place doesn't need a merchant
-    onDelete: 'SET NULL', // If a merchant is deleted, this place's merchantId becomes null
+    nullable: true,
+    onDelete: 'SET NULL',
   })
-  @JoinColumn() // The Place entity now "owns" the relationship with the merchant.
-  merchant: Merchant;
+  @JoinColumn()
+  merchant: Merchant | null;
 }

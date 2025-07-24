@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
-    History, TvMinimal, KeyRound, Building, Users, LayoutDashboard, Shapes, LogOut, Clapperboard
+    History, TvMinimal, KeyRound, Building, Users, LayoutDashboard, Shapes, LogOut, Clapperboard, HomeIcon
 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 
-// Group navigation items for better organization and separation
 const overviewNavItems = [
+    { title: "Dashboard", href: "/admin/dashboard", icon: HomeIcon },
     { title: "Recent Changes", href: "/admin/recent-changes", icon: History },
 ];
 
@@ -34,7 +34,6 @@ export function AdminLayout() {
         navigate("/login");
     };
 
-    // Helper to render nav links to avoid repetition
     const renderNavLink = (item: { title: string, href: string, icon: React.ElementType }) => (
         <NavLink
             key={item.href}
@@ -62,9 +61,7 @@ export function AdminLayout() {
                     </div>
 
                     {overviewNavItems.map(renderNavLink)}
-
                     <Separator className="my-1" />
-
                     {managementNavItems.map(renderNavLink)}
                 </nav>
                 <div className="mt-auto p-4">

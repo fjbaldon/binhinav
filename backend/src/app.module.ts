@@ -1,3 +1,5 @@
+// ./backend/src/app.module.ts
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -15,6 +17,9 @@ import { AdsModule } from './ads/ads.module';
 import { CategoriesModule } from './categories/categories.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { DatabaseModule } from './database/database.module';
+import { EventEmitterModule } from '@nestjs/event-emitter'; // --- ADDED ---
+import { SearchLogsModule } from './search-logs/search-logs.module'; // --- ADDED ---
+import { DashboardModule } from './dashboard/dashboard.module'; // --- ADDED ---
 
 @Module({
   imports: [
@@ -22,6 +27,9 @@ import { DatabaseModule } from './database/database.module';
     ConfigModule.forRoot({
       isGlobal: true, // Makes ConfigService available throughout the app
     }),
+
+    // --- ADDED: Event Emitter Module ---
+    EventEmitterModule.forRoot(),
 
     // 2. TypeORM Module (for database connection)
     TypeOrmModule.forRootAsync({
@@ -41,8 +49,8 @@ import { DatabaseModule } from './database/database.module';
 
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, // Time-to-live: 60 seconds (in milliseconds for some versions, or check docs for seconds)
-        limit: 100, // Limit each IP to 100 requests per `ttl`. Increased from 10.
+        ttl: 60000,
+        limit: 100,
       }
     ]),
 
@@ -61,10 +69,11 @@ import { DatabaseModule } from './database/database.module';
     AdsModule,
     CategoriesModule,
     AuditLogsModule,
+    SearchLogsModule, // --- ADDED ---
+    DashboardModule, // --- ADDED ---
   ],
   controllers: [],
   providers: [
-    // Apply the ThrottlerGuard globally to all routes
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

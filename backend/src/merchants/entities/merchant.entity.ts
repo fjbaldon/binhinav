@@ -15,7 +15,7 @@ export class Merchant {
   id: string;
 
   @Column()
-  name: string; // The merchant's actual name
+  name: string;
 
   @Column({ unique: true })
   username: string;
@@ -27,19 +27,17 @@ export class Merchant {
     nullable: true,
     onDelete: 'SET NULL',
   })
-  place: Place;
+  place: Place | null;
 
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
-    // Only hash the password if it exists and is NOT already hashed.
     if (this.password && !this.password.startsWith('$2b$')) {
       this.password = await bcrypt.hash(this.password, 10);
     }
   }
 
   toJSON() {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...rest } = this;
     return rest;
   }
