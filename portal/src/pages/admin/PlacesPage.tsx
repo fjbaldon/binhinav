@@ -270,8 +270,7 @@ export default function PlacesPage() {
                         <DialogTitle>{editingPlace ? "Edit Place" : "Create New Place"}</DialogTitle>
                         <DialogDescription>Set the place's name, floor plan, and location. You can also assign or create a new merchant.</DialogDescription>
                     </DialogHeader>
-                    {/* The extra div wrapper is removed from here to match KiosksPage structure */}
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4" autoComplete="off">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Place Name</Label>

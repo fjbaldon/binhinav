@@ -8,8 +8,6 @@ import { useNavigate } from "react-router-dom";
 import { useMutation } from '@tanstack/react-query';
 import { updateMerchantProfile } from "@/api/merchants";
 import { type MerchantPayload } from "@/api/types";
-
-// UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,7 +33,6 @@ export default function MerchantCredentialsPage() {
         defaultValues: { username: user?.username || '', password: '' }
     });
 
-    // --- DATA MUTATION (UPDATE) ---
     const updateMutation = useMutation({
         mutationFn: updateMerchantProfile,
         onSuccess: (data, variables) => {
@@ -97,7 +94,7 @@ export default function MerchantCredentialsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="grid gap-8 md:grid-cols-2">
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" autoComplete="off">
                             <div className="space-y-2">
                                 <Label htmlFor="username">Username</Label>
                                 <Input id="username" {...form.register("username")} />

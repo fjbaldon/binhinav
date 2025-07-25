@@ -7,8 +7,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCategories, createCategory, updateCategory, deleteCategory } from "@/api/categories";
 import { type Category } from "@/api/types";
 import { type ColumnDef } from "@tanstack/react-table";
-
-// UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,8 +16,6 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { DataTable } from "@/components/shared/DataTable";
-
-// Icons & Shared Components
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { DynamicIcon, availableIcons } from "@/components/shared/DynamicIcon";
 
@@ -43,13 +39,11 @@ export default function CategoriesPage() {
 
     const queryClient = useQueryClient();
 
-    // --- DATA FETCHING (READ) ---
     const { data: categories = [], isLoading, isError } = useQuery({
         queryKey: ['categories'],
         queryFn: getCategories,
     });
 
-    // --- DATA MUTATIONS ---
     const createMutation = useMutation({
         mutationFn: createCategory,
         onSuccess: () => {
@@ -193,7 +187,7 @@ export default function CategoriesPage() {
                             Provide a name for the category and select an appropriate icon.
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4" autoComplete="off">
                         <div className="space-y-2">
                             <Label htmlFor="name">Category Name</Label>
                             <Input id="name" {...form.register("name")} />

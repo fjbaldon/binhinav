@@ -204,7 +204,7 @@ export default function AdsPage() {
                             Fill in the ad details below. Ads are displayed in ascending order of their display number.
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4" autoComplete="off">
                         <div className="space-y-2">
                             <Label htmlFor="name">Ad Name (for internal reference)</Label>
                             <Input id="name" {...form.register("name")} />

@@ -53,7 +53,7 @@ export function MerchantsEditDialog({ isOpen, setIsOpen, merchant, updateMutatio
                         Edit the merchant's details below. To change the assigned place, go to the Places page.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4" autoComplete="off">
                     <div className="space-y-2">
                         <Label htmlFor="name">Merchant's Full Name</Label>
                         <Input id="name" {...form.register("name")} />

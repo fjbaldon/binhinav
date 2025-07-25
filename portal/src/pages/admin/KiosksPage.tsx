@@ -9,8 +9,6 @@ import { type Kiosk } from "@/api/types";
 import { getFloorPlans } from "@/api/floor-plans";
 import { getAssetUrl } from "@/api";
 import { type ColumnDef } from "@tanstack/react-table";
-
-// UI and Component Imports
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -52,12 +50,10 @@ export default function KiosksPage() {
 
     const queryClient = useQueryClient();
 
-    // --- DATA FETCHING (READ) ---
     const { data: kiosks = [], isLoading: isLoadingKiosks } = useQuery({ queryKey: ['kiosks'], queryFn: getKiosks });
     const { data: floorPlans = [], isLoading: isLoadingFloorPlans } = useQuery({ queryKey: ['floorPlans'], queryFn: getFloorPlans });
     const selectedFloorPlan = floorPlans.find(fp => fp.id === watchedFloorPlanId);
 
-    // --- DATA MUTATIONS ---
     const createMutation = useMutation({
         mutationFn: createKiosk,
         onSuccess: () => { toast.success("Kiosk created."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); setIsDialogOpen(false); },
@@ -203,7 +199,7 @@ export default function KiosksPage() {
                         <DialogTitle>{editingKiosk ? "Edit Kiosk" : "Create New Kiosk"}</DialogTitle>
                         <DialogDescription>Provide a name, select a floor plan, and then double-click on the map to set the kiosk's location.</DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4" autoComplete="off">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2"><Label htmlFor="name">Kiosk Name</Label><Input id="name" {...form.register("name")} /><p className="text-sm text-red-500">{form.formState.errors.name?.message}</p></div>
                             <div className="space-y-2">

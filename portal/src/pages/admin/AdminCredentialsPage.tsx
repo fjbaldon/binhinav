@@ -8,8 +8,6 @@ import { useNavigate } from "react-router-dom";
 import { useMutation } from '@tanstack/react-query';
 import { updateAdminProfile } from "@/api/admins";
 import { type AdminPayload } from "@/api/types";
-
-// UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,23 +33,19 @@ export default function AdminCredentialsPage() {
         defaultValues: { username: user?.username || '', password: '' }
     });
 
-    // --- DATA MUTATION (UPDATE) ---
     const updateMutation = useMutation({
         mutationFn: updateAdminProfile,
         onSuccess: (data, variables) => {
-            // Check if the username was changed in the submitted variables
             if (variables.username) {
                 toast.success("Username updated!", {
                     description: "For security, you will be logged out in 3 seconds.",
                 });
-                // Log the user out to force re-authentication with new credentials
                 setTimeout(() => {
                     logout();
                     navigate("/login");
                 }, 3000);
             } else {
                 toast.success("Password updated successfully.");
-                // Reset password field on successful password change
                 form.reset({ username: data.username, password: '' });
             }
         },
@@ -69,7 +63,6 @@ export default function AdminCredentialsPage() {
 
     const onSubmit = (data: CredentialsFormValues) => {
         const payload: AdminPayload = {};
-        // Only add fields to the payload if they have been changed by the user
         if (data.username && data.username !== user?.username) {
             payload.username = data.username;
         }
@@ -77,7 +70,6 @@ export default function AdminCredentialsPage() {
             payload.password = data.password;
         }
 
-        // If the payload is empty, it means no changes were made
         if (Object.keys(payload).length === 0) {
             toast.info("Nothing to update", {
                 description: "You didn't change the username or enter a new password."
@@ -103,7 +95,7 @@ export default function AdminCredentialsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="grid gap-8 md:grid-cols-2">
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" autoComplete="off">
                             <div className="space-y-2">
                                 <Label htmlFor="username">Username</Label>
                                 <Input id="username" {...form.register("username")} />
