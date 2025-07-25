@@ -1,23 +1,82 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardData, type ChartDataPoint, type SearchTermDataPoint, type CategoryChartDataPoint } from '@/api/dashboard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building, Users, TvMinimal, Search, AlertCircle, Sparkles, BarChart2, Activity } from 'lucide-react';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Building, Users, TvMinimal, Search, AlertCircle, Sparkles, Activity } from 'lucide-react';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+const CustomBarChartTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="rounded-lg border bg-background p-2 shadow-sm">
+                <p className="font-bold">{label}</p>
+                <p className="text-sm text-muted-foreground">Searches: {payload[0].value}</p>
+            </div>
+        );
+    }
+    return null;
+};
+
+const CustomPieChartTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="rounded-lg border bg-background p-2 shadow-sm">
+                <p className="font-bold">{payload[0].name}</p>
+                <p className="text-sm text-muted-foreground">Selections: {payload[0].value}</p>
+            </div>
+        );
+    }
+    return null;
+}
+
+const CustomLegend = (props: any) => {
+    const { payload } = props;
+    const total = payload.reduce((sum: number, entry: any) => sum + entry.payload.count, 0);
+
+    return (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-4">
+            {payload.map((entry: any, index: number) => {
+                const percentage = total > 0 ? ((entry.payload.count / total) * 100).toFixed(0) : 0;
+                return (
+                    <div key={`item-${index}`} className="flex items-center space-x-2">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                        <span className="text-muted-foreground flex-1 truncate">{entry.value}</span>
+                        <span className="font-medium text-right">{percentage}%</span>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
 
 export default function AdminDashboardPage() {
-    useEffect(() => { document.title = "Dashboard | Binhinav Admin"; }, []);
+    const [chartColors, setChartColors] = useState<string[]>([]);
+
+    useEffect(() => {
+        document.title = "Dashboard | Binhinav Admin";
+        const rootStyles = getComputedStyle(document.documentElement);
+        // Create a palette from the primary color with different opacities
+        const primaryColor = rootStyles.getPropertyValue('--primary').trim();
+        const colors = [
+            `oklch(from ${primaryColor} l c h / 1)`,
+            `oklch(from ${primaryColor} l c h / 0.8)`,
+            `oklch(from ${primaryColor} l c h / 0.6)`,
+            `oklch(from ${primaryColor} l c h / 0.4)`,
+            `oklch(from ${primaryColor} l c h / 0.2)`,
+        ];
+        setChartColors(colors);
+    }, []);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ['dashboardData'],
         queryFn: getDashboardData,
     });
 
-    if (isLoading) return <div className="text-center py-10">Loading dashboard...</div>;
+    if (isLoading || chartColors.length === 0) return <div className="text-center py-10">Loading dashboard...</div>;
     if (isError) return <div className="text-center py-10 text-destructive">Failed to load dashboard data.</div>;
     if (!data) return null;
 
@@ -31,63 +90,90 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <KpiCard title="Total Places" value={kpiData.places} icon={Building} />
-                <KpiCard title="Active Merchants" value={kpiData.merchants} icon={Users} />
-                <KpiCard title="Kiosks Online" value={kpiData.kiosks} icon={TvMinimal} />
-                <KpiCard title="Searches (30 Days)" value={kpiData.searches30Days} icon={Search} />
+                <KpiCard title="Total Places" value={kpiData.places.toString()} icon={Building} description="All store locations" />
+                <KpiCard title="Active Merchants" value={kpiData.merchants.toString()} icon={Users} description="All registered merchant accounts" />
+                <KpiCard title="Kiosks Online" value={kpiData.kiosks.toString()} icon={TvMinimal} description="All physical kiosk units" />
+                <KpiCard title="Searches (30 Days)" value={kpiData.searches30Days.toString()} icon={Search} description="Total searches performed" />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-3">
-                <Card className="lg:col-span-2">
-                    <CardHeader><CardTitle>Top Searched Places</CardTitle></CardHeader>
+            <div className="grid gap-6 lg:grid-cols-5">
+                <Card className="lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle>Top Searched Places</CardTitle>
+                        <CardDescription>The 5 most frequently selected places after a search.</CardDescription>
+                    </CardHeader>
                     <CardContent>
-                        <SimpleBarChart data={topSearchedPlaces} />
+                        {topSearchedPlaces.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={350}>
+                                <BarChart data={topSearchedPlaces} layout="vertical" margin={{ left: 10, right: 50, top: 5, bottom: 5 }}>
+                                    <XAxis type="number" hide />
+                                    <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={120} />
+                                    <Tooltip content={<CustomBarChartTooltip />} cursor={{ fill: 'transparent' }} />
+                                    <Bar dataKey="count" fill={chartColors[0]} radius={[4, 4, 4, 4]}>
+                                        <LabelList dataKey="count" position="right" offset={8} className="fill-foreground font-semibold" fontSize={12} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex items-center justify-center h-[350px] text-muted-foreground">Not enough data to display.</div>
+                        )}
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader><CardTitle>Category Popularity</CardTitle></CardHeader>
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Category Popularity</CardTitle>
+                        <CardDescription>Breakdown of selections by store category.</CardDescription>
+                    </CardHeader>
                     <CardContent>
-                        <SimplePieChart data={categoryPopularity} />
+                        {categoryPopularity.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={350}>
+                                <PieChart>
+                                    <Pie data={categoryPopularity.map(d => ({ ...d, count: parseInt(d.count, 10) }))} dataKey="count" nameKey="name" cx="50%" cy="45%" innerRadius={60} outerRadius={80} paddingAngle={5} labelLine={false}>
+                                        {categoryPopularity.map((_entry, index) => <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />)}
+                                    </Pie>
+                                    <Tooltip content={<CustomPieChartTooltip />} />
+                                    <Legend content={<CustomLegend />} verticalAlign="bottom" />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex items-center justify-center h-[350px] text-muted-foreground">No category selections logged yet.</div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-3">
-                <Card className="lg:col-span-2">
-                    <CardHeader><CardTitle>Search Analytics</CardTitle></CardHeader>
-                    <CardContent className="grid gap-6 md:grid-cols-2">
-                        <SearchTermList title="Top Search Terms" icon={BarChart2} terms={topSearchTerms} />
-                        <SearchTermList title="Top 'Not Found' Searches" icon={AlertCircle} terms={topNotFoundTerms} emptyText="No failed searches logged." />
+            <div className="grid gap-6 md:grid-cols-2 md:items-start">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Search Analytics</CardTitle>
+                        <CardDescription>Most common successful and failed search terms.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-8">
+                        <SearchTermList title="Top Search Terms" terms={topSearchTerms} />
+                        <SearchTermList title="Top 'Not Found' Searches" terms={topNotFoundTerms} emptyText="No failed searches logged." />
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader><CardTitle>Operational Snapshot</CardTitle></CardHeader>
+                    <CardHeader>
+                        <CardTitle>Operational Snapshot</CardTitle>
+                        <CardDescription>Key system health and administrative metrics.</CardDescription>
+                    </CardHeader>
                     <CardContent>
-                        <ul className="space-y-4 text-sm">
-                            <li className="flex items-center">
-                                <Activity className="h-5 w-5 mr-3 text-muted-foreground" />
-                                <div>
-                                    <span className="font-semibold">{operationalSnapshot.unassignedMerchants}</span> Unassigned Merchants
-                                    {operationalSnapshot.unassignedMerchants > 0 && <Link to="/admin/merchants" className="text-xs text-blue-500 hover:underline ml-2">Assign</Link>}
-                                </div>
-                            </li>
-                            <li className="flex items-start">
-                                <Sparkles className="h-5 w-5 mr-3 text-muted-foreground mt-0.5" />
-                                <div>
-                                    Latest Merchant Change:
-                                    {operationalSnapshot.latestChange ?
-                                        <div className="text-muted-foreground">
+                        <ul className="space-y-4">
+                            <OperationalItem icon={Users} title="Unassigned Merchants" value={operationalSnapshot.unassignedMerchants} linkTo="/admin/merchants" />
+                            <OperationalItem icon={AlertCircle} title="Inactive Ads" value={operationalSnapshot.inactiveAds} linkTo="/admin/ads" />
+                            <li className="flex items-center p-2 rounded-lg transition-colors hover:bg-muted/50">
+                                <Sparkles className="h-5 w-5 mr-4 text-muted-foreground" />
+                                <div className="flex-1">
+                                    <span className="font-medium">Latest Merchant Change</span>
+                                    {operationalSnapshot.latestChange ? (
+                                        <div className="text-sm text-muted-foreground">
                                             @{operationalSnapshot.latestChange.username} - {formatDistanceToNowStrict(new Date(operationalSnapshot.latestChange.timestamp))} ago
-                                            <Link to="/admin/recent-changes" className="text-xs text-blue-500 hover:underline ml-2">View</Link>
                                         </div>
-                                        : <span className="text-muted-foreground"> None</span>
-                                    }
+                                    ) : <span className="text-sm text-muted-foreground">None</span>}
                                 </div>
-                            </li>
-                            <li className="flex items-center">
-                                <AlertCircle className="h-5 w-5 mr-3 text-muted-foreground" />
-                                <div><span className="font-semibold">{operationalSnapshot.inactiveAds}</span> Inactive Ads</div>
+                                {operationalSnapshot.latestChange && <Link to="/admin/recent-changes" className="text-sm text-primary hover:underline">View</Link>}
                             </li>
                         </ul>
                     </CardContent>
@@ -97,7 +183,7 @@ export default function AdminDashboardPage() {
     );
 }
 
-const KpiCard = ({ title, value, icon: Icon }: { title: string, value: number, icon: React.ElementType }) => (
+const KpiCard = ({ title, value, icon: Icon, description }: { title: string, value: string, icon: React.ElementType, description: string }) => (
     <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -105,51 +191,45 @@ const KpiCard = ({ title, value, icon: Icon }: { title: string, value: number, i
         </CardHeader>
         <CardContent>
             <div className="text-2xl font-bold">{value}</div>
+            <p className="text-xs text-muted-foreground">{description}</p>
         </CardContent>
     </Card>
 );
 
-const SimpleBarChart = ({ data }: { data: ChartDataPoint[] }) => {
-    if (data.length === 0) return <div className="text-center text-muted-foreground py-10">Not enough data yet.</div>;
+const SearchTermList = ({ title, terms, emptyText = "No searches logged." }: { title: string, terms: SearchTermDataPoint[], emptyText?: string }) => {
+    const maxCount = terms.length > 0 ? terms[0].count : 0;
     return (
-        <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
-                <XAxis type="number" hide />
-                <YAxis type="category" dataKey="name" width={120} axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-            </BarChart>
-        </ResponsiveContainer>
+        <div className="space-y-2">
+            <h3 className="font-semibold text-sm">{title}</h3>
+            {terms.length > 0 ? (
+                <div className="space-y-2">
+                    {terms.map(item => (
+                        <div key={item.term} className="text-sm">
+                            <div className="flex justify-between mb-1">
+                                <span className="text-muted-foreground truncate pr-4">"{item.term}"</span>
+                                <span className="font-medium">{item.count}</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-1.5">
+                                <div
+                                    className="bg-primary h-1.5 rounded-full"
+                                    style={{ width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : <p className="text-sm text-muted-foreground">{emptyText}</p>}
+        </div>
     );
 };
 
-const SimplePieChart = ({ data }: { data: CategoryChartDataPoint[] }) => {
-    const parsedData = data.map(d => ({ ...d, count: parseInt(d.count, 10) }));
-    if (parsedData.length === 0) return <div className="text-center text-muted-foreground py-10">No selections logged yet.</div>;
-    return (
-        <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-                <Pie data={parsedData} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                    {parsedData.map((_entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} />
-            </PieChart>
-        </ResponsiveContainer>
-    );
-}
-
-const SearchTermList = ({ title, icon: Icon, terms, emptyText = "No searches logged." }: { title: string, icon: React.ElementType, terms: SearchTermDataPoint[], emptyText?: string }) => (
-    <div className="space-y-2">
-        <h3 className="font-semibold flex items-center gap-2"><Icon className="h-4 w-4 text-muted-foreground" /> {title}</h3>
-        {terms.length > 0 ? (
-            <ul className="text-sm text-muted-foreground space-y-1">
-                {terms.map(item => (
-                    <li key={item.term} className="flex justify-between">
-                        <span>"{item.term}"</span>
-                        <span className="font-semibold text-foreground">{item.count}</span>
-                    </li>
-                ))}
-            </ul>
-        ) : <p className="text-sm text-muted-foreground">{emptyText}</p>}
-    </div>
+const OperationalItem = ({ icon: Icon, title, value, linkTo }: { icon: React.ElementType, title: string, value: number, linkTo: string }) => (
+    <li className={cn("flex items-center p-2 rounded-lg", value > 0 && "transition-colors hover:bg-muted/50")}>
+        <Icon className={cn("h-5 w-5 mr-4", value > 0 ? "text-amber-500" : "text-muted-foreground")} />
+        <div className="flex-1">
+            <span className="font-medium">{title}</span>
+            <div className="text-sm text-muted-foreground">{value} {value === 1 ? 'item' : 'items'} requiring attention</div>
+        </div>
+        {value > 0 && <Link to={linkTo} className="text-sm text-primary hover:underline">Manage</Link>}
+    </li>
 );
