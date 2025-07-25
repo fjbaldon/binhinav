@@ -1,3 +1,4 @@
+// ./kiosk/src/components/details/PlaceDetailSheet.tsx
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ export function PlaceDetailSheet({
     };
 
     return (
-        <aside className="fixed inset-x-0 bottom-0 z-20 grid w-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-t-2xl bg-background p-0 shadow-lg animate-in slide-in-from-bottom-full duration-300 max-h-[85vh] lg:absolute lg:inset-auto lg:right-6 lg:top-6 lg:max-w-96 lg:rounded-2xl lg:slide-in-from-right-2 lg:max-h-[calc(100vh-3rem)]">
+        <aside className="fixed inset-x-0 bottom-0 z-20 grid w-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-t-2xl bg-background p-0 shadow-lg animate-in slide-in-from-bottom-full duration-300 max-h-[85vh] lg:fixed lg:inset-auto lg:right-6 lg:top-6 lg:max-w-96 lg:rounded-2xl lg:slide-in-from-right-2 lg:max-h-[calc(100vh-3rem)]">
             {/* Mobile grabber handle */}
             <div className="absolute left-1/2 top-2 h-1.5 w-12 -translate-x-1/2 rounded-full bg-muted-foreground/30 lg:hidden" />
 

@@ -173,7 +173,7 @@ export default function HomePage() {
     if (!kioskData) return <div className="flex items-center justify-center h-screen text-lg text-destructive">Kiosk could not be loaded. Check configuration.</div>;
 
     return (
-        <main className="h-screen w-screen p-6 flex flex-row gap-6 bg-background overflow-hidden">
+        <main className="relative h-screen w-screen p-6 flex flex-row gap-6 bg-background overflow-hidden">
             <Sidebar
                 categories={categories}
                 activeCategoryIds={activeCategoryIds}
