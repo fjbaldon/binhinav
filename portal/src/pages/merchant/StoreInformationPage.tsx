@@ -9,8 +9,6 @@ import { getPlaceById, updatePlace, updatePlaceWithImages } from "@/api/places";
 import { getCategories } from "@/api/categories";
 import type { Place, Category, UpdatePlacePayload } from "@/api/types";
 import { getAssetUrl } from "@/api";
-
-// UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -21,7 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, Camera, Pencil, Clock, Info, Image as ImageIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
-// --- Schemas for individual dialog forms ---
 const detailsSchema = z.object({ name: z.string().min(2, "Name is required"), categoryId: z.string().nullable().optional() });
 const descriptionSchema = z.object({ description: z.string().min(10, "Description must be at least 10 characters.") });
 const hoursSchema = z.object({ businessHours: z.string().min(2, "Business hours are required") });
@@ -36,8 +33,6 @@ export default function StoreInformationPage() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
-    // --- DATA FETCHING ---
-    // The query is disabled if the user has no placeId, preventing an unnecessary API call.
     const { data: placeData, isLoading: isLoadingPlace } = useQuery({
         queryKey: ['myPlace', user?.placeId],
         queryFn: () => getPlaceById(user!.placeId!),
@@ -49,12 +44,10 @@ export default function StoreInformationPage() {
         queryFn: getCategories,
     });
 
-    // --- DATA MUTATIONS ---
     const updateMutation = useMutation({
         mutationFn: updatePlace,
         onSuccess: () => {
             toast.success("Store information updated.");
-            // Invalidate the query to refetch the place data
             queryClient.invalidateQueries({ queryKey: ['myPlace', user?.placeId] });
         },
         onError: (err: any) => toast.error("Update failed", { description: err.response?.data?.message }),
@@ -73,7 +66,6 @@ export default function StoreInformationPage() {
         document.title = "Store Information | Binhinav Merchant";
     }, []);
 
-    // --- RENDER LOGIC ---
     if (!user?.placeId) {
         return (
             <Card className="mt-8"><CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="h-6 w-6 text-muted-foreground" /><span>Store Not Assigned</span></CardTitle><CardDescription>Your merchant account is active, but it has not been assigned to a physical store location yet.</CardDescription></CardHeader><CardContent><p>Please contact the system administrator to have your account linked to a store.</p></CardContent></Card>
@@ -123,9 +115,6 @@ export default function StoreInformationPage() {
     );
 }
 
-// --- Reusable Dialog Components ---
-
-// Props for the dialogs need to accept the mutation function and its pending state
 interface DialogProps<T extends Partial<UpdatePlacePayload>> {
     children: ReactNode;
     place: Place | null;
@@ -203,8 +192,8 @@ function EditImageDialog({ children, field, title, currentImageUrl, onUpdate, is
 
     const onOpenChange = (open: boolean) => {
         setIsOpen(open);
-        if (!open) reset(); // Reset form state when dialog closes
+        if (!open) reset();
     };
 
-    return <Dialog open={isOpen} onOpenChange={onOpenChange}><DialogTrigger asChild>{children}</DialogTrigger><DialogContent><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{field === 'cover' ? "Upload a new banner. 16:9 ratio recommended." : "Upload a new logo. 1:1 (square) ratio recommended."}</DialogDescription></DialogHeader><form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4"><div className="flex justify-center bg-muted/50 rounded-lg p-4">{preview ? <img src={preview} alt="Preview" className={`object-contain rounded-md border max-h-60 ${field === 'logo' ? 'aspect-square' : 'aspect-video'}`} /> : <div className={`flex items-center justify-center bg-muted rounded-md h-48 ${field === 'logo' ? 'w-48' : 'w-full'}`}><ImageIcon className="h-12 w-12 text-muted-foreground" /></div>}</div><div className="space-y-2"><Label htmlFor={field}>New Image</Label><Input id={field} type="file" accept="image/*" {...register(field, { onChange: handleFileChange })} /></div><DialogFooter><Button type="submit" disabled={isPending}>{isPending ? 'Uploading...' : 'Upload & Save'}</Button></DialogFooter></form></DialogContent></Dialog>;
+    return <Dialog open={isOpen} onOpenChange={onOpenChange}><DialogTrigger asChild>{children}</DialogTrigger><DialogContent><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{field === 'cover' ? "Upload a new banner. 16:9 ratio recommended." : "Upload a new logo. 1:1 (square) ratio recommended."}</DialogDescription></DialogHeader><form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4"><div className="flex justify-center bg-muted/50 rounded-lg p-4">{preview ? <img src={preview} alt="Preview" className={`object-contain rounded-md border max-h-60 ${field === 'logo' ? 'aspect-square' : 'aspect-video'}`} /> : <div className={`flex items-center justify-center bg-muted rounded-md h-48 ${field === 'logo' ? 'w-48' : 'w-full'}`}><ImageIcon className="h-12 w-12 text-muted-foreground" /></div>}</div><div className="space-y-2"><Label htmlFor={field}>New Image</Label><Input id={field} type="file" accept="image/jpeg,image/png,image/gif,image/svg+xml" {...register(field, { onChange: handleFileChange })} /></div><DialogFooter><Button type="submit" disabled={isPending}>{isPending ? 'Uploading...' : 'Upload & Save'}</Button></DialogFooter></form></DialogContent></Dialog>;
 }

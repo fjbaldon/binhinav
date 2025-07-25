@@ -8,8 +8,6 @@ import { getFloorPlans, createFloorPlan, updateFloorPlan, deleteFloorPlan } from
 import { type FloorPlan } from "@/api/types";
 import { getAssetUrl } from "@/api";
 import { type ColumnDef } from "@tanstack/react-table";
-
-// UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -34,13 +32,11 @@ export default function FloorPlansPage() {
     const form = useForm({ resolver: zodResolver(floorPlanSchema) });
     const queryClient = useQueryClient();
 
-    // --- DATA FETCHING (READ) ---
     const { data: floorPlans = [], isLoading, isError } = useQuery({
         queryKey: ['floorPlans'],
         queryFn: getFloorPlans
     });
 
-    // --- DATA MUTATIONS ---
     const createMutation = useMutation({
         mutationFn: createFloorPlan,
         onSuccess: () => {
@@ -103,13 +99,12 @@ export default function FloorPlansPage() {
 
     const isMutating = createMutation.isPending || updateMutation.isPending;
 
-    // --- TABLE COLUMNS ---
     const columns: ColumnDef<FloorPlan>[] = [
         {
             accessorKey: "imageUrl",
             header: "Preview",
             cell: ({ row }) => (
-                <img src={getAssetUrl(row.original.imageUrl)} alt={row.original.name} className="h-16 w-24 object-cover rounded-md border" />
+                <img src={getAssetUrl(row.original.imageUrl)} alt={row.original.name} className="h-16 w-24 object-contain rounded-md border" />
             ),
         },
         {
@@ -197,7 +192,7 @@ export default function FloorPlansPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="image">Floor Plan Image</Label>
-                            <Input id="image" type="file" accept="image/*" {...form.register("image")} />
+                            <Input id="image" type="file" accept="image/jpeg,image/png,image/gif,image/svg+xml" {...form.register("image")} />
                             <p className="text-sm text-muted-foreground">
                                 {editingFloorPlan ? "Upload a new image to replace the current one." : ""}
                             </p>

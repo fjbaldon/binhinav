@@ -8,8 +8,6 @@ import { getAdminAds, createAd, updateAd, deleteAd } from "@/api/ads";
 import { type Ad } from "@/api/types";
 import { getAssetUrl } from "@/api";
 import { type ColumnDef } from "@tanstack/react-table";
-
-// UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -41,13 +39,11 @@ export default function AdsPage() {
     });
     const queryClient = useQueryClient();
 
-    // --- DATA FETCHING (READ) ---
     const { data: ads = [], isLoading, isError } = useQuery({
         queryKey: ['adminAds'],
         queryFn: getAdminAds,
     });
 
-    // --- DATA MUTATIONS ---
     const createMutation = useMutation({
         mutationFn: createAd,
         onSuccess: () => {
@@ -123,13 +119,12 @@ export default function AdsPage() {
 
     const isMutating = createMutation.isPending || updateMutation.isPending;
 
-    // --- TABLE COLUMNS ---
     const columns: ColumnDef<Ad>[] = [
         {
             accessorKey: "imageUrl",
             header: "Image",
             cell: ({ row }) => (
-                <img src={getAssetUrl(row.original.imageUrl)} alt={row.original.name} className="h-16 w-28 object-cover rounded-md border" />
+                <img src={getAssetUrl(row.original.imageUrl)} alt={row.original.name} className="h-16 w-28 object-contain rounded-md border" />
             )
         },
         {
@@ -217,7 +212,7 @@ export default function AdsPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="image">Ad Image</Label>
-                            <Input id="image" type="file" accept="image/*" {...form.register("image")} />
+                            <Input id="image" type="file" accept="image/jpeg,image/png,image/gif,image/svg+xml" {...form.register("image")} />
                             {editingAd && <p className="text-sm text-muted-foreground mt-1">Leave blank to keep the current image.</p>}
                             <p className="text-sm text-red-500">{typeof form.formState.errors.image?.message === "string" ? form.formState.errors.image.message : ""}</p>
                         </div>
