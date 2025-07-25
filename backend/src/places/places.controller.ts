@@ -13,7 +13,7 @@ import { diskStorage } from 'multer';
 import { imageFileFilter, editFileName } from '../shared/utils/file-helpers';
 import { Query } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { ParseUuidArrayPipe } from 'src/shared/pipes/parse-uuid-array.pipe'; // --- ADDED ---
+import { ParseUuidArrayPipe } from 'src/shared/pipes/parse-uuid-array.pipe';
 
 @Controller('places')
 export class PlacesController {
@@ -28,7 +28,7 @@ export class PlacesController {
 
     @Get()
     findAll(
-        @Query('search') searchTerm?: string,
+        @Query('searchTerm') searchTerm?: string,
         @Query('categoryIds', new ParseUuidArrayPipe())
         categoryIds?: string[],
         @Query('kioskId', new ParseUUIDPipe({ optional: true, version: '4' }))

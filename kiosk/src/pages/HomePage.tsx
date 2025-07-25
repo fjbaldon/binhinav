@@ -1,6 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { toast } from "sonner";
 import type { ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import * as api from '@/api/kiosk';
 import type { Place, Category, KioskData, FloorPlan } from '@/api/types';
@@ -11,6 +10,9 @@ import { MapView } from '@/components/map/MapView';
 import { PlaceDetailSheet } from '@/components/details/PlaceDetailSheet';
 import { AdOverlay } from '@/components/ads/AdOverlay';
 import { MapControls } from '@/components/layout/MapControls';
+import { toast } from 'sonner';
+
+type SearchStatus = 'idle' | 'loading' | 'no-results' | 'has-results';
 
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID;
 
@@ -21,17 +23,13 @@ export default function HomePage() {
     const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([]);
     const [isInactive, setIsInactive] = useState(false);
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+    const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
     const mapControllerRef = useRef<ReactZoomPanPinchRef>(null);
 
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     useInactivityTimer(() => setIsInactive(true), 60000);
 
-    useEffect(() => {
-        if (isInactive) {
-            setIsDetailSheetOpen(false);
-            setSelectedPlace(null);
-        }
-    }, [isInactive]);
+    const isSearchActive = !!debouncedSearchTerm;
 
     const { data: kioskData, isLoading: isLoadingKiosk } = useQuery<KioskData>({
         queryKey: ['kioskData', KIOSK_ID],
@@ -46,8 +44,10 @@ export default function HomePage() {
     });
 
     useEffect(() => {
-        if (kioskData && !currentFloorPlanId) setCurrentFloorPlanId(kioskData.floorPlan.id);
-    }, [kioskData, currentFloorPlanId]);
+        if (kioskData && !currentFloorPlanId) {
+            setCurrentFloorPlanId(kioskData.floorPlan.id);
+        }
+    }, [kioskData]);
 
     const { data: floorPlans = [] } = useQuery<FloorPlan[]>({
         queryKey: ['floorPlans'],
@@ -55,12 +55,13 @@ export default function HomePage() {
         staleTime: 1000 * 60 * 5,
     });
 
-    const { data: places = [] } = useQuery<Place[]>({
-        queryKey: ['places', debouncedSearchTerm, activeCategoryIds, kioskData?.id],
+    const sortedActiveCategoryIds = useMemo(() => [...activeCategoryIds].sort(), [activeCategoryIds]);
+
+    const { data: places, isFetching: isFetchingPlaces } = useQuery<Place[]>({
+        queryKey: ['places', debouncedSearchTerm, sortedActiveCategoryIds],
         queryFn: () => api.getPlaces({
             searchTerm: debouncedSearchTerm,
-            categoryIds: activeCategoryIds,
-            kioskId: kioskData?.id,
+            categoryIds: sortedActiveCategoryIds,
         }),
         enabled: !!kioskData?.id,
     });
@@ -71,12 +72,13 @@ export default function HomePage() {
         staleTime: 1000 * 60 * 5,
     });
 
-    const currentFloorPlan = useMemo(() => floorPlans.find(fp => fp.id === currentFloorPlanId), [floorPlans, currentFloorPlanId]);
-    const placesOnCurrentFloor = useMemo(() => places.filter(p => p.floorPlan.id === currentFloorPlanId), [places, currentFloorPlanId]);
-
-    const handlePlaceSelect = (place: Place | null) => {
+    const handlePlaceSelect = useCallback((place: Place | null) => {
+        if (place) {
+            setCurrentFloorPlanId(place.floorPlan.id);
+        }
         setSelectedPlace(place);
         setIsDetailSheetOpen(!!place);
+
         if (debouncedSearchTerm && place && kioskData) {
             api.logPlaceSelection({
                 searchTerm: debouncedSearchTerm,
@@ -84,21 +86,50 @@ export default function HomePage() {
                 kioskId: kioskData.id,
             });
         }
-    };
+    }, [kioskData, debouncedSearchTerm]);
+
+    useEffect(() => {
+        if (isFetchingPlaces && isSearchActive) {
+            setSearchStatus('loading');
+        } else if (isSearchActive) {
+            setSearchStatus(places && places.length > 0 ? 'has-results' : 'no-results');
+        } else {
+            setSearchStatus('idle');
+        }
+    }, [isFetchingPlaces, isSearchActive, places]);
+
+
+    useEffect(() => {
+        if (isInactive) {
+            setIsDetailSheetOpen(false);
+            setSelectedPlace(null);
+        }
+    }, [isInactive]);
+
+    const currentFloorPlan = useMemo(() => floorPlans.find(fp => fp.id === currentFloorPlanId), [floorPlans, currentFloorPlanId]);
+    
+    const pinsToDisplay = useMemo(() => {
+        if (!places) return [];
+        return places.filter(p => p.floorPlan.id === currentFloorPlanId);
+    }, [places, currentFloorPlanId]);
+
 
     const handleCategoryToggle = (categoryId: string | null) => {
+        setSearchTerm(''); 
         if (categoryId === null) {
             setActiveCategoryIds([]);
             return;
         }
+        setActiveCategoryIds(prevIds => 
+            prevIds.includes(categoryId) 
+            ? prevIds.filter(id => id !== categoryId)
+            : [...prevIds, categoryId]
+        );
+    };
 
-        setActiveCategoryIds(prevIds => {
-            if (prevIds.includes(categoryId)) {
-                return prevIds.filter(id => id !== categoryId);
-            } else {
-                return [...prevIds, categoryId];
-            }
-        });
+    const handleSearchChange = (term: string) => {
+        setSearchTerm(term);
+        setActiveCategoryIds([]);
     };
 
     const handleSheetOpenChange = (open: boolean) => {
@@ -106,15 +137,11 @@ export default function HomePage() {
         if (!open) setSelectedPlace(null);
     };
 
-    const resetFilters = () => {
-        setSearchTerm('');
-        setActiveCategoryIds([]);
-    }
-
     const resetView = () => {
         setIsInactive(false);
         handlePlaceSelect(null);
-        resetFilters();
+        setSearchTerm('');
+        setActiveCategoryIds([]);
         if (kioskData) setCurrentFloorPlanId(kioskData.floorPlan.id);
         mapControllerRef.current?.resetTransform(300);
     };
@@ -128,7 +155,7 @@ export default function HomePage() {
                 <MapView
                     kiosk={kioskData}
                     floorPlan={currentFloorPlan}
-                    places={placesOnCurrentFloor}
+                    places={pinsToDisplay}
                     selectedPlace={selectedPlace}
                     onPlaceSelect={handlePlaceSelect}
                     mapControllerRef={mapControllerRef}
@@ -138,6 +165,7 @@ export default function HomePage() {
                         currentFloorPlanId={currentFloorPlanId}
                         onFloorChange={setCurrentFloorPlanId}
                         kioskFloorId={kioskData.floorPlan.id}
+                        floorResultCounts={{}} // This feature is removed for now to simplify
                     />
                 </MapView>
                 <Sidebar
@@ -145,8 +173,10 @@ export default function HomePage() {
                     activeCategoryIds={activeCategoryIds}
                     onCategoryToggle={handleCategoryToggle}
                     searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
-                    onClearFilters={resetFilters}
+                    onSearchChange={handleSearchChange}
+                    searchStatus={searchStatus}
+                    searchResults={places || []}
+                    onSearchResultClick={handlePlaceSelect}
                 />
                 <PlaceDetailSheet
                     place={selectedPlace}
