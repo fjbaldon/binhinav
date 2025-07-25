@@ -293,11 +293,23 @@ export default function PlacesPage() {
 
                         {watchedMerchantId === 'new' && (
                             <Card className="bg-muted/50 p-4">
-                                <h3 className="text-sm font-semibold mb-2">New Merchant Details</h3>
-                                <div className="space-y-2">
-                                    <div><Label htmlFor="newMerchantName">Merchant Name</Label><Input id="newMerchantName" {...form.register("newMerchantName")} /><p className="text-sm text-red-500 pt-1">{form.formState.errors.newMerchantName?.message}</p></div>
-                                    <div><Label htmlFor="newMerchantUsername">Username</Label><Input id="newMerchantUsername" {...form.register("newMerchantUsername")} /><p className="text-sm text-red-500 pt-1">{form.formState.errors.newMerchantUsername?.message}</p></div>
-                                    <div><Label htmlFor="newMerchantPassword">Password</Label><Input id="newMerchantPassword" type="password" {...form.register("newMerchantPassword")} /><p className="text-sm text-red-500 pt-1">{form.formState.errors.newMerchantPassword?.message}</p></div>
+                                <h3 className="text-sm font-semibold mb-3">New Merchant Details</h3>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="newMerchantName">Merchant Name</Label>
+                                        <Input id="newMerchantName" {...form.register("newMerchantName")} />
+                                        {form.formState.errors.newMerchantName && <p className="text-sm text-red-500">{form.formState.errors.newMerchantName.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="newMerchantUsername">Username</Label>
+                                        <Input id="newMerchantUsername" {...form.register("newMerchantUsername")} />
+                                        {form.formState.errors.newMerchantUsername && <p className="text-sm text-red-500">{form.formState.errors.newMerchantUsername.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="newMerchantPassword">Password</Label>
+                                        <Input id="newMerchantPassword" type="password" {...form.register("newMerchantPassword")} />
+                                        {form.formState.errors.newMerchantPassword && <p className="text-sm text-red-500">{form.formState.errors.newMerchantPassword.message}</p>}
+                                    </div>
                                 </div>
                             </Card>
                         )}
