@@ -62,6 +62,7 @@ export default function HomePage() {
         queryFn: () => api.getPlaces({
             searchTerm: debouncedSearchTerm,
             categoryIds: sortedActiveCategoryIds,
+            kioskId: kioskData?.id, // <-- THE FIX IS HERE
         }),
         enabled: !!kioskData?.id,
     });
@@ -107,7 +108,7 @@ export default function HomePage() {
     }, [isInactive]);
 
     const currentFloorPlan = useMemo(() => floorPlans.find(fp => fp.id === currentFloorPlanId), [floorPlans, currentFloorPlanId]);
-    
+
     const pinsToDisplay = useMemo(() => {
         if (!places) return [];
         return places.filter(p => p.floorPlan.id === currentFloorPlanId);
@@ -115,15 +116,15 @@ export default function HomePage() {
 
 
     const handleCategoryToggle = (categoryId: string | null) => {
-        setSearchTerm(''); 
+        setSearchTerm('');
         if (categoryId === null) {
             setActiveCategoryIds([]);
             return;
         }
-        setActiveCategoryIds(prevIds => 
-            prevIds.includes(categoryId) 
-            ? prevIds.filter(id => id !== categoryId)
-            : [...prevIds, categoryId]
+        setActiveCategoryIds(prevIds =>
+            prevIds.includes(categoryId)
+                ? prevIds.filter(id => id !== categoryId)
+                : [...prevIds, categoryId]
         );
     };
 
