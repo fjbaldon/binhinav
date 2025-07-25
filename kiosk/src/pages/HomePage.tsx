@@ -24,6 +24,7 @@ export default function HomePage() {
     const [isInactive, setIsInactive] = useState(false);
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
     const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
+    const [isLocatingKiosk, setIsLocatingKiosk] = useState(false);
     const mapControllerRef = useRef<ReactZoomPanPinchRef>(null);
 
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -47,7 +48,7 @@ export default function HomePage() {
         if (kioskData && !currentFloorPlanId) {
             setCurrentFloorPlanId(kioskData.floorPlan.id);
         }
-    }, [kioskData]);
+    }, [kioskData, currentFloorPlanId]);
 
     const { data: floorPlans = [] } = useQuery<FloorPlan[]>({
         queryKey: ['floorPlans'],
@@ -62,7 +63,7 @@ export default function HomePage() {
         queryFn: () => api.getPlaces({
             searchTerm: debouncedSearchTerm,
             categoryIds: sortedActiveCategoryIds,
-            kioskId: kioskData?.id, // <-- THE FIX IS HERE
+            kioskId: kioskData?.id,
         }),
         enabled: !!kioskData?.id,
     });
@@ -147,6 +148,27 @@ export default function HomePage() {
         mapControllerRef.current?.resetTransform(300);
     };
 
+    const handleLocateKiosk = () => {
+        if (!kioskData || !mapControllerRef.current) return;
+        const controller = mapControllerRef.current;
+        const { instance } = controller;
+        const { wrapperComponent } = instance;
+
+        if (!wrapperComponent) return;
+
+        setSelectedPlace(null);
+        setCurrentFloorPlanId(kioskData.floorPlan.id);
+
+        const scale = 1.2;
+        const x = (wrapperComponent.offsetWidth / 2) - (kioskData.locationX * scale);
+        const y = (wrapperComponent.offsetHeight / 2) - (kioskData.locationY * scale);
+
+        controller.setTransform(x, y, scale, 300, "easeOut");
+
+        setIsLocatingKiosk(true);
+        setTimeout(() => setIsLocatingKiosk(false), 2500);
+    };
+
     if (isLoadingKiosk) return <div className="flex items-center justify-center h-screen text-lg">Initializing Kiosk...</div>;
     if (!kioskData) return <div className="flex items-center justify-center h-screen text-lg text-destructive">Kiosk could not be loaded. Check configuration.</div>;
 
@@ -160,13 +182,16 @@ export default function HomePage() {
                     selectedPlace={selectedPlace}
                     onPlaceSelect={handlePlaceSelect}
                     mapControllerRef={mapControllerRef}
+                    onLocateKiosk={handleLocateKiosk}
+                    isLocatingKiosk={isLocatingKiosk}
                 >
                     <MapControls
                         floorPlans={floorPlans}
                         currentFloorPlanId={currentFloorPlanId}
                         onFloorChange={setCurrentFloorPlanId}
                         kioskFloorId={kioskData.floorPlan.id}
-                        floorResultCounts={{}} // This feature is removed for now to simplify
+                        floorResultCounts={{}}
+                        onLocateKiosk={handleLocateKiosk}
                     />
                 </MapView>
                 <Sidebar

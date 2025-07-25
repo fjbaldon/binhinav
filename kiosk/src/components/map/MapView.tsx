@@ -13,20 +13,19 @@ interface MapViewProps {
     selectedPlace: Place | null;
     onPlaceSelect: (place: Place | null) => void;
     mapControllerRef: React.RefObject<ReactZoomPanPinchRef | null>;
+    onLocateKiosk: () => void;
+    isLocatingKiosk: boolean;
     children?: React.ReactNode;
 }
 
-export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect, mapControllerRef, children }: MapViewProps) {
+export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect, mapControllerRef, isLocatingKiosk, children }: MapViewProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
-    // REVERTED: This effect now simply zooms to fit both the kiosk and the selected place.
-    // It does not contain the logic for handling different floors.
     useEffect(() => {
         const controller = mapControllerRef.current;
         const container = mapContainerRef.current;
         if (!controller || !container || !selectedPlace) return;
 
-        // Use a short timeout to ensure the DOM is ready for calculations
         setTimeout(() => {
             const viewSize = {
                 width: container.offsetWidth,
@@ -37,14 +36,13 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                 { x: kiosk.locationX, y: kiosk.locationY },
                 { x: selectedPlace.locationX, y: selectedPlace.locationY },
                 viewSize,
-                150 // Padding
+                150
             );
 
             controller.setTransform(transform.x, transform.y, transform.scale, 300, 'easeOut');
         }, 100);
 
     }, [selectedPlace, kiosk.locationX, kiosk.locationY, mapControllerRef]);
-
 
     if (!floorPlan) {
         return <div className="flex items-center justify-center h-full bg-muted">Select a floor plan to begin.</div>;
@@ -61,19 +59,26 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                 panning={{ velocityDisabled: true }}
             >
                 {children}
-                <TransformComponent wrapperClass="!w-full !h-full" contentClass="!w-full !h-full">
+                <TransformComponent
+                    wrapperClass="!w-full !h-full"
+                    contentClass="!w-full !h-full"
+                >
                     <div
-                        className="relative"
+                        className="relative inline-block"
                         onClick={(e) => {
                             if (e.target === e.currentTarget) {
                                 onPlaceSelect(null);
                             }
                         }}
                     >
-                        <img src={getAssetUrl(floorPlan.imageUrl)} alt="Floor Plan" className="pointer-events-none" />
-                        {/* Conditionally render the KioskPin only if the floors match */}
+                        <img src={getAssetUrl(floorPlan.imageUrl)} alt="Floor Plan" className="pointer-events-none block" />
                         {kiosk.floorPlan.id === floorPlan?.id && (
-                            <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} />
+                            <KioskPin
+                                x={kiosk.locationX}
+                                y={kiosk.locationY}
+                                name={kiosk.name}
+                                isPulsing={isLocatingKiosk}
+                            />
                         )}
                         {places.map(place => (
                             <PlacePin

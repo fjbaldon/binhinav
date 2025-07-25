@@ -1,7 +1,7 @@
 import { useControls } from 'react-zoom-pan-pinch';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, LocateFixed } from 'lucide-react';
 import type { FloorPlan } from '@/api/types';
 
 interface MapControlsProps {
@@ -10,9 +10,10 @@ interface MapControlsProps {
     onFloorChange: (id: string) => void;
     kioskFloorId: string;
     floorResultCounts: Record<string, number>;
+    onLocateKiosk: () => void;
 }
 
-export function MapControls({ floorPlans, currentFloorPlanId, onFloorChange, kioskFloorId, floorResultCounts = {} }: MapControlsProps) {
+export function MapControls({ floorPlans, currentFloorPlanId, onFloorChange, kioskFloorId, floorResultCounts = {}, onLocateKiosk }: MapControlsProps) {
     const { zoomIn, zoomOut } = useControls();
 
     const sortedFloorPlans = [...floorPlans].sort((a, b) => b.name.localeCompare(a.name));
@@ -49,6 +50,9 @@ export function MapControls({ floorPlans, currentFloorPlanId, onFloorChange, kio
                 </Button>
                 <Button onClick={() => zoomOut()} size="icon" className="w-14 h-14 rounded-lg">
                     <Minus className="h-6 w-6" />
+                </Button>
+                <Button onClick={onLocateKiosk} size="icon" className="w-14 h-14 rounded-lg">
+                    <LocateFixed className="h-6 w-6" />
                 </Button>
             </div>
         </div>
