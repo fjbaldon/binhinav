@@ -27,7 +27,10 @@ export function PlaceDetailSheet({
     };
 
     return (
-        <aside className="absolute top-6 right-6 w-full max-w-96 bg-background/80 backdrop-blur-sm rounded-2xl shadow-lg flex flex-col gap-0 z-10 p-0 animate-in slide-in-from-right-2 max-h-[calc(100vh-3rem)]">
+        <aside className="fixed inset-x-0 bottom-0 z-20 grid w-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-t-2xl bg-background p-0 shadow-lg animate-in slide-in-from-bottom-full duration-300 max-h-[85vh] lg:absolute lg:inset-auto lg:right-6 lg:top-6 lg:max-w-96 lg:rounded-2xl lg:slide-in-from-right-2 lg:max-h-[calc(100vh-3rem)]">
+            {/* Mobile grabber handle */}
+            <div className="absolute left-1/2 top-2 h-1.5 w-12 -translate-x-1/2 rounded-full bg-muted-foreground/30 lg:hidden" />
+
             <Button
                 variant="ghost"
                 size="icon"
@@ -45,10 +48,10 @@ export function PlaceDetailSheet({
                         <img
                             src={getAssetUrl(place.coverUrl)}
                             alt={`${place.name} cover`}
-                            className="w-full h-48 object-cover rounded-t-2xl"
+                            className="w-full h-48 object-cover"
                         />
                     ) : (
-                        <div className="w-full h-48 bg-muted flex items-center justify-center rounded-t-2xl">
+                        <div className="w-full h-48 bg-muted flex items-center justify-center">
                             <ImageOff className="h-16 w-16 text-muted-foreground/50" />
                         </div>
                     )}
@@ -80,7 +83,7 @@ export function PlaceDetailSheet({
             </div>
 
             {/* --- Scrolling Content Area (About & Hours) --- */}
-            <div className="flex-1 min-h-0">
+            <div className="min-h-0">
                 <ScrollArea className="h-full">
                     <div className="px-6 pb-6 pt-2 space-y-4">
                         <div className="flex items-start gap-4">
@@ -109,7 +112,7 @@ export function PlaceDetailSheet({
             </div>
 
             {/* --- Non-Scrolling Footer (Location & Button) --- */}
-            <div className="p-4 border-t bg-transparent mt-auto">
+            <div className="p-4 border-t bg-background">
                 <Button className="w-full h-14 text-lg justify-between px-6" onClick={handleSelectOnMapClick}>
                     <div className="flex items-center gap-3">
                         <Building className="h-5 w-5" />
