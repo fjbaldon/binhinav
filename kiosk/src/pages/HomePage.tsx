@@ -173,8 +173,18 @@ export default function HomePage() {
     if (!kioskData) return <div className="flex items-center justify-center h-screen text-lg text-destructive">Kiosk could not be loaded. Check configuration.</div>;
 
     return (
-        <div className="h-screen w-screen">
-            <div className="h-full w-full bg-background overflow-hidden relative">
+        <main className="h-screen w-screen p-6 flex flex-row gap-6 bg-background overflow-hidden">
+            <Sidebar
+                categories={categories}
+                activeCategoryIds={activeCategoryIds}
+                onCategoryToggle={handleCategoryToggle}
+                searchTerm={searchTerm}
+                onSearchChange={handleSearchChange}
+                searchStatus={searchStatus}
+                searchResults={places || []}
+                onSearchResultClick={handlePlaceSelect}
+            />
+            <div className="relative flex-1 h-full rounded-2xl overflow-hidden">
                 <MapView
                     kiosk={kioskData}
                     floorPlan={currentFloorPlan}
@@ -193,24 +203,14 @@ export default function HomePage() {
                         onLocateKiosk={handleLocateKiosk}
                     />
                 </MapView>
-                <Sidebar
-                    categories={categories}
-                    activeCategoryIds={activeCategoryIds}
-                    onCategoryToggle={handleCategoryToggle}
-                    searchTerm={searchTerm}
-                    onSearchChange={handleSearchChange}
-                    searchStatus={searchStatus}
-                    searchResults={places || []}
-                    onSearchResultClick={handlePlaceSelect}
-                />
                 <PlaceDetailSheet
                     place={selectedPlace}
                     isOpen={isDetailSheetOpen}
                     onOpenChange={handleSheetOpenChange}
                     onPlaceSelect={handlePlaceSelect}
                 />
-                {isInactive && <AdOverlay onInteraction={resetView} />}
             </div>
-        </div>
+            {isInactive && <AdOverlay onInteraction={resetView} />}
+        </main>
     );
 }

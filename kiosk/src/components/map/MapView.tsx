@@ -54,7 +54,7 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                 initialScale={1}
                 minScale={0.2}
                 maxScale={3}
-                limitToBounds={false}
+                limitToBounds={true}
                 panning={{ velocityDisabled: false }}
             >
                 {children}
