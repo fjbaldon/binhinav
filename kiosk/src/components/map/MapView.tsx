@@ -55,8 +55,8 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                 initialScale={1}
                 minScale={0.2}
                 maxScale={3}
-                limitToBounds={false}
-                panning={{ velocityDisabled: true }}
+                limitToBounds={true}
+                panning={{ velocityDisabled: false }}
             >
                 {children}
                 <TransformComponent
@@ -72,6 +72,7 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                         }}
                     >
                         <img src={getAssetUrl(floorPlan.imageUrl)} alt="Floor Plan" className="pointer-events-none block" />
+
                         {kiosk.floorPlan.id === floorPlan?.id && (
                             <KioskPin
                                 x={kiosk.locationX}
