@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getDashboardData, type ChartDataPoint, type SearchTermDataPoint, type CategoryChartDataPoint } from '@/api/dashboard';
+import { getDashboardData, type SearchTermDataPoint } from '@/api/dashboard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Building, Users, TvMinimal, Search, AlertCircle, Sparkles, Activity } from 'lucide-react';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
+import { Building, Users, TvMinimal, Search, AlertCircle, Sparkles, LineChart as LineChartIcon } from 'lucide-react';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, LabelList, LineChart, Line, CartesianGrid } from 'recharts';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,18 @@ const CustomPieChartTooltip = ({ active, payload }: any) => {
     return null;
 }
 
+const CustomLineChartTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="rounded-lg border bg-background p-2 shadow-sm">
+                <p className="font-bold">{label}</p>
+                <p className="text-sm text-muted-foreground">Searches: {payload[0].value}</p>
+            </div>
+        );
+    }
+    return null;
+};
+
 const CustomLegend = (props: any) => {
     const { payload } = props;
     const total = payload.reduce((sum: number, entry: any) => sum + entry.payload.count, 0);
@@ -52,35 +64,29 @@ const CustomLegend = (props: any) => {
     );
 };
 
-
 export default function AdminDashboardPage() {
     const [chartColors, setChartColors] = useState<string[]>([]);
 
     useEffect(() => {
         document.title = "Dashboard | Binhinav Admin";
         const rootStyles = getComputedStyle(document.documentElement);
-        // Create a palette from the primary color with different opacities
         const primaryColor = rootStyles.getPropertyValue('--primary').trim();
         const colors = [
-            `oklch(from ${primaryColor} l c h / 1)`,
-            `oklch(from ${primaryColor} l c h / 0.8)`,
-            `oklch(from ${primaryColor} l c h / 0.6)`,
-            `oklch(from ${primaryColor} l c h / 0.4)`,
+            `oklch(from ${primaryColor} l c h / 1)`, `oklch(from ${primaryColor} l c h / 0.8)`,
+            `oklch(from ${primaryColor} l c h / 0.6)`, `oklch(from ${primaryColor} l c h / 0.4)`,
             `oklch(from ${primaryColor} l c h / 0.2)`,
         ];
         setChartColors(colors);
     }, []);
 
-    const { data, isLoading, isError } = useQuery({
-        queryKey: ['dashboardData'],
-        queryFn: getDashboardData,
-    });
+    const { data, isLoading, isError } = useQuery({ queryKey: ['dashboardData'], queryFn: getDashboardData });
 
     if (isLoading || chartColors.length === 0) return <div className="text-center py-10">Loading dashboard...</div>;
     if (isError) return <div className="text-center py-10 text-destructive">Failed to load dashboard data.</div>;
     if (!data) return null;
 
-    const { kpiData, topSearchedPlaces, topSearchTerms, topNotFoundTerms, categoryPopularity, operationalSnapshot } = data;
+    const { kpiData, topSearchedPlaces, topSearchTerms, topNotFoundTerms, categoryPopularity, operationalSnapshot, dailySearchActivity } = data;
+    const formattedDailyActivity = dailySearchActivity.map(d => ({ ...d, date: new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }));
 
     return (
         <div className="space-y-6">
@@ -96,88 +102,115 @@ export default function AdminDashboardPage() {
                 <KpiCard title="Searches (30 Days)" value={kpiData.searches30Days.toString()} icon={Search} description="Total searches performed" />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-5">
-                <Card className="lg:col-span-3">
+            <div className="space-y-6">
+                <Card>
                     <CardHeader>
-                        <CardTitle>Top Searched Places</CardTitle>
-                        <CardDescription>The 5 most frequently selected places after a search.</CardDescription>
+                        <CardTitle>Daily Search Activity</CardTitle>
+                        <CardDescription>Total searches performed over the last 14 days.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {topSearchedPlaces.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={350}>
-                                <BarChart data={topSearchedPlaces} layout="vertical" margin={{ left: 10, right: 50, top: 5, bottom: 5 }}>
-                                    <XAxis type="number" hide />
-                                    <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={120} />
-                                    <Tooltip content={<CustomBarChartTooltip />} cursor={{ fill: 'transparent' }} />
-                                    <Bar dataKey="count" fill={chartColors[0]} radius={[4, 4, 4, 4]}>
-                                        <LabelList dataKey="count" position="right" offset={8} className="fill-foreground font-semibold" fontSize={12} />
-                                    </Bar>
-                                </BarChart>
+                        {formattedDailyActivity.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={250}>
+                                <LineChart data={formattedDailyActivity} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip content={<CustomLineChartTooltip />} />
+                                    <Line type="monotone" dataKey="count" stroke={chartColors[0]} strokeWidth={2} dot={{ r: 4, fill: chartColors[0] }} activeDot={{ r: 6 }} />
+                                </LineChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="flex items-center justify-center h-[350px] text-muted-foreground">Not enough data to display.</div>
+                            <div className="flex items-center justify-center h-[250px] text-muted-foreground"><LineChartIcon className="mr-2 h-5 w-5" />Not enough search data yet.</div>
                         )}
                     </CardContent>
                 </Card>
 
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Category Popularity</CardTitle>
-                        <CardDescription>Breakdown of selections by store category.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {categoryPopularity.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={350}>
-                                <PieChart>
-                                    <Pie data={categoryPopularity.map(d => ({ ...d, count: parseInt(d.count, 10) }))} dataKey="count" nameKey="name" cx="50%" cy="45%" innerRadius={60} outerRadius={80} paddingAngle={5} labelLine={false}>
-                                        {categoryPopularity.map((_entry, index) => <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />)}
-                                    </Pie>
-                                    <Tooltip content={<CustomPieChartTooltip />} />
-                                    <Legend content={<CustomLegend />} verticalAlign="bottom" />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="flex items-center justify-center h-[350px] text-muted-foreground">No category selections logged yet.</div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2 md:items-start">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Search Analytics</CardTitle>
-                        <CardDescription>Most common successful and failed search terms.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-8">
-                        <SearchTermList title="Top Search Terms" terms={topSearchTerms} />
-                        <SearchTermList title="Top 'Not Found' Searches" terms={topNotFoundTerms} emptyText="No failed searches logged." />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Operational Snapshot</CardTitle>
-                        <CardDescription>Key system health and administrative metrics.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="space-y-4">
-                            <OperationalItem icon={Users} title="Unassigned Merchants" value={operationalSnapshot.unassignedMerchants} linkTo="/admin/merchants" />
-                            <OperationalItem icon={AlertCircle} title="Inactive Ads" value={operationalSnapshot.inactiveAds} linkTo="/admin/ads" />
-                            <li className="flex items-center p-2 rounded-lg transition-colors hover:bg-muted/50">
-                                <Sparkles className="h-5 w-5 mr-4 text-muted-foreground" />
-                                <div className="flex-1">
-                                    <span className="font-medium">Latest Merchant Change</span>
-                                    {operationalSnapshot.latestChange ? (
-                                        <div className="text-sm text-muted-foreground">
-                                            @{operationalSnapshot.latestChange.username} - {formatDistanceToNowStrict(new Date(operationalSnapshot.latestChange.timestamp))} ago
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Search Analytics</CardTitle>
+                                <CardDescription>Most common successful and failed search terms.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid gap-8">
+                                <SearchTermList title="Top Search Terms" terms={topSearchTerms} />
+                                <SearchTermList title="Top 'Not Found' Searches" terms={topNotFoundTerms} emptyText="No failed searches logged." />
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Operational Snapshot</CardTitle>
+                                <CardDescription>Key system health and administrative metrics.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ul className="space-y-4">
+                                    <OperationalItem icon={Users} title="Unassigned Merchants" value={operationalSnapshot.unassignedMerchants} linkTo="/admin/merchants" />
+                                    <OperationalItem icon={AlertCircle} title="Inactive Ads" value={operationalSnapshot.inactiveAds} linkTo="/admin/ads" />
+                                    <li className="flex items-center p-2 rounded-lg transition-colors hover:bg-muted/50">
+                                        <Sparkles className="h-5 w-5 mr-4 text-muted-foreground" />
+                                        <div className="flex-1">
+                                            <span className="font-medium">Latest Merchant Change</span>
+                                            {operationalSnapshot.latestChange ? (
+                                                <div className="text-sm text-muted-foreground">
+                                                    @{operationalSnapshot.latestChange.username} - {formatDistanceToNowStrict(new Date(operationalSnapshot.latestChange.timestamp))} ago
+                                                </div>
+                                            ) : <span className="text-sm text-muted-foreground">None</span>}
                                         </div>
-                                    ) : <span className="text-sm text-muted-foreground">None</span>}
-                                </div>
-                                {operationalSnapshot.latestChange && <Link to="/admin/recent-changes" className="text-sm text-primary hover:underline">View</Link>}
-                            </li>
-                        </ul>
-                    </CardContent>
-                </Card>
+                                        {operationalSnapshot.latestChange && <Link to="/admin/recent-changes" className="text-sm text-primary hover:underline">View</Link>}
+                                    </li>
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Top Searched Places</CardTitle>
+                                <CardDescription>The 5 most frequently selected places after a search.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {topSearchedPlaces.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={350}>
+                                        <BarChart data={topSearchedPlaces} layout="vertical" margin={{ left: 10, right: 50, top: 5, bottom: 5 }}>
+                                            <XAxis type="number" hide />
+                                            <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={120} />
+                                            <Tooltip content={<CustomBarChartTooltip />} cursor={{ fill: 'transparent' }} />
+                                            <Bar dataKey="count" fill={chartColors[0]} radius={[4, 4, 4, 4]}>
+                                                <LabelList dataKey="count" position="right" offset={8} className="fill-foreground font-semibold" fontSize={12} />
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="flex items-center justify-center h-[350px] text-muted-foreground">Not enough data to display.</div>
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Category Popularity</CardTitle>
+                                <CardDescription>Breakdown of selections by store category.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {categoryPopularity.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={350}>
+                                        <PieChart>
+                                            <Pie data={categoryPopularity.map(d => ({ ...d, count: parseInt(d.count, 10) }))} dataKey="count" nameKey="name" cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={5} labelLine={false}>
+                                                {categoryPopularity.map((_entry, index) => <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />)}
+                                            </Pie>
+                                            <Tooltip content={<CustomPieChartTooltip />} />
+                                            <Legend content={<CustomLegend />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="flex items-center justify-center h-[350px] text-muted-foreground">No selections logged yet.</div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
             </div>
         </div>
     );

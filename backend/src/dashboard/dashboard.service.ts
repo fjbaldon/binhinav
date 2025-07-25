@@ -27,14 +27,16 @@ export class DashboardService {
             topSearchTerms,
             topNotFoundTerms,
             categoryPopularity,
-            operationalSnapshot
+            operationalSnapshot,
+            dailySearchActivity,
         ] = await Promise.all([
             this.getKpiData(),
             this.getTopSearchedPlaces(),
             this.getTopSearchTerms(true),
             this.getTopSearchTerms(false),
             this.getCategoryPopularity(),
-            this.getOperationalSnapshot()
+            this.getOperationalSnapshot(),
+            this.getDailySearchActivity(),
         ]);
 
         return {
@@ -43,7 +45,8 @@ export class DashboardService {
             topSearchTerms,
             topNotFoundTerms,
             categoryPopularity,
-            operationalSnapshot
+            operationalSnapshot,
+            dailySearchActivity,
         };
     }
 
@@ -113,5 +116,16 @@ export class DashboardService {
         ]);
 
         return { unassignedMerchants, latestChange, inactiveAds };
+    }
+
+    private async getDailySearchActivity() {
+        const fourteenDaysAgo = subDays(new Date(), 14);
+        return this.searchLogRepository.createQueryBuilder('log')
+            .select("DATE(log.timestamp)", "date")
+            .addSelect("CAST(COUNT(log.id) AS INTEGER)", "count")
+            .where("log.timestamp >= :fourteenDaysAgo", { fourteenDaysAgo })
+            .groupBy("DATE(log.timestamp)")
+            .orderBy("date", "ASC")
+            .getRawMany();
     }
 }

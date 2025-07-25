@@ -20,6 +20,11 @@ export interface SearchTermDataPoint {
     count: number;
 }
 
+export interface DateChartDataPoint {
+    date: string;
+    count: number;
+}
+
 export interface OperationalSnapshot {
     unassignedMerchants: number;
     latestChange: {
@@ -38,6 +43,7 @@ export interface DashboardData {
     topNotFoundTerms: SearchTermDataPoint[];
     categoryPopularity: CategoryChartDataPoint[];
     operationalSnapshot: OperationalSnapshot;
+    dailySearchActivity: DateChartDataPoint[];
 }
 
 export const getDashboardData = async (): Promise<DashboardData> => {
