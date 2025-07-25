@@ -13,7 +13,6 @@ interface MapViewProps {
     selectedPlace: Place | null;
     onPlaceSelect: (place: Place | null) => void;
     mapControllerRef: React.RefObject<ReactZoomPanPinchRef | null>;
-    onLocateKiosk: () => void;
     isLocatingKiosk: boolean;
     children?: React.ReactNode;
 }
@@ -55,7 +54,7 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                 initialScale={1}
                 minScale={0.2}
                 maxScale={3}
-                limitToBounds={true}
+                limitToBounds={false}
                 panning={{ velocityDisabled: false }}
             >
                 {children}

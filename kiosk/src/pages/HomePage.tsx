@@ -182,7 +182,6 @@ export default function HomePage() {
                     selectedPlace={selectedPlace}
                     onPlaceSelect={handlePlaceSelect}
                     mapControllerRef={mapControllerRef}
-                    onLocateKiosk={handleLocateKiosk}
                     isLocatingKiosk={isLocatingKiosk}
                 >
                     <MapControls
