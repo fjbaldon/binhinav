@@ -57,19 +57,28 @@ export default function KiosksPage() {
     const createMutation = useMutation({
         mutationFn: createKiosk,
         onSuccess: () => { toast.success("Kiosk created."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); setIsDialogOpen(false); },
-        onError: (err: any) => toast.error("Creation failed", { description: err.response?.data?.message })
+        onError: (err: any) => {
+            if (err.response?.status === 401) return;
+            toast.error("Creation failed", { description: err.response?.data?.message });
+        }
     });
 
     const updateMutation = useMutation({
         mutationFn: updateKiosk,
         onSuccess: () => { toast.success("Kiosk updated."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); setIsDialogOpen(false); },
-        onError: (err: any) => toast.error("Update failed", { description: err.response?.data?.message })
+        onError: (err: any) => {
+            if (err.response?.status === 401) return;
+            toast.error("Update failed", { description: err.response?.data?.message });
+        }
     });
 
     const deleteMutation = useMutation({
         mutationFn: deleteKiosk,
         onSuccess: () => { toast.success("Kiosk deleted."); queryClient.invalidateQueries({ queryKey: ['kiosks'] }); },
-        onError: () => toast.error("Failed to delete kiosk")
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Failed to delete kiosk");
+        }
     });
 
     useEffect(() => { document.title = "Kiosks | Binhinav Admin"; }, []);
@@ -164,7 +173,7 @@ export default function KiosksPage() {
                         variant="destructive"
                         confirmText="Delete"
                         triggerButton={
-                            <Button variant="ghost" size="icon" title="Delete kiosk" className="text-red-500">
+                            <Button variant="ghost" size="icon" title="Delete kiosk" className="text-red-500" disabled={deleteMutation.isPending}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         }

@@ -51,7 +51,10 @@ export default function AdsPage() {
             queryClient.invalidateQueries({ queryKey: ['adminAds'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => toast.error("Creation Failed", { description: error.response?.data?.message || "Something went wrong." })
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Creation Failed", { description: error.response?.data?.message || "Something went wrong." });
+        }
     });
 
     const updateMutation = useMutation({
@@ -61,7 +64,10 @@ export default function AdsPage() {
             queryClient.invalidateQueries({ queryKey: ['adminAds'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => toast.error("Update Failed", { description: error.response?.data?.message || "Something went wrong." })
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Update Failed", { description: error.response?.data?.message || "Something went wrong." });
+        }
     });
 
     const deleteMutation = useMutation({
@@ -70,7 +76,10 @@ export default function AdsPage() {
             toast.success("Ad deleted.");
             queryClient.invalidateQueries({ queryKey: ['adminAds'] });
         },
-        onError: () => toast.error("Failed to delete ad")
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Failed to delete ad");
+        }
     });
 
     useEffect(() => {

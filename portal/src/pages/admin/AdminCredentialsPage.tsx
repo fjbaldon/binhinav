@@ -19,7 +19,7 @@ const credentialsSchema = z.object({
     password: z.string().min(8, "Password must be at least 8 characters.").optional().or(z.literal('')),
 }).refine(data => !!data.username || !!data.password, {
     message: "At least one field must be filled.",
-    path: ["username"], // Point error to the first field
+    path: ["username"],
 });
 
 type CredentialsFormValues = z.infer<typeof credentialsSchema>;
@@ -50,6 +50,7 @@ export default function AdminCredentialsPage() {
             }
         },
         onError: (error: any) => {
+            if (error.response?.status === 401) return;
             toast.error("Update Failed", {
                 description: error.response?.data?.message || "Something went wrong.",
             });

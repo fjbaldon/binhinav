@@ -31,7 +31,10 @@ export default function MerchantsPage() {
             queryClient.invalidateQueries({ queryKey: ['merchants'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => toast.error("Update Failed", { description: error.response?.data?.message || "Username might already be in use." })
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Update Failed", { description: error.response?.data?.message || "Username might already be in use." });
+        }
     });
 
     const deleteMutation = useMutation({
@@ -40,7 +43,10 @@ export default function MerchantsPage() {
             toast.success("Merchant deleted successfully.");
             queryClient.invalidateQueries({ queryKey: ['merchants'] });
         },
-        onError: () => toast.error("Failed to delete merchant.")
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Failed to delete merchant.");
+        }
     });
 
     useEffect(() => {

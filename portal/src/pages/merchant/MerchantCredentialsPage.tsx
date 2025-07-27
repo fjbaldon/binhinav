@@ -50,6 +50,7 @@ export default function MerchantCredentialsPage() {
             }
         },
         onError: (error: any) => {
+            if (error.response?.status === 401) return;
             toast.error("Update Failed", {
                 description: error.response?.data?.message || "Username may already be taken.",
             });

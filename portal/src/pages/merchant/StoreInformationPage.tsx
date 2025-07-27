@@ -50,7 +50,10 @@ export default function StoreInformationPage() {
             toast.success("Store information updated.");
             queryClient.invalidateQueries({ queryKey: ['myPlace', user?.placeId] });
         },
-        onError: (err: any) => toast.error("Update failed", { description: err.response?.data?.message }),
+        onError: (err: any) => {
+            if (err.response?.status === 401) return;
+            toast.error("Update failed", { description: err.response?.data?.message });
+        },
     });
 
     const updateImagesMutation = useMutation({
@@ -59,7 +62,10 @@ export default function StoreInformationPage() {
             toast.success("Image updated successfully.");
             queryClient.invalidateQueries({ queryKey: ['myPlace', user?.placeId] });
         },
-        onError: (err: any) => toast.error("Update failed", { description: err.response?.data?.message }),
+        onError: (err: any) => {
+            if (err.response?.status === 401) return;
+            toast.error("Update failed", { description: err.response?.data?.message });
+        },
     });
 
     useEffect(() => {

@@ -52,6 +52,7 @@ export default function CategoriesPage() {
             setIsDialogOpen(false);
         },
         onError: (error: any) => {
+            if (error.response?.status === 401) return;
             toast.error("Creation failed", { description: error.response?.data?.message || "Something went wrong." });
         },
     });
@@ -64,6 +65,7 @@ export default function CategoriesPage() {
             setIsDialogOpen(false);
         },
         onError: (error: any) => {
+            if (error.response?.status === 401) return; // FIX: Prevent double toast
             toast.error("Update failed", { description: error.response?.data?.message || "Something went wrong." });
         },
     });
@@ -74,7 +76,10 @@ export default function CategoriesPage() {
             toast.success("Category deleted successfully.");
             queryClient.invalidateQueries({ queryKey: ['categories'] });
         },
-        onError: () => toast.error("Failed to delete category."),
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Failed to delete category.");
+        }
     });
 
     useEffect(() => {
@@ -104,7 +109,6 @@ export default function CategoriesPage() {
 
     const isMutating = createMutation.isPending || updateMutation.isPending;
 
-    // --- TABLE COLUMNS ---
     const columns: ColumnDef<Category>[] = [
         {
             accessorKey: "name",
@@ -147,7 +151,7 @@ export default function CategoriesPage() {
                         variant="destructive"
                         confirmText="Delete"
                         triggerButton={
-                            <Button variant="ghost" size="icon" className="text-red-500">
+                            <Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         }

@@ -44,7 +44,10 @@ export default function FloorPlansPage() {
             queryClient.invalidateQueries({ queryKey: ['floorPlans'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => toast.error("Creation Failed", { description: error.response?.data?.message || "Something went wrong." })
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Creation Failed", { description: error.response?.data?.message || "Something went wrong." });
+        }
     });
 
     const updateMutation = useMutation({
@@ -54,7 +57,10 @@ export default function FloorPlansPage() {
             queryClient.invalidateQueries({ queryKey: ['floorPlans'] });
             setIsDialogOpen(false);
         },
-        onError: (error: any) => toast.error("Update Failed", { description: error.response?.data?.message || "Something went wrong." })
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Update Failed", { description: error.response?.data?.message || "Something went wrong." });
+        }
     });
 
     const deleteMutation = useMutation({
@@ -63,7 +69,10 @@ export default function FloorPlansPage() {
             toast.success("Floor plan deleted.");
             queryClient.invalidateQueries({ queryKey: ['floorPlans'] });
         },
-        onError: () => toast.error("Failed to delete floor plan.")
+        onError: (error: any) => {
+            if (error.response?.status === 401) return;
+            toast.error("Failed to delete floor plan.");
+        }
     });
 
     useEffect(() => {
