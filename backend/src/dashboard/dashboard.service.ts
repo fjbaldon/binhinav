@@ -32,8 +32,8 @@ export class DashboardService {
         ] = await Promise.all([
             this.getKpiData(),
             this.getTopSearchedPlaces(),
-            this.getTopSearchTerms(true),
-            this.getTopSearchTerms(false),
+            this.getTopSearchTerms(true, 5),
+            this.getTopSearchTerms(false, 5),
             this.getCategoryPopularity(),
             this.getOperationalSnapshot(),
             this.getDailySearchActivity(),
@@ -77,14 +77,14 @@ export class DashboardService {
             .getRawMany();
     }
 
-    private async getTopSearchTerms(withResults: boolean) {
+    async getTopSearchTerms(withResults: boolean, limit: number = 5) {
         return this.searchLogRepository.createQueryBuilder('log')
             .select('log.searchTerm', 'term')
             .addSelect('COUNT(log.id)', 'count')
             .where({ foundResults: withResults })
             .groupBy('log.searchTerm')
             .orderBy('count', 'DESC')
-            .limit(5)
+            .limit(limit)
             .getRawMany();
     }
 

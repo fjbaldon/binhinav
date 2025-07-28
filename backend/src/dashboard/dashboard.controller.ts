@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query, DefaultValuePipe, ParseBoolPipe, ParseIntPipe } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -14,5 +14,13 @@ export class DashboardController {
     @Get()
     getDashboardData() {
         return this.dashboardService.getDashboardData();
+    }
+
+    @Get('search-terms')
+    getTopSearchTerms(
+        @Query('withResults', ParseBoolPipe) withResults: boolean,
+        @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit: number,
+    ) {
+        return this.dashboardService.getTopSearchTerms(withResults, limit);
     }
 }

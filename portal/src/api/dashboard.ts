@@ -50,3 +50,8 @@ export const getDashboardData = async (): Promise<DashboardData> => {
     const response = await apiClient.get('/dashboard');
     return response.data;
 };
+
+export const getSearchTerms = async (params: { withResults: boolean, limit: number }): Promise<SearchTermDataPoint[]> => {
+    const response = await apiClient.get('/dashboard/search-terms', { params });
+    return response.data;
+}

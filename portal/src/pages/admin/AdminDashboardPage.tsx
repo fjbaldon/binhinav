@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getDashboardData, type SearchTermDataPoint } from '@/api/dashboard';
+import { getDashboardData, getSearchTerms, type SearchTermDataPoint } from '@/api/dashboard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Building, Users, TvMinimal, Search, AlertCircle, Sparkles, LineChart as LineChartIcon } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, LabelList, LineChart, Line, CartesianGrid } from 'recharts';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const CustomBarChartTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -134,8 +135,8 @@ export default function AdminDashboardPage() {
                                 <CardDescription>Most common successful and failed search terms.</CardDescription>
                             </CardHeader>
                             <CardContent className="grid gap-8">
-                                <SearchTermList title="Top Search Terms" terms={topSearchTerms} />
-                                <SearchTermList title="Top 'Not Found' Searches" terms={topNotFoundTerms} emptyText="No failed searches logged." />
+                                <SearchTermList title="Top Search Terms" initialTerms={topSearchTerms} withResults={true} />
+                                <SearchTermList title="Top 'Not Found' Searches" initialTerms={topNotFoundTerms} withResults={false} emptyText="No failed searches logged." />
                             </CardContent>
                         </Card>
                         <Card>
@@ -229,29 +230,59 @@ const KpiCard = ({ title, value, icon: Icon, description }: { title: string, val
     </Card>
 );
 
-const SearchTermList = ({ title, terms, emptyText = "No searches logged." }: { title: string, terms: SearchTermDataPoint[], emptyText?: string }) => {
-    const maxCount = terms.length > 0 ? terms[0].count : 0;
+const SearchTermList = ({ title, initialTerms, withResults, emptyText = "No searches logged." }: { title: string, initialTerms: SearchTermDataPoint[], withResults: boolean, emptyText?: string }) => {
+    const [limit, setLimit] = useState(5);
+
+    const { data: terms, isLoading } = useQuery({
+        queryKey: ['searchTerms', withResults, limit],
+        queryFn: () => getSearchTerms({ withResults, limit }),
+        initialData: limit === 5 ? initialTerms : undefined,
+        staleTime: 1000 * 60, // 1 minute
+    });
+
+    const displayTerms = terms || [];
+    const maxCount = displayTerms.length > 0 ? displayTerms[0].count : 0;
+
     return (
         <div className="space-y-2">
-            <h3 className="font-semibold text-sm">{title}</h3>
-            {terms.length > 0 ? (
-                <div className="space-y-2">
-                    {terms.map(item => (
-                        <div key={item.term} className="text-sm">
-                            <div className="flex justify-between mb-1">
-                                <span className="text-muted-foreground truncate pr-4">"{item.term}"</span>
-                                <span className="font-medium">{item.count}</span>
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-1.5">
-                                <div
-                                    className="bg-primary h-1.5 rounded-full"
-                                    style={{ width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%` }}
-                                ></div>
-                            </div>
+            <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-sm">{title}</h3>
+                <Select value={String(limit)} onValueChange={value => setLimit(Number(value))}>
+                    <SelectTrigger className="w-[120px] h-8 text-xs">
+                        <SelectValue placeholder="Top N..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="5">Top 5</SelectItem>
+                        <SelectItem value="9">Top 9</SelectItem>
+                        <SelectItem value="10">Top 10</SelectItem>
+                        <SelectItem value="20">Top 20</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            {isLoading && limit !== 5 ? (
+                <p className="text-sm text-muted-foreground pt-2">Loading...</p>
+            ) : (
+                <>
+                    {displayTerms.length > 0 ? (
+                        <div className="space-y-2 pt-2">
+                            {displayTerms.map(item => (
+                                <div key={item.term} className="text-sm">
+                                    <div className="flex justify-between mb-1">
+                                        <span className="text-muted-foreground truncate pr-4">"{item.term}"</span>
+                                        <span className="font-medium">{item.count}</span>
+                                    </div>
+                                    <div className="w-full bg-muted rounded-full h-1.5">
+                                        <div
+                                            className="bg-primary h-1.5 rounded-full"
+                                            style={{ width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
-            ) : <p className="text-sm text-muted-foreground">{emptyText}</p>}
+                    ) : <p className="text-sm text-muted-foreground pt-2">{emptyText}</p>}
+                </>
+            )}
         </div>
     );
 };
