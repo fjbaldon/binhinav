@@ -48,6 +48,7 @@ export interface Kiosk {
     locationX: number;
     locationY: number;
     floorPlan: FloorPlan;
+    provisioningKey?: string | null;
 }
 
 export interface Ad {

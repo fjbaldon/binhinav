@@ -1,5 +1,6 @@
 import {
     BadRequestException,
+    ConflictException,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
@@ -9,13 +10,15 @@ import { CreateKioskDto } from './dto/create-kiosk.dto';
 import { UpdateKioskDto } from './dto/update-kiosk.dto';
 import { Kiosk } from './entities/kiosk.entity';
 import { FloorPlan } from '../floor-plans/entities/floor-plan.entity';
+import { customAlphabet } from 'nanoid';
+
+const generateProvisioningKey = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
 
 @Injectable()
 export class KiosksService {
     constructor(
         @InjectRepository(Kiosk)
         private kiosksRepository: Repository<Kiosk>,
-        // We need the FloorPlan repository to check if the floor plan exists
         @InjectRepository(FloorPlan)
         private floorPlansRepository: Repository<FloorPlan>,
     ) { }
@@ -32,14 +35,14 @@ export class KiosksService {
 
         const newKiosk = this.kiosksRepository.create({
             ...kioskDetails,
-            floorPlan, // Associate the full floor plan entity
+            floorPlan,
+            provisioningKey: `${generateProvisioningKey().slice(0, 3)}-${generateProvisioningKey().slice(3, 6)}`,
         });
 
         return this.kiosksRepository.save(newKiosk);
     }
 
     findAll(): Promise<Kiosk[]> {
-        // The 'floorPlan' relation is loaded automatically because of `eager: true` in the entity.
         return this.kiosksRepository.find();
     }
 
@@ -56,7 +59,6 @@ export class KiosksService {
 
         const updatePayload: any = { ...kioskDetails };
 
-        // If a new floorPlanId is provided, we need to find that floor plan entity
         if (floorPlanId) {
             const floorPlan = await this.floorPlansRepository.findOneBy({
                 id: floorPlanId,
@@ -67,7 +69,6 @@ export class KiosksService {
             updatePayload.floorPlan = floorPlan;
         }
 
-        // Preload finds the entity and applies the new values from the DTO
         const kiosk = await this.kiosksRepository.preload({
             id: id,
             ...updatePayload,
@@ -85,5 +86,23 @@ export class KiosksService {
         if (result.affected === 0) {
             throw new NotFoundException(`Kiosk with ID "${id}" not found`);
         }
+    }
+
+    async provision(key: string): Promise<{ id: string; name: string }> {
+        const kiosk = await this.kiosksRepository.findOne({ where: { provisioningKey: key } });
+
+        if (!kiosk) {
+            throw new NotFoundException('Invalid provisioning key.');
+        }
+
+        if (kiosk.isProvisioned) {
+            throw new ConflictException('This kiosk has already been provisioned.');
+        }
+
+        kiosk.isProvisioned = true;
+        kiosk.provisioningKey = null;
+        await this.kiosksRepository.save(kiosk);
+
+        return { id: kiosk.id, name: kiosk.name };
     }
 }

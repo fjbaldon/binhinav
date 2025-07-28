@@ -10,6 +10,7 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
+    BadRequestException,
 } from '@nestjs/common';
 import { KiosksService } from './kiosks.service';
 import { CreateKioskDto } from './dto/create-kiosk.dto';
@@ -23,20 +24,25 @@ import { Role } from '../shared/enums/role.enum';
 export class KiosksController {
     constructor(private readonly kiosksService: KiosksService) { }
 
-    // --- PUBLIC ENDPOINT FOR KIOSK APP ---
     @Get(':id/public')
-    // No auth guard here! This is how the kiosk identifies itself.
     findOnePublic(@Param('id', ParseUUIDPipe) id: string) {
         return this.kiosksService.findOne(id);
     }
-
-    // --- ADMIN-ONLY ENDPOINTS ---
 
     @Post()
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.Admin)
     create(@Body() createKioskDto: CreateKioskDto) {
         return this.kiosksService.create(createKioskDto);
+    }
+
+    @Post('provision')
+    @HttpCode(HttpStatus.OK)
+    provisionKiosk(@Body('key') key: string) {
+        if (!key) {
+            throw new BadRequestException('Provisioning key is required.');
+        }
+        return this.kiosksService.provision(key);
     }
 
     @Get()

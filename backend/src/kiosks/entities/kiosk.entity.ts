@@ -4,6 +4,7 @@ import {
     Column,
     ManyToOne,
     JoinColumn,
+    CreateDateColumn,
 } from 'typeorm';
 import { FloorPlan } from '../../floor-plans/entities/floor-plan.entity';
 
@@ -13,7 +14,7 @@ export class Kiosk {
     id: string;
 
     @Column({ unique: true })
-    name: string; // e.g., "Main Entrance Kiosk", "West Wing Kiosk"
+    name: string;
 
     @Column('float')
     locationX: number;
@@ -21,17 +22,20 @@ export class Kiosk {
     @Column('float')
     locationY: number;
 
-    // By setting nullable to false and using JoinColumn, TypeORM ensures
-    // a `floorPlanId` column is created and required in the database.
     @ManyToOne(() => FloorPlan, (floorPlan) => floorPlan.kiosks, {
         eager: true,
-        onDelete: 'CASCADE', // If a floor plan is deleted, its kiosks are also deleted.
-        nullable: false, // A kiosk MUST belong to a floor plan.
+        onDelete: 'CASCADE',
+        nullable: false,
     })
-    @JoinColumn({ name: 'floorPlanId' }) // Explicitly name the foreign key column
+    @JoinColumn({ name: 'floorPlanId' })
     floorPlan: FloorPlan;
 
-    // The explicit `floorPlanId` column is removed. TypeORM handles it.
-    // If you need the ID, you can get it from the loaded `floorPlan` object.
-    // For DTOs, you will continue to pass `floorPlanId` and the service will handle the relation.
+    @Column({ type: 'varchar', unique: true, nullable: true })
+    provisioningKey: string | null;
+
+    @Column({ default: false })
+    isProvisioned: boolean;
+
+    @CreateDateColumn()
+    createdAt: Date;
 }

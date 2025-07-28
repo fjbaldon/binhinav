@@ -10,13 +10,10 @@ import { MapView } from '@/components/map/MapView';
 import { PlaceDetailSheet } from '@/components/details/PlaceDetailSheet';
 import { AdOverlay } from '@/components/ads/AdOverlay';
 import { MapControls } from '@/components/layout/MapControls';
-import { toast } from 'sonner';
 
 type SearchStatus = 'idle' | 'loading' | 'no-results' | 'has-results';
 
-const KIOSK_ID = import.meta.env.VITE_KIOSK_ID;
-
-export default function HomePage() {
+export default function HomePage({ kioskId }: { kioskId: string }) {
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
     const [currentFloorPlanId, setCurrentFloorPlanId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -33,15 +30,17 @@ export default function HomePage() {
     const isSearchActive = !!debouncedSearchTerm;
 
     const { data: kioskData, isLoading: isLoadingKiosk } = useQuery<KioskData>({
-        queryKey: ['kioskData', KIOSK_ID],
+        queryKey: ['kioskData', kioskId],
         queryFn: () => {
-            if (!KIOSK_ID) {
-                toast.error("Kiosk ID is not configured.", { description: "Please set VITE_KIOSK_ID in your .env file." });
-                throw new Error("Kiosk ID missing");
+            if (!kioskId) {
+                throw new Error("Kiosk ID is missing");
             }
-            return api.getKioskData(KIOSK_ID);
+            return api.getKioskData(kioskId);
         },
-        enabled: !!KIOSK_ID, retry: false, refetchOnWindowFocus: false, staleTime: Infinity,
+        enabled: !!kioskId,
+        retry: false,
+        refetchOnWindowFocus: false,
+        staleTime: Infinity,
     });
 
     useEffect(() => {

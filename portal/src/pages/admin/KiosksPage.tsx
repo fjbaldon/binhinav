@@ -19,6 +19,7 @@ import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin, TvMinimal, C
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { DataTable } from "@/components/shared/DataTable";
+import { Badge } from "@/components/ui/badge";
 
 const kioskSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -146,6 +147,34 @@ export default function KiosksPage() {
                     </div>
                 </div>
             )
+        },
+        {
+            accessorKey: "provisioningKey",
+            header: "Pairing Key",
+            cell: ({ row }) => {
+                const key = row.original.provisioningKey;
+                if (!key) {
+                    return <Badge variant="outline" className="text-green-600 border-green-500">Provisioned</Badge>;
+                }
+                return (
+                    <div className="flex items-center gap-2 font-mono text-sm">
+                        <span>{key}</span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Copy pairing key"
+                            onClick={() => {
+                                navigator.clipboard.writeText(key);
+
+                                toast.success("Pairing key copied to clipboard!");
+                            }}
+                        >
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                );
+            }
         },
         {
             accessorKey: "floorPlan",
