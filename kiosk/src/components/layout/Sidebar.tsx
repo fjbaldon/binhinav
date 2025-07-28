@@ -115,7 +115,12 @@ export function Sidebar({
                                 className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
                             >
                                 <Shapes className="mr-4 h-6 w-6 shrink-0" />
-                                <span className="text-left">All Categories</span>
+                                <span
+                                    className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.length === 0 ? 'scale-105' : 'scale-100'
+                                        }`}
+                                >
+                                    All Categories
+                                </span>
                             </Button>
                             {categories.map(category => (
                                 <Button
@@ -125,7 +130,12 @@ export function Sidebar({
                                     className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
                                 >
                                     <DynamicIcon name={category.iconKey} className="mr-4 h-6 w-6 shrink-0" />
-                                    <span className="text-left">{category.name}</span>
+                                    <span
+                                        className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.includes(category.id) ? 'scale-105' : 'scale-100'
+                                            }`}
+                                    >
+                                        {category.name}
+                                    </span>
                                 </Button>
                             ))}
                         </div>
