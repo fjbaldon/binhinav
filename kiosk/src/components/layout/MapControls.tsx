@@ -18,7 +18,6 @@ export function MapControls({ floorPlans, currentFloorPlanId, onFloorChange, kio
 
     const sortedFloorPlans = [...floorPlans].sort((a, b) => b.name.localeCompare(a.name));
 
-    // A shared style for the action buttons for a consistent "press" effect
     const actionButtonClasses = "w-14 h-14 rounded-lg transition-transform duration-100 hover:scale-110 active:scale-95";
 
     return (
@@ -32,7 +31,6 @@ export function MapControls({ floorPlans, currentFloorPlanId, onFloorChange, kio
                             key={fp.id}
                             onClick={() => onFloorChange(fp.id)}
                             variant={isActive ? 'default' : 'secondary'}
-                            // --- REVERTED: All animation classes removed for a clean, simple button ---
                             className="w-14 h-14 text-lg font-bold rounded-lg relative"
                         >
                             {fp.id === kioskFloorId && (
@@ -43,23 +41,30 @@ export function MapControls({ floorPlans, currentFloorPlanId, onFloorChange, kio
                                     {resultCount}
                                 </Badge>
                             )}
-                            {/* The text is no longer wrapped and has no animation */}
                             {fp.name.replace(/floor|level/i, '').trim()}
                         </Button>
                     );
                 })}
             </div>
 
-            <div className="bg-background/80 backdrop-blur-sm rounded-2xl shadow-lg p-2 flex flex-col gap-2 pointer-events-auto">
-                <Button onClick={() => zoomIn()} size="icon" className={actionButtonClasses}>
-                    <Plus className="h-6 w-6" />
-                </Button>
-                <Button onClick={() => zoomOut()} size="icon" className={actionButtonClasses}>
-                    <Minus className="h-6 w-6" />
-                </Button>
-                <Button onClick={onLocateKiosk} size="icon" className={actionButtonClasses}>
-                    <LocateFixed className="h-6 w-6" />
-                </Button>
+            <div className="flex flex-col gap-2 pointer-events-auto">
+                <div className="bg-background/80 backdrop-blur-sm rounded-2xl shadow-lg p-2">
+                    <Button
+                        onClick={onLocateKiosk}
+                        size="icon"
+                        className={actionButtonClasses}
+                    >
+                        <LocateFixed className="h-6 w-6" />
+                    </Button>
+                </div>
+                <div className="bg-background/80 backdrop-blur-sm rounded-2xl shadow-lg p-2 flex flex-col gap-2">
+                    <Button onClick={() => zoomIn()} size="icon" className={actionButtonClasses}>
+                        <Plus className="h-6 w-6" />
+                    </Button>
+                    <Button onClick={() => zoomOut()} size="icon" className={actionButtonClasses}>
+                        <Minus className="h-6 w-6" />
+                    </Button>
+                </div>
             </div>
         </div>
     );
