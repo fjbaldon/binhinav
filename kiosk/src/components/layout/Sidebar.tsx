@@ -108,7 +108,7 @@ export function Sidebar({
                     </>
                 ) : (
                     <ScrollArea className="h-full">
-                        <div className="space-y-2 pr-3">
+                        <div className="space-y-2 pr-3 pl-2 pt-2">
                             <Button
                                 variant={activeCategoryIds.length === 0 ? 'default' : 'ghost'}
                                 onClick={() => onCategoryToggle(null)}
