@@ -33,7 +33,7 @@ export function Sidebar({
     const isSearchActive = !!searchTerm;
 
     return (
-        <aside className="relative w-80 flex-col gap-4 bg-card border p-4 shadow-lg rounded-3xl hidden lg:flex">
+        <aside className="relative w-80 flex-col gap-4 bg-card border p-4 rounded-3xl hidden lg:flex">
 
             <div className="flex items-center gap-2 px-2">
                 <img src="/binhinav-logo.svg" alt="Binhinav Logo" className="h-8 w-8" />
