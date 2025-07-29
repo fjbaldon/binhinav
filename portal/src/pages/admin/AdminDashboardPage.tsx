@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardData, getSearchTerms, type SearchTermDataPoint } from '@/api/dashboard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Building, Users, TvMinimal, Search, AlertCircle, Sparkles, LineChart as LineChartIcon } from 'lucide-react';
+import { Building, Users, TvMinimal, Search, AlertCircle, Sparkles, LineChart as LineChartIcon, Loader2 } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, LabelList, LineChart, Line, CartesianGrid } from 'recharts';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const CustomBarChartTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -61,6 +64,106 @@ const CustomLegend = (props: any) => {
                     </div>
                 );
             })}
+        </div>
+    );
+};
+
+const SearchTermsDialog = ({ title, withResults }: { title: string; withResults: boolean; }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [limit, setLimit] = useState(10);
+
+    const { data: terms = [], isLoading } = useQuery({
+        queryKey: ['searchTermsDialog', withResults, limit],
+        queryFn: () => getSearchTerms({ withResults, limit }),
+        enabled: isOpen,
+        staleTime: 1000 * 60,
+    });
+
+    const maxCount = terms.length > 0 ? terms[0].count : 0;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs px-3">View More</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                    <DialogDescription>
+                        An extended list of the most frequent search terms.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex items-center justify-end py-2">
+                    <Select value={String(limit)} onValueChange={value => setLimit(Number(value))}>
+                        <SelectTrigger className="w-[120px]">
+                            <SelectValue placeholder="Show Top..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="10">Top 10</SelectItem>
+                            <SelectItem value="20">Top 20</SelectItem>
+                            <SelectItem value="30">Top 30</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <ScrollArea className="h-72 w-full pr-4">
+                    {isLoading ? (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading...
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {terms.map(item => (
+                                <div key={item.term} className="text-sm">
+                                    <div className="flex justify-between mb-1">
+                                        <span className="text-muted-foreground truncate pr-4">"{item.term}"</span>
+                                        <span className="font-medium">{item.count}</span>
+                                    </div>
+                                    <div className="w-full bg-muted rounded-full h-1.5">
+                                        <div
+                                            className="bg-primary h-1.5 rounded-full"
+                                            style={{ width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </ScrollArea>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+const SearchTermList = ({ title, initialTerms, withResults, emptyText = "No searches logged." }: { title: string, initialTerms: SearchTermDataPoint[], withResults: boolean, emptyText?: string }) => {
+    const displayTerms = initialTerms || [];
+    const maxCount = displayTerms.length > 0 ? displayTerms[0].count : 0;
+
+    return (
+        <div className="space-y-2">
+            <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-sm">{title}</h3>
+                {displayTerms.length > 0 && (
+                    <SearchTermsDialog title={title} withResults={withResults} />
+                )}
+            </div>
+            {displayTerms.length > 0 ? (
+                <div className="space-y-2 pt-2">
+                    {displayTerms.map(item => (
+                        <div key={item.term} className="text-sm">
+                            <div className="flex justify-between mb-1">
+                                <span className="text-muted-foreground truncate pr-4">"{item.term}"</span>
+                                <span className="font-medium">{item.count}</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-1.5">
+                                <div
+                                    className="bg-primary h-1.5 rounded-full"
+                                    style={{ width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : <p className="text-sm text-muted-foreground pt-2">{emptyText}</p>}
         </div>
     );
 };
@@ -229,63 +332,6 @@ const KpiCard = ({ title, value, icon: Icon, description }: { title: string, val
         </CardContent>
     </Card>
 );
-
-const SearchTermList = ({ title, initialTerms, withResults, emptyText = "No searches logged." }: { title: string, initialTerms: SearchTermDataPoint[], withResults: boolean, emptyText?: string }) => {
-    const [limit, setLimit] = useState(5);
-
-    const { data: terms, isLoading } = useQuery({
-        queryKey: ['searchTerms', withResults, limit],
-        queryFn: () => getSearchTerms({ withResults, limit }),
-        initialData: limit === 5 ? initialTerms : undefined,
-        staleTime: 1000 * 60, // 1 minute
-    });
-
-    const displayTerms = terms || [];
-    const maxCount = displayTerms.length > 0 ? displayTerms[0].count : 0;
-
-    return (
-        <div className="space-y-2">
-            <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-sm">{title}</h3>
-                <Select value={String(limit)} onValueChange={value => setLimit(Number(value))}>
-                    <SelectTrigger className="w-[120px] h-8 text-xs">
-                        <SelectValue placeholder="Top N..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="5">Top 5</SelectItem>
-                        <SelectItem value="9">Top 9</SelectItem>
-                        <SelectItem value="10">Top 10</SelectItem>
-                        <SelectItem value="20">Top 20</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-            {isLoading && limit !== 5 ? (
-                <p className="text-sm text-muted-foreground pt-2">Loading...</p>
-            ) : (
-                <>
-                    {displayTerms.length > 0 ? (
-                        <div className="space-y-2 pt-2">
-                            {displayTerms.map(item => (
-                                <div key={item.term} className="text-sm">
-                                    <div className="flex justify-between mb-1">
-                                        <span className="text-muted-foreground truncate pr-4">"{item.term}"</span>
-                                        <span className="font-medium">{item.count}</span>
-                                    </div>
-                                    <div className="w-full bg-muted rounded-full h-1.5">
-                                        <div
-                                            className="bg-primary h-1.5 rounded-full"
-                                            style={{ width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : <p className="text-sm text-muted-foreground pt-2">{emptyText}</p>}
-                </>
-            )}
-        </div>
-    );
-};
 
 const OperationalItem = ({ icon: Icon, title, value, linkTo }: { icon: React.ElementType, title: string, value: number, linkTo: string }) => (
     <li className={cn("flex items-center p-2 rounded-lg", value > 0 && "transition-colors hover:bg-muted/50")}>
