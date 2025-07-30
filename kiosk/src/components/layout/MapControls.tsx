@@ -31,7 +31,7 @@ export function MapControls({ floorPlans, currentFloorPlanId, onFloorChange, kio
                             key={fp.id}
                             onClick={() => onFloorChange(fp.id)}
                             variant={isActive ? 'default' : 'secondary'}
-                            className="w-14 h-14 text-lg font-bold rounded-lg relative"
+                            className="w-14 h-14 text-lg font-bold rounded-lg relative transition-transform duration-100 hover:scale-110 active:scale-95 active:brightness-90"
                         >
                             {fp.id === kioskFloorId && (
                                 <span className="absolute top-1.5 right-1.5 h-3 w-3 rounded-full bg-blue-500 border-2 border-background" />
