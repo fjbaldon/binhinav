@@ -1,8 +1,9 @@
+// portal/src/pages/admin/AdminDashboardPage.tsx
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardData, getSearchTerms, type SearchTermDataPoint } from '@/api/dashboard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Building, Users, TvMinimal, Search, AlertCircle, Sparkles, LineChart as LineChartIcon, Loader2 } from 'lucide-react';
+import { Building, Users, TvMinimal, Search, AlertCircle, Sparkles, LineChart as LineChartIcon, Loader2, PieChart as PieChartIcon } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, LabelList, LineChart, Line, CartesianGrid } from 'recharts';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -134,6 +135,44 @@ const SearchTermsDialog = ({ title, withResults }: { title: string; withResults:
     );
 };
 
+const CategoryPopularityDialog = ({ title, data }: { title: string; data: { name: string; count: number }[] }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const maxCount = data.length > 0 ? data[0].count : 0;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs px-3">View All</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                    <DialogDescription>A full list of category selections, sorted by popularity.</DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="h-80 w-full pr-4">
+                    <div className="space-y-4">
+                        {data.map(item => (
+                            <div key={item.name} className="text-sm">
+                                <div className="flex justify-between mb-1">
+                                    <span className="text-muted-foreground truncate pr-4">{item.name}</span>
+                                    <span className="font-medium">{item.count}</span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-1.5">
+                                    <div
+                                        className="bg-primary h-1.5 rounded-full"
+                                        style={{ width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 const SearchTermList = ({ title, initialTerms, withResults, emptyText = "No searches logged." }: { title: string, initialTerms: SearchTermDataPoint[], withResults: boolean, emptyText?: string }) => {
     const displayTerms = initialTerms || [];
     const maxCount = displayTerms.length > 0 ? displayTerms[0].count : 0;
@@ -170,6 +209,7 @@ const SearchTermList = ({ title, initialTerms, withResults, emptyText = "No sear
 
 export default function AdminDashboardPage() {
     const [chartColors, setChartColors] = useState<string[]>([]);
+    const NUM_CATEGORIES_IN_CHART = 4; // Show top 4 categories, group the rest into "Other"
 
     useEffect(() => {
         document.title = "Dashboard | Binhinav Admin";
@@ -191,6 +231,19 @@ export default function AdminDashboardPage() {
 
     const { kpiData, topSearchedPlaces, topSearchTerms, topNotFoundTerms, categoryPopularity, operationalSnapshot, dailySearchActivity } = data;
     const formattedDailyActivity = dailySearchActivity.map(d => ({ ...d, date: new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }));
+
+    const parsedCategoryPopularity = categoryPopularity
+        .map(d => ({ ...d, count: parseInt(d.count, 10) }))
+        .sort((a, b) => b.count - a.count);
+
+    const topCategories = parsedCategoryPopularity.slice(0, NUM_CATEGORIES_IN_CHART);
+    const otherCategories = parsedCategoryPopularity.slice(NUM_CATEGORIES_IN_CHART);
+    const otherCount = otherCategories.reduce((sum, item) => sum + item.count, 0);
+
+    const pieChartData = [...topCategories];
+    if (otherCount > 0) {
+        pieChartData.push({ name: 'Other', count: otherCount });
+    }
 
     return (
         <div className="space-y-6">
@@ -229,8 +282,7 @@ export default function AdminDashboardPage() {
                     </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
-                    {/* Left Column */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <div className="space-y-6">
                         <Card>
                             <CardHeader>
@@ -268,25 +320,26 @@ export default function AdminDashboardPage() {
                         </Card>
                     </div>
 
-                    {/* Right Column */}
-                    <div className="space-y-6">
-                        <Card>
+                    <div className="space-y-6 lg:flex lg:flex-col lg:space-y-0 lg:gap-6">
+                        <Card className="lg:flex lg:flex-col lg:flex-grow">
                             <CardHeader>
                                 <CardTitle>Top Searched Places</CardTitle>
                                 <CardDescription>The 5 most frequently selected places after a search.</CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="lg:flex-grow">
                                 {topSearchedPlaces.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={350}>
-                                        <BarChart data={topSearchedPlaces} layout="vertical" margin={{ left: 10, right: 50, top: 5, bottom: 5 }}>
-                                            <XAxis type="number" hide />
-                                            <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={120} />
-                                            <Tooltip content={<CustomBarChartTooltip />} cursor={{ fill: 'transparent' }} />
-                                            <Bar dataKey="count" fill={chartColors[0]} radius={[4, 4, 4, 4]}>
-                                                <LabelList dataKey="count" position="right" offset={8} className="fill-foreground font-semibold" fontSize={12} />
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
+                                    <div className="h-[350px] lg:h-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={topSearchedPlaces} layout="vertical" margin={{ left: 10, right: 50, top: 5, bottom: 5 }}>
+                                                <XAxis type="number" hide />
+                                                <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={120} />
+                                                <Tooltip content={<CustomBarChartTooltip />} cursor={{ fill: 'transparent' }} />
+                                                <Bar dataKey="count" fill={chartColors[0]} radius={[4, 4, 4, 4]}>
+                                                    <LabelList dataKey="count" position="right" offset={8} className="fill-foreground font-semibold" fontSize={12} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
                                 ) : (
                                     <div className="flex items-center justify-center h-[350px] text-muted-foreground">Not enough data to display.</div>
                                 )}
@@ -294,22 +347,29 @@ export default function AdminDashboardPage() {
                         </Card>
                         <Card>
                             <CardHeader>
-                                <CardTitle>Category Popularity</CardTitle>
-                                <CardDescription>Breakdown of selections by store category.</CardDescription>
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <CardTitle>Category Popularity</CardTitle>
+                                        <CardDescription>Breakdown of selections by store category.</CardDescription>
+                                    </div>
+                                    {parsedCategoryPopularity.length > NUM_CATEGORIES_IN_CHART && (
+                                        <CategoryPopularityDialog title="Category Popularity" data={parsedCategoryPopularity} />
+                                    )}
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                {categoryPopularity.length > 0 ? (
+                                {parsedCategoryPopularity.length > 0 ? (
                                     <ResponsiveContainer width="100%" height={350}>
                                         <PieChart>
-                                            <Pie data={categoryPopularity.map(d => ({ ...d, count: parseInt(d.count, 10) }))} dataKey="count" nameKey="name" cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={5} labelLine={false}>
-                                                {categoryPopularity.map((_entry, index) => <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />)}
+                                            <Pie data={pieChartData} dataKey="count" nameKey="name" cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={5} labelLine={false}>
+                                                {pieChartData.map((_entry, index) => <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />)}
                                             </Pie>
                                             <Tooltip content={<CustomPieChartTooltip />} />
                                             <Legend content={<CustomLegend />} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="flex items-center justify-center h-[350px] text-muted-foreground">No selections logged yet.</div>
+                                    <div className="flex items-center justify-center h-[350px] text-muted-foreground"><PieChartIcon className="mr-2 h-5 w-5" />No selections logged yet.</div>
                                 )}
                             </CardContent>
                         </Card>
