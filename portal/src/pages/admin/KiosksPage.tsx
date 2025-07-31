@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getKiosks, createKiosk, updateKiosk, deleteKiosk } from "@/api/kiosks";
 import { type Kiosk } from "@/api/types";
 import { getFloorPlans } from "@/api/floor-plans";
+import { getPlaces } from "@/api/places";
 import { getAssetUrl } from "@/api";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ export default function KiosksPage() {
 
     const { data: kiosks = [], isLoading: isLoadingKiosks } = useQuery({ queryKey: ['kiosks'], queryFn: getKiosks });
     const { data: floorPlans = [], isLoading: isLoadingFloorPlans } = useQuery({ queryKey: ['floorPlans'], queryFn: getFloorPlans });
+    const { data: places = [] } = useQuery({ queryKey: ['places'], queryFn: getPlaces });
 
     const createMutation = useMutation({
         mutationFn: createKiosk,
@@ -109,6 +111,16 @@ export default function KiosksPage() {
     const handleDelete = (id: string) => deleteMutation.mutate(id);
     const isMutating = createMutation.isPending || updateMutation.isPending;
     const selectedFloorPlanForLocation = useMemo(() => floorPlans.find(fp => fp.id === tempDetails?.floorPlanId), [floorPlans, tempDetails]);
+
+    const placesOnSelectedFloor = useMemo(() => {
+        if (!selectedFloorPlanForLocation) return [];
+        return places.filter(p => p.floorPlan.id === selectedFloorPlanForLocation.id);
+    }, [places, selectedFloorPlanForLocation]);
+
+    const placesForViewing = useMemo(() => {
+        if (!viewingKiosk) return [];
+        return places.filter(p => p.floorPlan.id === viewingKiosk.floorPlan.id);
+    }, [places, viewingKiosk]);
 
 
     const columns: ColumnDef<Kiosk>[] = [
@@ -250,6 +262,7 @@ export default function KiosksPage() {
                     onSave={handleLocationSave}
                     onBack={handleBackToDetails}
                     floorPlan={selectedFloorPlanForLocation}
+                    placesOnFloor={placesOnSelectedFloor}
                     initialCoords={editingKiosk ? [editingKiosk.locationX, editingKiosk.locationY] : null}
                     isPending={isMutating}
                 />
@@ -259,6 +272,7 @@ export default function KiosksPage() {
                 isOpen={!!viewingKiosk}
                 onOpenChange={(isOpen) => !isOpen && setViewingKiosk(null)}
                 item={viewingKiosk}
+                placesOnFloor={placesForViewing}
             />
         </>
     );

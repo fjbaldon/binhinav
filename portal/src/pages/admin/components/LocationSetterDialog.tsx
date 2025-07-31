@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from "react";
-import type { FloorPlan } from "@/api/types";
+import type { FloorPlan, Place } from "@/api/types";
 import { getAssetUrl } from "@/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Target } from 'lucide-react';
+import { ContextPin } from "./ContextPin";
 
 interface LocationSetterDialogProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface LocationSetterDialogProps {
     onSave: (coords: { x: number; y: number }) => void;
     onBack: () => void;
     floorPlan: FloorPlan;
+    placesOnFloor: Place[];
     initialCoords: [number, number] | null;
     isPending: boolean;
 }
@@ -22,6 +24,7 @@ export function LocationSetterDialog({
     onSave,
     onBack,
     floorPlan,
+    placesOnFloor,
     initialCoords,
     isPending,
 }: LocationSetterDialogProps) {
@@ -100,7 +103,7 @@ export function LocationSetterDialog({
                 <DialogHeader>
                     <DialogTitle>Step 2: Set Location</DialogTitle>
                     <DialogDescription>
-                        Click on the map to place a pin for the new location.
+                        Click on the map to place a pin for the new location. Existing places are shown for context.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="relative w-full rounded-md border bg-muted/20 overflow-hidden mt-4 flex items-center justify-center">
@@ -113,6 +116,9 @@ export function LocationSetterDialog({
                         className="max-h-[60vh] w-auto h-auto object-contain cursor-crosshair"
                         style={{ display: 'block' }}
                     />
+                    {placesOnFloor.map(place => (
+                        <ContextPin key={place.id} place={place} />
+                    ))}
                     {coords && imageSize && (
                         <Target
                             className="absolute text-red-500 w-6 h-6 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"

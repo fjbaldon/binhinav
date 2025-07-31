@@ -164,6 +164,17 @@ export default function PlacesPage() {
     const handleDelete = (id: string) => deleteMutation.mutate(id);
     const selectedFloorPlanForLocation = useMemo(() => floorPlans.find(fp => fp.id === tempDetails?.floorPlanId), [floorPlans, tempDetails]);
 
+    const placesOnSelectedFloor = useMemo(() => {
+        if (!selectedFloorPlanForLocation) return [];
+        const currentPlaceId = editingPlace?.id;
+        return places.filter(p => p.floorPlan.id === selectedFloorPlanForLocation.id && p.id !== currentPlaceId);
+    }, [places, selectedFloorPlanForLocation, editingPlace]);
+
+    const placesForViewing = useMemo(() => {
+        if (!viewingPlace) return [];
+        return places.filter(p => p.floorPlan.id === viewingPlace.floorPlan.id);
+    }, [places, viewingPlace]);
+
     const columns: ColumnDef<Place>[] = [
         {
             accessorKey: "name",
@@ -338,6 +349,7 @@ export default function PlacesPage() {
                     onSave={handleLocationSave}
                     onBack={handleBackToDetails}
                     floorPlan={selectedFloorPlanForLocation}
+                    placesOnFloor={placesOnSelectedFloor}
                     initialCoords={editingPlace ? [editingPlace.locationX, editingPlace.locationY] : null}
                     isPending={isMutating}
                 />
@@ -347,6 +359,7 @@ export default function PlacesPage() {
                 isOpen={!!viewingPlace}
                 onOpenChange={(isOpen) => !isOpen && setViewingPlace(null)}
                 item={viewingPlace}
+                placesOnFloor={placesForViewing}
             />
         </>
     );

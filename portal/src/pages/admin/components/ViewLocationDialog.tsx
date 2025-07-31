@@ -1,9 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getAssetUrl } from "@/api";
 import { Target } from "lucide-react";
-import type { FloorPlan } from "@/api/types";
+import type { FloorPlan, Place } from "@/api/types";
+import { ContextPin } from "./ContextPin";
 
 interface ViewableLocation {
+    id: string;
     name: string;
     locationX: number;
     locationY: number;
@@ -14,9 +16,10 @@ interface ViewLocationDialogProps {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
     item: ViewableLocation | null;
+    placesOnFloor: Place[];
 }
 
-export function ViewLocationDialog({ isOpen, onOpenChange, item }: ViewLocationDialogProps) {
+export function ViewLocationDialog({ isOpen, onOpenChange, item, placesOnFloor }: ViewLocationDialogProps) {
     if (!item) return null;
 
     return (
@@ -32,6 +35,12 @@ export function ViewLocationDialog({ isOpen, onOpenChange, item }: ViewLocationD
                         alt={item.floorPlan.name}
                         className="max-h-[70vh] w-full object-contain"
                     />
+                    {placesOnFloor
+                        .filter(p => p.id !== item.id)
+                        .map(place => (
+                            <ContextPin key={place.id} place={place} />
+                        ))
+                    }
                     <Target
                         className="absolute text-red-500 w-8 h-8 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
                         style={{ left: `${item.locationX}%`, top: `${item.locationY}%` }}
