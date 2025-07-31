@@ -23,13 +23,11 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
     const [mapSize, setMapSize] = useState<{ width: number; height: number } | null>(null);
     const [initialTransform, setInitialTransform] = useState<{ scale: number; x: number; y: number } | null>(null);
 
-    // Effect to reset the state when the floor plan changes
     useEffect(() => {
         setMapSize(null);
         setInitialTransform(null);
     }, [floorPlan?.id]);
 
-    // This effect calculates the initial transform as soon as the image size is known
     useLayoutEffect(() => {
         if (mapSize && !initialTransform && mapContainerRef.current) {
             const container = mapContainerRef.current;
@@ -50,7 +48,6 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
         }
     }, [mapSize, initialTransform]);
 
-    // Effect to animate zooming to a selected place
     useEffect(() => {
         const controller = mapControllerRef.current;
         const container = mapContainerRef.current;
@@ -69,7 +66,6 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
         return () => clearTimeout(timer);
     }, [selectedPlace, kiosk.locationX, kiosk.locationY, mapControllerRef, mapSize]);
 
-    // Function to capture the image's natural dimensions on load
     const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
         setMapSize({
             width: e.currentTarget.naturalWidth,
@@ -83,7 +79,6 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
 
     return (
         <div ref={mapContainerRef} className="h-full w-full bg-muted overflow-hidden">
-            {/* This image is used to trigger the onLoad event but is not visible */}
             <img
                 src={getAssetUrl(floorPlan.imageUrl)}
                 onLoad={handleImageLoad}
@@ -91,13 +86,11 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                 alt=""
             />
 
-            {/* Show a loader until the initial transform is calculated */}
             {!initialTransform ? (
                 <div className="flex items-center justify-center h-full w-full">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 </div>
             ) : (
-                /* Once ready, render the map wrapper with its initial state pre-calculated */
                 <TransformWrapper
                     ref={mapControllerRef}
                     key={floorPlan.id}
@@ -124,7 +117,6 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                                 className="pointer-events-none block"
                             />
 
-                            {/* Pins are now rendered inside a perfectly sized and positioned container */}
                             {kiosk.floorPlan.id === floorPlan?.id && (
                                 <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} isPulsing={isLocatingKiosk} />
                             )}
