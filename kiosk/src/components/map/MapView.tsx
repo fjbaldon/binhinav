@@ -16,9 +16,11 @@ interface MapViewProps {
     mapControllerRef: React.RefObject<ReactZoomPanPinchRef | null>;
     isLocatingKiosk: boolean;
     children?: React.ReactNode;
+    currentScale: number;
+    onScaleChange: (scale: number) => void;
 }
 
-export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect, mapControllerRef, isLocatingKiosk, children }: MapViewProps) {
+export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect, mapControllerRef, isLocatingKiosk, children, currentScale, onScaleChange }: MapViewProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const [mapSize, setMapSize] = useState<{ width: number; height: number } | null>(null);
     const [initialTransform, setInitialTransform] = useState<{ scale: number; x: number; y: number } | null>(null);
@@ -53,18 +55,48 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
         const container = mapContainerRef.current;
         if (!controller || !container || !selectedPlace || !mapSize) return;
 
+        const kioskPixelCoords = {
+            x: (kiosk.locationX / 100) * mapSize.width,
+            y: (kiosk.locationY / 100) * mapSize.height,
+        };
+        const placePixelCoords = {
+            x: (selectedPlace.locationX / 100) * mapSize.width,
+            y: (selectedPlace.locationY / 100) * mapSize.height,
+        };
+
         const timer = setTimeout(() => {
             const viewSize = { width: container.offsetWidth, height: container.offsetHeight };
             const transform = getTransformForBounds(
-                { x: kiosk.locationX, y: kiosk.locationY },
-                { x: selectedPlace.locationX, y: selectedPlace.locationY },
+                kioskPixelCoords,
+                placePixelCoords,
                 viewSize, 150
             );
             controller.setTransform(transform.x, transform.y, transform.scale, 300, 'easeOut');
         }, 100);
 
         return () => clearTimeout(timer);
-    }, [selectedPlace, kiosk.locationX, kiosk.locationY, mapControllerRef, mapSize]);
+    }, [selectedPlace, kiosk, mapControllerRef, mapSize]);
+
+    useEffect(() => {
+        if (isLocatingKiosk && mapControllerRef.current && kiosk && mapSize && mapContainerRef.current) {
+            const controller = mapControllerRef.current;
+            const { instance } = controller;
+            const { wrapperComponent } = instance;
+            if (!wrapperComponent) return;
+
+            const kioskPixelCoords = {
+                x: (kiosk.locationX / 100) * mapSize.width,
+                y: (kiosk.locationY / 100) * mapSize.height,
+            };
+
+            const scale = 1.2;
+            const x = (wrapperComponent.offsetWidth / 2) - (kioskPixelCoords.x * scale);
+            const y = (wrapperComponent.offsetHeight / 2) - (kioskPixelCoords.y * scale);
+
+            controller.setTransform(x, y, scale, 300, "easeOut");
+        }
+    }, [isLocatingKiosk, mapControllerRef, kiosk, mapSize]);
+
 
     const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
         setMapSize({
@@ -78,7 +110,7 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
     }
 
     return (
-        <div ref={mapContainerRef} className="h-full w-full bg-muted overflow-hidden">
+        <div ref={mapContainerRef} className="h-full w-full bg-muted overflow-hidden" data-selected={!!selectedPlace}>
             <img
                 src={getAssetUrl(floorPlan.imageUrl)}
                 onLoad={handleImageLoad}
@@ -103,6 +135,7 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                     panning={{ velocityDisabled: false }}
                     wheel={{ step: 0.2 }}
                     doubleClick={{ disabled: true }}
+                    onTransformed={(_ref, state) => onScaleChange(state.scale)}
                 >
                     {children}
                     <TransformComponent wrapperClass="!w-full !h-full" contentClass="">
@@ -118,10 +151,10 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                             />
 
                             {kiosk.floorPlan.id === floorPlan?.id && (
-                                <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} isPulsing={isLocatingKiosk} />
+                                <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} isPulsing={isLocatingKiosk} mapScale={currentScale} />
                             )}
                             {places.map(place => (
-                                <PlacePin key={place.id} place={place} isSelected={selectedPlace?.id === place.id} onClick={() => onPlaceSelect(place)} />
+                                <PlacePin key={place.id} place={place} isSelected={selectedPlace?.id === place.id} onClick={() => onPlaceSelect(place)} mapScale={currentScale} />
                             ))}
                         </div>
                     </TransformComponent>

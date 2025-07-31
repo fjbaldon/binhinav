@@ -5,7 +5,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPlaces, createPlace, updatePlace, deletePlace, getPlaceById } from "@/api/places";
-import type { Place, PlacePayload, UpdatePlacePayload, FloorPlan } from "@/api/types";
+import type { Place, PlacePayload, UpdatePlacePayload } from "@/api/types";
 import { getFloorPlans } from "@/api/floor-plans";
 import { getMerchants } from "@/api/merchants";
 import { getAssetUrl } from "@/api";
@@ -16,11 +16,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Edit, Trash2, Target, ZoomIn, ZoomOut, MapPin, Building2, ArrowUpDown, Info } from 'lucide-react';
-import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
+import { PlusCircle, Edit, Trash2, MapPin, Building2, ArrowUpDown, Info } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { DataTable } from "@/components/shared/DataTable";
 import { DynamicIcon } from "@/components/shared/DynamicIcon";
+import { LocationSetterDialog } from "./components/LocationSetterDialog";
+import { ViewLocationDialog } from "./components/ViewLocationDialog";
 
 const placeDetailsSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -41,73 +42,6 @@ const placeDetailsSchema = z.object({
 });
 
 type PlaceDetailsFormValues = z.infer<typeof placeDetailsSchema>;
-
-const LocationSetterDialog = ({
-    isOpen,
-    onOpenChange,
-    onSave,
-    onBack,
-    floorPlan,
-    initialCoords,
-    isPending,
-}: {
-    isOpen: boolean,
-    onOpenChange: (open: boolean) => void,
-    onSave: (coords: { x: number, y: number }) => void,
-    onBack: () => void,
-    floorPlan: FloorPlan,
-    initialCoords: [number, number] | null,
-    isPending: boolean,
-}) => {
-    const [coords, setCoords] = useState<[number, number] | null>(initialCoords);
-    const Controls = () => {
-        const { zoomIn, zoomOut } = useControls();
-        return (<div className="absolute top-2 right-2 z-10 flex flex-col gap-1"><Button size="icon" type="button" onClick={() => zoomIn()}><ZoomIn /></Button><Button size="icon" type="button" onClick={() => zoomOut()}><ZoomOut /></Button></div>);
-    };
-
-    const handleMapDoubleClick = (event: React.MouseEvent<HTMLDivElement>) => {
-        const { offsetX, offsetY } = event.nativeEvent;
-        setCoords([offsetX, offsetY]);
-    };
-
-    const handleSave = () => {
-        if (coords) onSave({ x: coords[0], y: coords[1] });
-        else toast.error("Please set a location by double-clicking the map.");
-    };
-
-    useEffect(() => {
-        if (isOpen) setCoords(initialCoords);
-    }, [isOpen, initialCoords]);
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Step 2: Set Location</DialogTitle>
-                    <DialogDescription>Double-click on the map to place a pin for the new location.</DialogDescription>
-                </DialogHeader>
-                <div className="relative w-full rounded-md border bg-muted/20 overflow-hidden mt-4">
-                    <TransformWrapper doubleClick={{ disabled: true }} panning={{ disabled: false, velocityDisabled: true }}>
-                        <Controls />
-                        <TransformComponent wrapperStyle={{ maxHeight: '60vh', width: '100%' }} contentStyle={{ width: '100%', height: '100%', cursor: 'crosshair' }} contentProps={{ onDoubleClick: handleMapDoubleClick }}>
-                            <div className="relative">
-                                <img src={getAssetUrl(floorPlan.imageUrl)} alt={floorPlan.name} />
-                                {coords && (<Target className="absolute text-red-500 w-6 h-6 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: coords[0], top: coords[1] }} />)}
-                            </div>
-                        </TransformComponent>
-                    </TransformWrapper>
-                </div>
-                <p className="text-sm text-muted-foreground">Coordinates: {coords ? `(${coords[0].toFixed(0)}, ${coords[1].toFixed(0)})` : 'Not set'}</p>
-                <div className="flex justify-between mt-4">
-                    <Button type="button" variant="outline" onClick={onBack}>Back</Button>
-                    <Button type="button" onClick={handleSave} disabled={isPending || !coords}>
-                        {isPending ? "Saving..." : "Save Place"}
-                    </Button>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
-};
 
 export default function PlacesPage() {
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -409,20 +343,11 @@ export default function PlacesPage() {
                 />
             )}
 
-            {viewingPlace && (
-                <Dialog open={!!viewingPlace} onOpenChange={(isOpen) => !isOpen && setViewingPlace(null)}>
-                    <DialogContent className="sm:max-w-3xl">
-                        <DialogHeader>
-                            <DialogTitle>Location for: {viewingPlace?.name}</DialogTitle>
-                            <DialogDescription>Floor Plan: {viewingPlace?.floorPlan.name}</DialogDescription>
-                        </DialogHeader>
-                        <div className="relative mt-4 w-full rounded-md border bg-muted/20 overflow-hidden">
-                            <img src={getAssetUrl(viewingPlace?.floorPlan.imageUrl)} alt={viewingPlace?.floorPlan.name} className="max-h-[70vh] w-full object-contain" />
-                            {viewingPlace && (<Target className="absolute text-red-500 w-8 h-8 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: viewingPlace.locationX, top: viewingPlace.locationY }} strokeWidth={2.5} />)}
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            )}
+            <ViewLocationDialog
+                isOpen={!!viewingPlace}
+                onOpenChange={(isOpen) => !isOpen && setViewingPlace(null)}
+                item={viewingPlace}
+            />
         </>
     );
 }

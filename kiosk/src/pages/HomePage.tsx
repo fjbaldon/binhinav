@@ -22,6 +22,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
     const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
     const [isLocatingKiosk, setIsLocatingKiosk] = useState(false);
+    const [currentMapScale, setCurrentMapScale] = useState(1);
     const mapControllerRef = useRef<ReactZoomPanPinchRef>(null);
 
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -148,22 +149,9 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     };
 
     const handleLocateKiosk = () => {
-        if (!kioskData || !mapControllerRef.current) return;
-        const controller = mapControllerRef.current;
-        const { instance } = controller;
-        const { wrapperComponent } = instance;
-
-        if (!wrapperComponent) return;
-
+        if (!kioskData) return;
         setSelectedPlace(null);
         setCurrentFloorPlanId(kioskData.floorPlan.id);
-
-        const scale = 1.2;
-        const x = (wrapperComponent.offsetWidth / 2) - (kioskData.locationX * scale);
-        const y = (wrapperComponent.offsetHeight / 2) - (kioskData.locationY * scale);
-
-        controller.setTransform(x, y, scale, 300, "easeOut");
-
         setIsLocatingKiosk(true);
         setTimeout(() => setIsLocatingKiosk(false), 2500);
     };
@@ -183,7 +171,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                 searchResults={places || []}
                 onSearchResultClick={handlePlaceSelect}
             />
-            <div className="relative flex-1 h-full rounded-2xl overflow-hidden">
+            <div className="relative flex-1 h-full rounded-2xl overflow-hidden group">
                 <MapView
                     kiosk={kioskData}
                     floorPlan={currentFloorPlan}
@@ -192,6 +180,8 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                     onPlaceSelect={handlePlaceSelect}
                     mapControllerRef={mapControllerRef}
                     isLocatingKiosk={isLocatingKiosk}
+                    currentScale={currentMapScale}
+                    onScaleChange={setCurrentMapScale}
                 >
                     <MapControls
                         floorPlans={floorPlans}
