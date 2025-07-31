@@ -88,6 +88,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         }
         setSelectedPlace(place);
         setSearchSelectedItem(null);
+        setIsAnimatingPath(false);
         setIsDetailSheetOpen(!!place);
     }, []);
 
@@ -97,7 +98,6 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         setCurrentFloorPlanId(place.floorPlan.id);
         setSearchSelectedItem(place);
         setIsAnimatingPath(true);
-        setTimeout(() => setIsAnimatingPath(false), 3500);
 
         if (debouncedSearchTerm && kioskData) {
             api.logPlaceSelection({
@@ -125,6 +125,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
             setIsDetailSheetOpen(false);
             setSelectedPlace(null);
             setSearchSelectedItem(null);
+            setIsAnimatingPath(false);
         }
     }, [isInactive]);
 
@@ -136,6 +137,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     const handleCategoryToggle = (categoryId: string | null) => {
         setSearchTerm('');
+        setIsAnimatingPath(false);
         if (categoryId === null) {
             setActiveCategoryIds([]);
             return;
@@ -146,9 +148,10 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                 : [...prevIds, categoryId]
         );
     };
-    
+
     const handleCategorySelectFromSearch = (categoryId: string) => {
         setSearchTerm('');
+        setIsAnimatingPath(false);
         setActiveCategoryIds(prevIds => {
             if (prevIds.includes(categoryId)) {
                 return prevIds;
@@ -159,11 +162,15 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     const handleSearchChange = (term: string) => {
         setSearchTerm(term);
+        setIsAnimatingPath(false);
     };
 
     const handleSheetOpenChange = (open: boolean) => {
         setIsDetailSheetOpen(open);
-        if (!open) setSelectedPlace(null);
+        if (!open) {
+            setSelectedPlace(null);
+            setIsAnimatingPath(false);
+        }
     };
 
     const resetView = () => {
@@ -172,6 +179,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         setSearchSelectedItem(null);
         setSearchTerm('');
         setActiveCategoryIds([]);
+        setIsAnimatingPath(false);
         if (kioskData) setCurrentFloorPlanId(kioskData.floorPlan.id);
         mapControllerRef.current?.resetTransform(300);
     };
@@ -180,10 +188,17 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         if (!kioskData) return;
         setSelectedPlace(null);
         setSearchSelectedItem(null);
+        setIsAnimatingPath(false);
         setCurrentFloorPlanId(kioskData.floorPlan.id);
         setIsLocatingKiosk(true);
         setTimeout(() => setIsLocatingKiosk(false), 3500);
     };
+
+    const handleMapInteraction = useCallback(() => {
+        if (isAnimatingPath) {
+            setIsAnimatingPath(false);
+        }
+    }, [isAnimatingPath]);
 
     const searchResultsForSidebar = useMemo(() => {
         if (!isFilterActive) return [];
@@ -221,6 +236,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                     mapControllerRef={mapControllerRef}
                     isLocatingKiosk={isLocatingKiosk}
                     isAnimatingPath={isAnimatingPath}
+                    onMapInteraction={handleMapInteraction}
                     currentScale={currentMapScale}
                     onScaleChange={setCurrentMapScale}
                 >

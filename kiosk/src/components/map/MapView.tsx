@@ -19,6 +19,7 @@ interface MapViewProps {
     mapControllerRef: React.RefObject<ReactZoomPanPinchRef | null>;
     isLocatingKiosk: boolean;
     isAnimatingPath: boolean;
+    onMapInteraction: () => void;
     children?: React.ReactNode;
     currentScale: number;
     onScaleChange: (scale: number) => void;
@@ -27,7 +28,7 @@ interface MapViewProps {
 export function MapView({
     kiosk, floorPlan, places, highlightedPlaces, isFilterActive,
     selectedPlace, searchSelectedItem, onPlaceSelect, mapControllerRef,
-    isLocatingKiosk, isAnimatingPath, children, currentScale, onScaleChange
+    isLocatingKiosk, isAnimatingPath, onMapInteraction, children, currentScale, onScaleChange
 }: MapViewProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const [mapSize, setMapSize] = useState<{ width: number; height: number } | null>(null);
@@ -135,6 +136,9 @@ export function MapView({
                     wheel={{ step: 0.2 }}
                     doubleClick={{ disabled: true }}
                     onTransformed={(_ref, state) => onScaleChange(state.scale)}
+                    onPanningStart={onMapInteraction}
+                    onPinchingStart={onMapInteraction}
+                    onWheelStart={onMapInteraction}
                 >
                     {children}
                     <TransformComponent wrapperClass="!w-full !h-full" contentClass="">
