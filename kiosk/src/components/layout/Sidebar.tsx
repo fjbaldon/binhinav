@@ -17,6 +17,8 @@ interface SidebarProps {
     searchStatus: SearchStatus;
     searchResults: Place[];
     onSearchResultClick: (place: Place) => void;
+    categorySearchTerm: string;
+    onCategorySearchChange: (term: string) => void;
 }
 
 export function Sidebar({
@@ -28,9 +30,15 @@ export function Sidebar({
     searchStatus,
     searchResults,
     onSearchResultClick,
+    categorySearchTerm,
+    onCategorySearchChange,
 }: SidebarProps) {
     const hasActiveCategoryFilters = activeCategoryIds.length > 0;
     const isSearchActive = !!searchTerm;
+
+    const filteredCategories = categories.filter(category =>
+        category.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+    );
 
     return (
         <aside className="relative w-80 flex-col gap-4 bg-card border p-4 rounded-3xl hidden lg:flex">
@@ -64,7 +72,7 @@ export function Sidebar({
                 <h2 className="text-lg font-semibold tracking-tight">
                     {isSearchActive ? 'Search Results' : 'Categories'}
                 </h2>
-                {hasActiveCategoryFilters && (
+                {(hasActiveCategoryFilters || categorySearchTerm) && !isSearchActive && (
                     <Button variant="ghost" size="sm" onClick={() => onCategoryToggle(null)} className="text-muted-foreground h-auto p-1">Clear<X className="ml-1 h-4 w-4" /></Button>
                 )}
             </div>
@@ -107,39 +115,61 @@ export function Sidebar({
                         )}
                     </>
                 ) : (
-                    <ScrollArea className="h-full">
-                        <div className="space-y-2 pr-3 pl-2 pt-2">
-                            <Button
-                                variant={activeCategoryIds.length === 0 ? 'default' : 'ghost'}
-                                onClick={() => onCategoryToggle(null)}
-                                className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
-                            >
-                                <Shapes className="mr-4 h-6 w-6 shrink-0" />
-                                <span
-                                    className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.length === 0 ? 'scale-105' : 'scale-100'
-                                        }`}
-                                >
-                                    All Categories
-                                </span>
-                            </Button>
-                            {categories.map(category => (
-                                <Button
-                                    key={category.id}
-                                    variant={activeCategoryIds.includes(category.id) ? 'default' : 'ghost'}
-                                    onClick={() => onCategoryToggle(category.id)}
-                                    className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
-                                >
-                                    <DynamicIcon name={category.iconKey} className="mr-4 h-6 w-6 shrink-0" />
-                                    <span
-                                        className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.includes(category.id) ? 'scale-105' : 'scale-100'
-                                            }`}
-                                    >
-                                        {category.name}
-                                    </span>
+                    <>
+                        <div className="relative w-full px-1 mb-2">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="text"
+                                placeholder="Search categories..."
+                                className="w-full pl-9 h-10 text-sm rounded-lg"
+                                value={categorySearchTerm}
+                                onChange={(e) => onCategorySearchChange(e.target.value)}
+                            />
+                            {categorySearchTerm && (
+                                <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full" onClick={() => onCategorySearchChange('')}>
+                                    <X className="h-4 w-4" />
                                 </Button>
-                            ))}
+                            )}
                         </div>
-                    </ScrollArea>
+                        {filteredCategories.length > 0 ? (
+                            <ScrollArea className="h-full">
+                                <div className="space-y-2 pr-3 pl-2 pt-1">
+                                    <Button
+                                        variant={activeCategoryIds.length === 0 ? 'default' : 'ghost'}
+                                        onClick={() => onCategoryToggle(null)}
+                                        className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
+                                    >
+                                        <Shapes className="mr-4 h-6 w-6 shrink-0" />
+                                        <span
+                                            className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.length === 0 && !categorySearchTerm ? 'scale-105' : 'scale-100'}`}
+                                        >
+                                            All Categories
+                                        </span>
+                                    </Button>
+                                    {filteredCategories.map(category => (
+                                        <Button
+                                            key={category.id}
+                                            variant={activeCategoryIds.includes(category.id) ? 'default' : 'ghost'}
+                                            onClick={() => onCategoryToggle(category.id)}
+                                            className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
+                                        >
+                                            <DynamicIcon name={category.iconKey} className="mr-4 h-6 w-6 shrink-0" />
+                                            <span
+                                                className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.includes(category.id) ? 'scale-105' : 'scale-100'}`}
+                                            >
+                                                {category.name}
+                                            </span>
+                                        </Button>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
+                                <Frown className="h-10 w-10 mb-3" />
+                                <p className="font-semibold">No Categories Found</p>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </aside>
