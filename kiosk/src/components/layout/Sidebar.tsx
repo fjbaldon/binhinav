@@ -12,6 +12,7 @@ interface SidebarProps {
     categories: Category[];
     activeCategoryIds: string[];
     onCategoryToggle: (id: string | null) => void;
+    onCategorySelectFromSearch: (id: string) => void;
     searchTerm: string;
     onSearchChange: (term: string) => void;
     searchStatus: SearchStatus;
@@ -23,6 +24,7 @@ export function Sidebar({
     categories,
     activeCategoryIds,
     onCategoryToggle,
+    onCategorySelectFromSearch,
     searchTerm,
     onSearchChange,
     searchStatus,
@@ -92,12 +94,12 @@ export function Sidebar({
                                     {hasCategoryResults && (
                                         <div>
                                             <h3 className="text-sm font-semibold text-muted-foreground px-3 mb-1">Categories</h3>
-                                            <div className="space-y-1">
+                                            <div className="space-y-1 pl-2">
                                                 {filteredCategories.map(category => (
                                                     <Button
                                                         key={category.id}
                                                         variant="ghost"
-                                                        onClick={() => onCategoryToggle(category.id)}
+                                                        onClick={() => onCategorySelectFromSearch(category.id)}
                                                         className="w-full h-auto justify-start py-2 px-3 text-left"
                                                     >
                                                         <DynamicIcon name={category.iconKey} className="mr-3 h-6 w-6 shrink-0 text-primary" />
@@ -111,7 +113,7 @@ export function Sidebar({
                                     {hasPlaceResults && (
                                         <div>
                                             <h3 className="text-sm font-semibold text-muted-foreground px-3 mb-1">Places</h3>
-                                            <div className="space-y-1">
+                                            <div className="space-y-1 pl-2">
                                                 {searchResults.map(place => (
                                                     <Button
                                                         key={place.id}

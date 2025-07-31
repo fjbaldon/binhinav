@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useLayoutEffect } from 'react';
+import { useRef, useEffect, useState, useLayoutEffect, useMemo } from 'react';
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { getAssetUrl } from '@/api';
 import type { Place, KioskData } from '@/api/types';
@@ -11,16 +11,24 @@ interface MapViewProps {
     kiosk: KioskData;
     floorPlan: { id: string, imageUrl: string } | undefined;
     places: Place[];
+    highlightedPlaces: Place[] | null;
+    isFilterActive: boolean;
     selectedPlace: Place | null;
+    searchSelectedItem: Place | null;
     onPlaceSelect: (place: Place | null) => void;
     mapControllerRef: React.RefObject<ReactZoomPanPinchRef | null>;
     isLocatingKiosk: boolean;
+    isAnimatingPath: boolean;
     children?: React.ReactNode;
     currentScale: number;
     onScaleChange: (scale: number) => void;
 }
 
-export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect, mapControllerRef, isLocatingKiosk, children, currentScale, onScaleChange }: MapViewProps) {
+export function MapView({
+    kiosk, floorPlan, places, highlightedPlaces, isFilterActive,
+    selectedPlace, searchSelectedItem, onPlaceSelect, mapControllerRef,
+    isLocatingKiosk, isAnimatingPath, children, currentScale, onScaleChange
+}: MapViewProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const [mapSize, setMapSize] = useState<{ width: number; height: number } | null>(null);
     const [initialTransform, setInitialTransform] = useState<{ scale: number; x: number; y: number } | null>(null);
@@ -78,10 +86,10 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
     }, [selectedPlace, kiosk, mapControllerRef, mapSize]);
 
     useEffect(() => {
-        if (isLocatingKiosk && mapControllerRef.current) {
+        if ((isLocatingKiosk || searchSelectedItem) && mapControllerRef.current) {
             mapControllerRef.current.resetTransform(600, "easeOut");
         }
-    }, [isLocatingKiosk, mapControllerRef]);
+    }, [isLocatingKiosk, searchSelectedItem, mapControllerRef]);
 
 
     const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -90,6 +98,11 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
             height: e.currentTarget.naturalHeight,
         });
     };
+
+    const highlightedPlaceIds = useMemo(() => {
+        if (!highlightedPlaces) return null;
+        return new Set(highlightedPlaces.map(p => p.id));
+    }, [highlightedPlaces]);
 
     if (!floorPlan) {
         return <div className="flex items-center justify-center h-full bg-muted">Select a floor plan to begin.</div>;
@@ -137,11 +150,25 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
                             />
 
                             {kiosk.floorPlan.id === floorPlan?.id && (
-                                <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} isPulsing={isLocatingKiosk} mapScale={currentScale} />
+                                <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} isPulsing={isLocatingKiosk || isAnimatingPath} mapScale={currentScale} />
                             )}
-                            {places.map(place => (
-                                <PlacePin key={place.id} place={place} isSelected={selectedPlace?.id === place.id} onClick={() => onPlaceSelect(place)} mapScale={currentScale} />
-                            ))}
+                            {places.map(place => {
+                                const isDimmed = isFilterActive && highlightedPlaceIds ? !highlightedPlaceIds.has(place.id) : false;
+                                const isPulsing = isAnimatingPath && place.id === searchSelectedItem?.id;
+                                const isCurrentlySelected = selectedPlace?.id === place.id || searchSelectedItem?.id === place.id;
+
+                                return (
+                                    <PlacePin
+                                        key={place.id}
+                                        place={place}
+                                        isSelected={isCurrentlySelected}
+                                        onClick={() => onPlaceSelect(place)}
+                                        mapScale={currentScale}
+                                        isDimmed={isDimmed}
+                                        isPulsing={isPulsing}
+                                    />
+                                );
+                            })}
                         </div>
                     </TransformComponent>
                 </TransformWrapper>

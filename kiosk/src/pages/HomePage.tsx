@@ -15,6 +15,8 @@ type SearchStatus = 'idle' | 'loading' | 'no-results' | 'has-results';
 
 export default function HomePage({ kioskId }: { kioskId: string }) {
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+    const [searchSelectedItem, setSearchSelectedItem] = useState<Place | null>(null);
+    const [isAnimatingPath, setIsAnimatingPath] = useState(false);
     const [currentFloorPlanId, setCurrentFloorPlanId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([]);
@@ -28,7 +30,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     useInactivityTimer(() => setIsInactive(true), 60000);
 
-    const isSearchActive = !!debouncedSearchTerm;
+    const isFilterActive = useMemo(() => debouncedSearchTerm.length > 0 || activeCategoryIds.length > 0, [debouncedSearchTerm, activeCategoryIds]);
 
     const { data: kioskData, isLoading: isLoadingKiosk } = useQuery<KioskData>({
         queryKey: ['kioskData', kioskId],
@@ -56,16 +58,22 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         staleTime: 1000 * 60 * 5,
     });
 
+    const { data: allPlaces = [] } = useQuery<Place[]>({
+        queryKey: ['allPlaces'],
+        queryFn: () => api.getPlaces({}),
+        staleTime: 1000 * 60 * 5,
+    });
+
     const sortedActiveCategoryIds = useMemo(() => [...activeCategoryIds].sort(), [activeCategoryIds]);
 
-    const { data: places, isFetching: isFetchingPlaces } = useQuery<Place[]>({
+    const { data: filteredPlaces, isFetching: isFetchingPlaces } = useQuery<Place[]>({
         queryKey: ['places', debouncedSearchTerm, sortedActiveCategoryIds],
         queryFn: () => api.getPlaces({
             searchTerm: debouncedSearchTerm,
             categoryIds: sortedActiveCategoryIds,
             kioskId: kioskData?.id,
         }),
-        enabled: !!kioskData?.id,
+        enabled: !!kioskData?.id && isFilterActive,
     });
 
     const { data: categories = [] } = useQuery<Category[]>({
@@ -79,9 +87,19 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
             setCurrentFloorPlanId(place.floorPlan.id);
         }
         setSelectedPlace(place);
+        setSearchSelectedItem(null);
         setIsDetailSheetOpen(!!place);
+    }, []);
 
-        if (debouncedSearchTerm && place && kioskData) {
+    const handleSearchResultSelect = useCallback((place: Place) => {
+        setSelectedPlace(null);
+        setIsDetailSheetOpen(false);
+        setCurrentFloorPlanId(place.floorPlan.id);
+        setSearchSelectedItem(place);
+        setIsAnimatingPath(true);
+        setTimeout(() => setIsAnimatingPath(false), 3500);
+
+        if (debouncedSearchTerm && kioskData) {
             api.logPlaceSelection({
                 searchTerm: debouncedSearchTerm,
                 placeId: place.id,
@@ -90,31 +108,31 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         }
     }, [kioskData, debouncedSearchTerm]);
 
+
     useEffect(() => {
-        if (isFetchingPlaces && isSearchActive) {
+        if (isFetchingPlaces && isFilterActive) {
             setSearchStatus('loading');
-        } else if (isSearchActive) {
-            setSearchStatus(places && places.length > 0 ? 'has-results' : 'no-results');
+        } else if (isFilterActive) {
+            setSearchStatus(filteredPlaces && filteredPlaces.length > 0 ? 'has-results' : 'no-results');
         } else {
             setSearchStatus('idle');
         }
-    }, [isFetchingPlaces, isSearchActive, places]);
+    }, [isFetchingPlaces, isFilterActive, filteredPlaces]);
 
 
     useEffect(() => {
         if (isInactive) {
             setIsDetailSheetOpen(false);
             setSelectedPlace(null);
+            setSearchSelectedItem(null);
         }
     }, [isInactive]);
 
     const currentFloorPlan = useMemo(() => floorPlans.find(fp => fp.id === currentFloorPlanId), [floorPlans, currentFloorPlanId]);
 
     const pinsToDisplay = useMemo(() => {
-        if (!places) return [];
-        return places.filter(p => p.floorPlan.id === currentFloorPlanId);
-    }, [places, currentFloorPlanId]);
-
+        return allPlaces.filter(p => p.floorPlan.id === currentFloorPlanId);
+    }, [allPlaces, currentFloorPlanId]);
 
     const handleCategoryToggle = (categoryId: string | null) => {
         setSearchTerm('');
@@ -127,6 +145,16 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                 ? prevIds.filter(id => id !== categoryId)
                 : [...prevIds, categoryId]
         );
+    };
+    
+    const handleCategorySelectFromSearch = (categoryId: string) => {
+        setSearchTerm('');
+        setActiveCategoryIds(prevIds => {
+            if (prevIds.includes(categoryId)) {
+                return prevIds;
+            }
+            return [...prevIds, categoryId];
+        });
     };
 
     const handleSearchChange = (term: string) => {
@@ -141,6 +169,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     const resetView = () => {
         setIsInactive(false);
         handlePlaceSelect(null);
+        setSearchSelectedItem(null);
         setSearchTerm('');
         setActiveCategoryIds([]);
         if (kioskData) setCurrentFloorPlanId(kioskData.floorPlan.id);
@@ -150,10 +179,18 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     const handleLocateKiosk = () => {
         if (!kioskData) return;
         setSelectedPlace(null);
+        setSearchSelectedItem(null);
         setCurrentFloorPlanId(kioskData.floorPlan.id);
         setIsLocatingKiosk(true);
         setTimeout(() => setIsLocatingKiosk(false), 3500);
     };
+
+    const searchResultsForSidebar = useMemo(() => {
+        if (!isFilterActive) return [];
+        return filteredPlaces || [];
+    }, [isFilterActive, filteredPlaces]);
+
+    const isSearchMode = searchTerm.length > 0;
 
     if (isLoadingKiosk) return <div className="flex items-center justify-center h-screen text-lg">Initializing Kiosk...</div>;
     if (!kioskData) return <div className="flex items-center justify-center h-screen text-lg text-destructive">Kiosk could not be loaded. Check configuration.</div>;
@@ -164,21 +201,26 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                 categories={categories}
                 activeCategoryIds={activeCategoryIds}
                 onCategoryToggle={handleCategoryToggle}
+                onCategorySelectFromSearch={handleCategorySelectFromSearch}
                 searchTerm={searchTerm}
                 onSearchChange={handleSearchChange}
                 searchStatus={searchStatus}
-                searchResults={places || []}
-                onSearchResultClick={handlePlaceSelect}
+                searchResults={isSearchMode ? searchResultsForSidebar : (filteredPlaces || [])}
+                onSearchResultClick={handleSearchResultSelect}
             />
             <div className="relative flex-1 h-full rounded-2xl overflow-hidden group">
                 <MapView
                     kiosk={kioskData}
                     floorPlan={currentFloorPlan}
                     places={pinsToDisplay}
+                    highlightedPlaces={isFilterActive ? (filteredPlaces ?? []) : allPlaces}
+                    isFilterActive={isFilterActive}
                     selectedPlace={selectedPlace}
+                    searchSelectedItem={searchSelectedItem}
                     onPlaceSelect={handlePlaceSelect}
                     mapControllerRef={mapControllerRef}
                     isLocatingKiosk={isLocatingKiosk}
+                    isAnimatingPath={isAnimatingPath}
                     currentScale={currentMapScale}
                     onScaleChange={setCurrentMapScale}
                 >

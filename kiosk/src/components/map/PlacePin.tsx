@@ -8,38 +8,64 @@ interface PlacePinProps {
     isSelected: boolean;
     onClick: () => void;
     mapScale: number;
+    isDimmed?: boolean;
+    isPulsing?: boolean;
 }
 
-export function PlacePin({ place, isSelected, onClick, mapScale }: PlacePinProps) {
+const sonarKeyframes = `
+  @keyframes place-sonar-ping {
+    from {
+      transform: scale(0.7);
+      opacity: 0.6;
+    }
+    to {
+      transform: scale(8);
+      opacity: 0;
+    }
+  }
+`;
+
+export function PlacePin({ place, isSelected, onClick, mapScale, isDimmed, isPulsing }: PlacePinProps) {
     const visualScale = 1 / mapScale;
 
     const clipPathId = `logo-clip-${place.id}`;
 
     return (
-        < div
+        <div
             className="absolute cursor-pointer"
             style={{
                 left: `${place.locationX}%`,
                 top: `${place.locationY}%`,
                 transform: 'translate(-50%, -50%)',
-            }
-            }
+            }}
             onClick={onClick}
         >
-            < div
+            <style>{isPulsing && sonarKeyframes}</style>
+            <div
                 className="transform-gpu origin-center"
                 style={{
                     transform: `scale(${visualScale})`,
                 }}
             >
-                < div
-                    className={
-                        cn(
-                            'relative w-16 h-16 group/pin transition-transform duration-200',
-                            isSelected ? 'scale-110' : 'group-hover/pin:scale-105'
-                        )
-                    }
+                <div
+                    className={cn(
+                        'relative w-16 h-16 group/pin transition-all duration-200',
+                        isSelected ? 'scale-110' : 'group-hover/pin:scale-105',
+                        { 'opacity-40 saturate-50': isDimmed && !isSelected }
+                    )}
                 >
+                    {isPulsing && (
+                        <>
+                            <div
+                                className="absolute inset-0 rounded-full bg-red-500"
+                                style={{ animation: 'place-sonar-ping 3.5s cubic-bezier(0, 0, 0.2, 1) infinite' }}
+                            />
+                            <div
+                                className="absolute inset-0 rounded-full bg-red-500"
+                                style={{ animation: 'place-sonar-ping 3.5s cubic-bezier(0, 0, 0.2, 1) infinite', animationDelay: '1.75s' }}
+                            />
+                        </>
+                    )}
                     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
                         <defs>
                             <clipPath id={clipPathId}>
@@ -93,8 +119,8 @@ export function PlacePin({ place, isSelected, onClick, mapScale }: PlacePinProps
                     >
                         <p>{place.name}</p>
                     </div>
-                </div >
-            </div >
-        </div >
+                </div>
+            </div>
+        </div>
     );
 }
