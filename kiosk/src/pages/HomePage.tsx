@@ -17,7 +17,6 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
     const [currentFloorPlanId, setCurrentFloorPlanId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [categorySearchTerm, setCategorySearchTerm] = useState('');
     const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([]);
     const [isInactive, setIsInactive] = useState(false);
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
@@ -119,7 +118,6 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     const handleCategoryToggle = (categoryId: string | null) => {
         setSearchTerm('');
-        setCategorySearchTerm(''); // Clear category search on any selection
         if (categoryId === null) {
             setActiveCategoryIds([]);
             return;
@@ -133,12 +131,6 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     const handleSearchChange = (term: string) => {
         setSearchTerm(term);
-        setCategorySearchTerm('');
-        setActiveCategoryIds([]);
-    };
-
-    const handleCategorySearchChange = (term: string) => {
-        setCategorySearchTerm(term);
     };
 
     const handleSheetOpenChange = (open: boolean) => {
@@ -150,7 +142,6 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         setIsInactive(false);
         handlePlaceSelect(null);
         setSearchTerm('');
-        setCategorySearchTerm('');
         setActiveCategoryIds([]);
         if (kioskData) setCurrentFloorPlanId(kioskData.floorPlan.id);
         mapControllerRef.current?.resetTransform(300);
@@ -178,8 +169,6 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                 searchStatus={searchStatus}
                 searchResults={places || []}
                 onSearchResultClick={handlePlaceSelect}
-                categorySearchTerm={categorySearchTerm}
-                onCategorySearchChange={handleCategorySearchChange}
             />
             <div className="relative flex-1 h-full rounded-2xl overflow-hidden group">
                 <MapView

@@ -17,8 +17,6 @@ interface SidebarProps {
     searchStatus: SearchStatus;
     searchResults: Place[];
     onSearchResultClick: (place: Place) => void;
-    categorySearchTerm: string;
-    onCategorySearchChange: (term: string) => void;
 }
 
 export function Sidebar({
@@ -30,19 +28,21 @@ export function Sidebar({
     searchStatus,
     searchResults,
     onSearchResultClick,
-    categorySearchTerm,
-    onCategorySearchChange,
 }: SidebarProps) {
     const hasActiveCategoryFilters = activeCategoryIds.length > 0;
     const isSearchActive = !!searchTerm;
 
-    const filteredCategories = categories.filter(category =>
-        category.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
-    );
+    const filteredCategories = isSearchActive
+        ? categories.filter(category =>
+            category.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ) : [];
+
+    const hasPlaceResults = searchStatus === 'has-results';
+    const hasCategoryResults = filteredCategories.length > 0;
+    const noResultsFound = isSearchActive && searchStatus === 'no-results' && !hasCategoryResults;
 
     return (
         <aside className="relative w-80 flex-col gap-4 bg-card border p-4 rounded-3xl hidden lg:flex">
-
             <div className="flex items-center gap-2 px-2">
                 <img src="/binhinav-logo.svg" alt="Binhinav Logo" className="h-8 w-8" />
                 <h1 className="text-2xl font-bold text-primary">binhinav</h1>
@@ -56,7 +56,7 @@ export function Sidebar({
                 )}
                 <Input
                     type="text"
-                    placeholder="Search for a store..."
+                    placeholder="Search for stores or categories..."
                     className="w-full pl-10 h-12 text-md rounded-lg"
                     value={searchTerm}
                     onChange={(e) => onSearchChange(e.target.value)}
@@ -72,7 +72,7 @@ export function Sidebar({
                 <h2 className="text-lg font-semibold tracking-tight">
                     {isSearchActive ? 'Search Results' : 'Categories'}
                 </h2>
-                {(hasActiveCategoryFilters || categorySearchTerm) && !isSearchActive && (
+                {hasActiveCategoryFilters && !isSearchActive && (
                     <Button variant="ghost" size="sm" onClick={() => onCategoryToggle(null)} className="text-muted-foreground h-auto p-1">Clear<X className="ml-1 h-4 w-4" /></Button>
                 )}
             </div>
@@ -80,96 +80,97 @@ export function Sidebar({
             <div className="flex-1 min-h-0">
                 {isSearchActive ? (
                     <>
-                        {searchStatus === 'no-results' && (
+                        {noResultsFound ? (
                             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
                                 <Frown className="h-12 w-12 mb-4" />
                                 <p className="font-semibold">No Results Found</p>
                                 <p className="text-sm">Please try a different search term.</p>
                             </div>
-                        )}
-                        {searchStatus === 'has-results' && (
+                        ) : (
                             <ScrollArea className="h-full">
-                                <div className="space-y-1 pr-3">
-                                    {searchResults.map(place => (
-                                        <Button
-                                            key={place.id}
-                                            variant="ghost"
-                                            onClick={() => onSearchResultClick(place)}
-                                            className="w-full h-auto justify-start py-2 px-3 text-left"
-                                        >
-                                            {place.logoUrl ? (
-                                                <img src={getAssetUrl(place.logoUrl)} className="mr-3 h-10 w-10 rounded-md object-cover shrink-0" alt={place.name} />
-                                            ) : (
-                                                <div className="mr-3 h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
-                                                    <Building2 className="h-5 w-5 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                            <div className="flex-1">
-                                                <p className="font-semibold text-base leading-tight">{place.name}</p>
-                                                <p className="text-sm text-muted-foreground">{place.floorPlan.name}</p>
+                                <div className="space-y-4 pr-3">
+                                    {hasCategoryResults && (
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-muted-foreground px-3 mb-1">Categories</h3>
+                                            <div className="space-y-1">
+                                                {filteredCategories.map(category => (
+                                                    <Button
+                                                        key={category.id}
+                                                        variant="ghost"
+                                                        onClick={() => onCategoryToggle(category.id)}
+                                                        className="w-full h-auto justify-start py-2 px-3 text-left"
+                                                    >
+                                                        <DynamicIcon name={category.iconKey} className="mr-3 h-6 w-6 shrink-0 text-primary" />
+                                                        <p className="font-semibold text-base leading-tight">{category.name}</p>
+                                                    </Button>
+                                                ))}
                                             </div>
-                                        </Button>
-                                    ))}
+                                        </div>
+                                    )}
+
+                                    {hasPlaceResults && (
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-muted-foreground px-3 mb-1">Places</h3>
+                                            <div className="space-y-1">
+                                                {searchResults.map(place => (
+                                                    <Button
+                                                        key={place.id}
+                                                        variant="ghost"
+                                                        onClick={() => onSearchResultClick(place)}
+                                                        className="w-full h-auto justify-start py-2 px-3 text-left"
+                                                    >
+                                                        {place.logoUrl ? (
+                                                            <img src={getAssetUrl(place.logoUrl)} className="mr-3 h-10 w-10 rounded-md object-cover shrink-0" alt={place.name} />
+                                                        ) : (
+                                                            <div className="mr-3 h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
+                                                                <Building2 className="h-5 w-5 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex-1">
+                                                            <p className="font-semibold text-base leading-tight">{place.name}</p>
+                                                            <p className="text-sm text-muted-foreground">{place.floorPlan.name}</p>
+                                                        </div>
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </ScrollArea>
                         )}
                     </>
                 ) : (
-                    <>
-                        <div className="relative w-full px-1 mb-2">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="text"
-                                placeholder="Search categories..."
-                                className="w-full pl-9 h-10 text-sm rounded-lg"
-                                value={categorySearchTerm}
-                                onChange={(e) => onCategorySearchChange(e.target.value)}
-                            />
-                            {categorySearchTerm && (
-                                <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full" onClick={() => onCategorySearchChange('')}>
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            )}
-                        </div>
-                        {filteredCategories.length > 0 ? (
-                            <ScrollArea className="h-full">
-                                <div className="space-y-2 pr-3 pl-2 pt-1">
-                                    <Button
-                                        variant={activeCategoryIds.length === 0 ? 'default' : 'ghost'}
-                                        onClick={() => onCategoryToggle(null)}
-                                        className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
+                    <ScrollArea className="h-full">
+                        <div className="space-y-2 pr-3 pl-2 pt-2">
+                            <Button
+                                variant={activeCategoryIds.length === 0 ? 'default' : 'ghost'}
+                                onClick={() => onCategoryToggle(null)}
+                                className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
+                            >
+                                <Shapes className="mr-4 h-6 w-6 shrink-0" />
+                                <span
+                                    className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.length === 0 ? 'scale-105' : 'scale-100'}`}
+                                >
+                                    All Categories
+                                </span>
+                            </Button>
+                            {categories.map(category => (
+                                <Button
+                                    key={category.id}
+                                    variant={activeCategoryIds.includes(category.id) ? 'default' : 'ghost'}
+                                    onClick={() => onCategoryToggle(category.id)}
+                                    className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
+                                >
+                                    <DynamicIcon name={category.iconKey} className="mr-4 h-6 w-6 shrink-0" />
+                                    <span
+                                        className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.includes(category.id) ? 'scale-105' : 'scale-100'}`}
                                     >
-                                        <Shapes className="mr-4 h-6 w-6 shrink-0" />
-                                        <span
-                                            className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.length === 0 && !categorySearchTerm ? 'scale-105' : 'scale-100'}`}
-                                        >
-                                            All Categories
-                                        </span>
-                                    </Button>
-                                    {filteredCategories.map(category => (
-                                        <Button
-                                            key={category.id}
-                                            variant={activeCategoryIds.includes(category.id) ? 'default' : 'ghost'}
-                                            onClick={() => onCategoryToggle(category.id)}
-                                            className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
-                                        >
-                                            <DynamicIcon name={category.iconKey} className="mr-4 h-6 w-6 shrink-0" />
-                                            <span
-                                                className={`inline-block text-left transition-transform duration-200 ease-out ${activeCategoryIds.includes(category.id) ? 'scale-105' : 'scale-100'}`}
-                                            >
-                                                {category.name}
-                                            </span>
-                                        </Button>
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
-                                <Frown className="h-10 w-10 mb-3" />
-                                <p className="font-semibold">No Categories Found</p>
-                            </div>
-                        )}
-                    </>
+                                        {category.name}
+                                    </span>
+                                </Button>
+                            ))}
+                        </div>
+                    </ScrollArea>
                 )}
             </div>
         </aside>
