@@ -153,7 +153,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         setSelectedPlace(null);
         setCurrentFloorPlanId(kioskData.floorPlan.id);
         setIsLocatingKiosk(true);
-        setTimeout(() => setIsLocatingKiosk(false), 2500);
+        setTimeout(() => setIsLocatingKiosk(false), 3500);
     };
 
     if (isLoadingKiosk) return <div className="flex items-center justify-center h-screen text-lg">Initializing Kiosk...</div>;

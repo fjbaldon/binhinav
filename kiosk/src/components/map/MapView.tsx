@@ -78,24 +78,10 @@ export function MapView({ kiosk, floorPlan, places, selectedPlace, onPlaceSelect
     }, [selectedPlace, kiosk, mapControllerRef, mapSize]);
 
     useEffect(() => {
-        if (isLocatingKiosk && mapControllerRef.current && kiosk && mapSize && mapContainerRef.current) {
-            const controller = mapControllerRef.current;
-            const { instance } = controller;
-            const { wrapperComponent } = instance;
-            if (!wrapperComponent) return;
-
-            const kioskPixelCoords = {
-                x: (kiosk.locationX / 100) * mapSize.width,
-                y: (kiosk.locationY / 100) * mapSize.height,
-            };
-
-            const scale = 1.2;
-            const x = (wrapperComponent.offsetWidth / 2) - (kioskPixelCoords.x * scale);
-            const y = (wrapperComponent.offsetHeight / 2) - (kioskPixelCoords.y * scale);
-
-            controller.setTransform(x, y, scale, 300, "easeOut");
+        if (isLocatingKiosk && mapControllerRef.current) {
+            mapControllerRef.current.resetTransform(600, "easeOut");
         }
-    }, [isLocatingKiosk, mapControllerRef, kiosk, mapSize]);
+    }, [isLocatingKiosk, mapControllerRef]);
 
 
     const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
