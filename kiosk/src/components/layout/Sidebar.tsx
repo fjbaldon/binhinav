@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, X, Shapes, Loader2, Frown, Building2 } from 'lucide-react';
+import { Search, X, Shapes, Loader2, Frown, Building2, RotateCcw } from 'lucide-react';
 import type { Category, Place } from "@/api/types";
 import { DynamicIcon } from "../shared/DynamicIcon";
 import { getAssetUrl } from "@/api";
@@ -18,6 +18,8 @@ interface SidebarProps {
     searchStatus: SearchStatus;
     searchResults: Place[];
     onSearchResultClick: (place: Place) => void;
+    isFilterActive: boolean;
+    onResetSearch: () => void;
 }
 
 export function Sidebar({
@@ -30,6 +32,8 @@ export function Sidebar({
     searchStatus,
     searchResults,
     onSearchResultClick,
+    isFilterActive,
+    onResetSearch,
 }: SidebarProps) {
     const hasActiveCategoryFilters = activeCategoryIds.length > 0;
     const isSearchActive = !!searchTerm;
@@ -70,6 +74,15 @@ export function Sidebar({
                 )}
             </div>
 
+            {isFilterActive && (
+                <div className="px-1 animate-in fade-in duration-300">
+                    <Button variant="outline" className="w-full" onClick={onResetSearch}>
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Start New Search
+                    </Button>
+                </div>
+            )}
+
             <div className="flex items-center justify-between px-2 h-8">
                 <h2 className="text-lg font-semibold tracking-tight">
                     {isSearchActive ? 'Search Results' : 'Categories'}
@@ -94,7 +107,7 @@ export function Sidebar({
                                     {hasCategoryResults && (
                                         <div>
                                             <h3 className="text-sm font-semibold text-muted-foreground px-3 mb-1">Categories</h3>
-                                            <div className="space-y-1 pl-2">
+                                            <div className="space-y-1">
                                                 {filteredCategories.map(category => (
                                                     <Button
                                                         key={category.id}
@@ -113,7 +126,7 @@ export function Sidebar({
                                     {hasPlaceResults && (
                                         <div>
                                             <h3 className="text-sm font-semibold text-muted-foreground px-3 mb-1">Places</h3>
-                                            <div className="space-y-1 pl-2">
+                                            <div className="space-y-1">
                                                 {searchResults.map(place => (
                                                     <Button
                                                         key={place.id}

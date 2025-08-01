@@ -173,7 +173,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         }
     };
 
-    const resetView = () => {
+    const resetView = useCallback(() => {
         setIsInactive(false);
         handlePlaceSelect(null);
         setSearchSelectedItem(null);
@@ -182,7 +182,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         setIsAnimatingPath(false);
         if (kioskData) setCurrentFloorPlanId(kioskData.floorPlan.id);
         mapControllerRef.current?.resetTransform(300);
-    };
+    }, [kioskData, handlePlaceSelect]);
 
     const handleLocateKiosk = () => {
         if (!kioskData) return;
@@ -222,6 +222,8 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                 searchStatus={searchStatus}
                 searchResults={isSearchMode ? searchResultsForSidebar : (filteredPlaces || [])}
                 onSearchResultClick={handleSearchResultSelect}
+                isFilterActive={isFilterActive}
+                onResetSearch={resetView}
             />
             <div className="relative flex-1 h-full rounded-2xl overflow-hidden group">
                 <MapView
