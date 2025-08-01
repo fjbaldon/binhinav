@@ -34,7 +34,7 @@ export function MapControls({ floorPlans, currentFloorPlanId, onFloorChange, kio
                             className="w-14 h-14 text-lg font-bold rounded-lg relative transition-transform duration-100 hover:scale-110 active:scale-95 active:brightness-90"
                         >
                             {fp.id === kioskFloorId && (
-                                <span className="absolute top-1.5 right-1.5 h-3 w-3 rounded-full bg-blue-500 border-2 border-background" />
+                                <span className="absolute top-1.5 left-1.5 h-3 w-3 rounded-full bg-blue-500 border-2 border-background" />
                             )}
                             {resultCount > 0 && (
                                 <Badge className="absolute top-1 right-1 h-5 w-5 p-0 justify-center rounded-full bg-red-500 text-white border-2 border-background">

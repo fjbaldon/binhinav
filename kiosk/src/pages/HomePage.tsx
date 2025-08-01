@@ -84,6 +84,17 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         staleTime: 1000 * 60 * 5,
     });
 
+    const floorResultCounts = useMemo(() => {
+        if (!isFilterActive || !filteredPlaces) {
+            return {};
+        }
+        return filteredPlaces.reduce((acc, place) => {
+            const floorId = place.floorPlan.id;
+            acc[floorId] = (acc[floorId] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+    }, [isFilterActive, filteredPlaces]);
+    
     const performFloorTransition = (place: Place, action: () => void) => {
         if (place.floorPlan.id !== currentFloorPlanId) {
             setTransitioningToFloor(place.floorPlan.name);
@@ -111,7 +122,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
             setIsAnimatingPath(false);
             setIsDetailSheetOpen(true);
         };
-
+        
         performFloorTransition(place, selectAction);
 
     }, [currentFloorPlanId]);
@@ -143,7 +154,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
             setSearchSelectedItem(place);
             setIsAnimatingPath(true);
         };
-
+        
         performFloorTransition(place, showAction);
     }, [currentFloorPlanId]);
 
@@ -226,7 +237,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     const handleLocateKiosk = () => {
         if (!kioskData) return;
-
+        
         const locateAction = () => {
             setSelectedPlace(null);
             setSearchSelectedItem(null);
@@ -300,7 +311,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                         currentFloorPlanId={currentFloorPlanId}
                         onFloorChange={setCurrentFloorPlanId}
                         kioskFloorId={kioskData.floorPlan.id}
-                        floorResultCounts={{}}
+                        floorResultCounts={floorResultCounts}
                         onLocateKiosk={handleLocateKiosk}
                     />
                 </MapView>
