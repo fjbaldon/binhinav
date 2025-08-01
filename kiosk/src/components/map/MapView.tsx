@@ -29,13 +29,13 @@ interface MapViewProps {
     onMapInteraction: () => void;
     children?: React.ReactNode;
     currentScale: number;
-    onScaleChange: (scale: number) => void;
+    onTransform: (state: { scale: number; positionX: number; positionY: number }) => void;
 }
 
 export function MapView({
     kiosk, floorPlan, places, highlightedPlaces, isFilterActive,
     selectedPlace, searchSelectedItem, onPlaceSelect, mapControllerRef,
-    isLocatingKiosk, isAnimatingPath, onMapInteraction, children, currentScale, onScaleChange
+    isLocatingKiosk, isAnimatingPath, onMapInteraction, children, currentScale, onTransform
 }: MapViewProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const [mapData, setMapData] = useState<MapData | null>(null);
@@ -46,12 +46,10 @@ export function MapView({
             return;
         }
 
-        // Preload the image to get its dimensions before rendering
         const img = new window.Image();
         img.src = getAssetUrl(floorPlan.imageUrl);
 
         img.onload = () => {
-            // Only update if the floor plan is still the one we want
             setMapData(prevMapData => {
                 const newMapData = {
                     id: floorPlan.id,
@@ -59,7 +57,6 @@ export function MapView({
                     width: img.naturalWidth,
                     height: img.naturalHeight,
                 };
-                // Avoid unnecessary re-renders if data is the same
                 if (JSON.stringify(prevMapData) === JSON.stringify(newMapData)) {
                     return prevMapData;
                 }
@@ -69,7 +66,7 @@ export function MapView({
 
         img.onerror = () => {
             console.error("Failed to load floor plan image:", img.src);
-            setMapData(null); // Or set an error state
+            setMapData(null);
         };
 
     }, [floorPlan]);
@@ -151,7 +148,7 @@ export function MapView({
                     panning={{ velocityDisabled: false }}
                     wheel={{ step: 0.2 }}
                     doubleClick={{ disabled: true }}
-                    onTransformed={(_ref, state) => onScaleChange(state.scale)}
+                    onTransformed={(_ref, state) => onTransform(state)}
                     onPanningStart={onMapInteraction}
                     onPinchingStart={onMapInteraction}
                     onWheelStart={onMapInteraction}

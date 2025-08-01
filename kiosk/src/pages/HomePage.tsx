@@ -28,6 +28,8 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     const [currentMapScale, setCurrentMapScale] = useState(1);
     const [transitioningToFloor, setTransitioningToFloor] = useState<string | null>(null);
     const mapControllerRef = useRef<ReactZoomPanPinchRef>(null);
+    const [viewState, setViewState] = useState<'overview' | 'detail'>('overview');
+    const overviewMapState = useRef<{ scale: number; positionX: number; positionY: number } | null>(null);
 
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     useInactivityTimer(() => setIsInactive(true), 60000);
@@ -94,7 +96,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
             return acc;
         }, {} as Record<string, number>);
     }, [isFilterActive, filteredPlaces]);
-    
+
     const performFloorTransition = (place: Place, action: () => void) => {
         if (place.floorPlan.id !== currentFloorPlanId) {
             setTransitioningToFloor(place.floorPlan.name);
@@ -107,11 +109,23 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         }
     };
 
+    const handleSheetOpenChange = (open: boolean) => {
+        setIsDetailSheetOpen(open);
+        if (!open) {
+            setSelectedPlace(null);
+            setIsAnimatingPath(false);
+
+            if (mapControllerRef.current && overviewMapState.current) {
+                const { scale, positionX, positionY } = overviewMapState.current;
+                mapControllerRef.current.setTransform(positionX, positionY, scale, 300, 'easeOut');
+            }
+            setViewState('overview');
+        }
+    };
+
     const handlePlaceSelect = useCallback((place: Place | null) => {
         if (!place) {
-            setSelectedPlace(null);
-            setIsDetailSheetOpen(false);
-            setIsAnimatingPath(false);
+            handleSheetOpenChange(false);
             return;
         }
 
@@ -121,8 +135,9 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
             setSearchSelectedItem(null);
             setIsAnimatingPath(false);
             setIsDetailSheetOpen(true);
+            setViewState('detail');
         };
-        
+
         performFloorTransition(place, selectAction);
 
     }, [currentFloorPlanId]);
@@ -134,6 +149,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
             setCurrentFloorPlanId(place.floorPlan.id);
             setSearchSelectedItem(place);
             setIsAnimatingPath(true);
+            setViewState('detail');
 
             if (debouncedSearchTerm && kioskData) {
                 api.logPlaceSelection({
@@ -153,8 +169,9 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
             setCurrentFloorPlanId(place.floorPlan.id);
             setSearchSelectedItem(place);
             setIsAnimatingPath(true);
+            setViewState('detail');
         };
-        
+
         performFloorTransition(place, showAction);
     }, [currentFloorPlanId]);
 
@@ -216,28 +233,22 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         setIsAnimatingPath(false);
     };
 
-    const handleSheetOpenChange = (open: boolean) => {
-        setIsDetailSheetOpen(open);
-        if (!open) {
-            setSelectedPlace(null);
-            setIsAnimatingPath(false);
-        }
-    };
-
     const resetView = useCallback(() => {
         setIsInactive(false);
-        handlePlaceSelect(null);
+        setIsDetailSheetOpen(false);
+        setSelectedPlace(null);
         setSearchSelectedItem(null);
         setSearchTerm('');
         setActiveCategoryIds([]);
         setIsAnimatingPath(false);
         if (kioskData) setCurrentFloorPlanId(kioskData.floorPlan.id);
         mapControllerRef.current?.resetTransform(300);
-    }, [kioskData, handlePlaceSelect]);
+        setViewState('overview');
+    }, [kioskData]);
 
     const handleLocateKiosk = () => {
         if (!kioskData) return;
-        
+
         const locateAction = () => {
             setSelectedPlace(null);
             setSearchSelectedItem(null);
@@ -263,6 +274,17 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
             setIsAnimatingPath(false);
         }
     }, [isAnimatingPath]);
+
+    const handleMapTransform = useCallback((state: { scale: number; positionX: number; positionY: number }) => {
+        setCurrentMapScale(state.scale);
+        if (viewState === 'overview') {
+            overviewMapState.current = {
+                scale: state.scale,
+                positionX: state.positionX,
+                positionY: state.positionY,
+            };
+        }
+    }, [viewState]);
 
     const searchResultsForSidebar = useMemo(() => {
         if (!isFilterActive) return [];
@@ -304,7 +326,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                     isAnimatingPath={isAnimatingPath}
                     onMapInteraction={handleMapInteraction}
                     currentScale={currentMapScale}
-                    onScaleChange={setCurrentMapScale}
+                    onTransform={handleMapTransform}
                 >
                     <MapControls
                         floorPlans={floorPlans}
