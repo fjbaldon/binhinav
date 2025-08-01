@@ -11,6 +11,8 @@ import { PlaceDetailSheet } from '@/components/details/PlaceDetailSheet';
 import { AdOverlay } from '@/components/ads/AdOverlay';
 import { MapControls } from '@/components/layout/MapControls';
 import { FloorTransitionOverlay } from '@/components/map/FloorTransitionOverlay';
+import { toast } from 'sonner';
+import { Info } from 'lucide-react';
 
 type SearchStatus = 'idle' | 'loading' | 'no-results' | 'has-results';
 
@@ -74,8 +76,6 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         queryKey: ['places', debouncedSearchTerm, sortedActiveCategoryIds],
         queryFn: () => api.getPlaces({
             searchTerm: debouncedSearchTerm,
-            // If a search term exists, it's a global search, so we ignore category filters for the query.
-            // If no search term, we use the category filters.
             categoryIds: debouncedSearchTerm ? [] : sortedActiveCategoryIds,
             kioskId: kioskData?.id,
         }),
@@ -145,6 +145,24 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     }, [currentFloorPlanId]);
 
     const handleSearchResultSelect = useCallback((place: Place) => {
+        if (kioskData && place.floorPlan.id !== kioskData.floorPlan.id) {
+            toast(
+                <div className="flex items-center gap-5">
+                    <Info className="h-10 w-10 text-primary shrink-0" />
+                    <div className="flex flex-col">
+                        <p className="text-xl font-bold text-primary">Switching to {place.floorPlan.name}</p>
+                        <p className="text-base text-muted-foreground">This store is on a different floor.</p>
+                    </div>
+                </div>,
+                {
+                    duration: 5000,
+                    classNames: {
+                        toast: 'bg-secondary border-border p-6',
+                    },
+                }
+            );
+        }
+
         const selectAction = () => {
             setSelectedPlace(null);
             setIsDetailSheetOpen(false);
