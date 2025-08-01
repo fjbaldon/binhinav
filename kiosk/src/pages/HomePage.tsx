@@ -10,6 +10,7 @@ import { MapView } from '@/components/map/MapView';
 import { PlaceDetailSheet } from '@/components/details/PlaceDetailSheet';
 import { AdOverlay } from '@/components/ads/AdOverlay';
 import { MapControls } from '@/components/layout/MapControls';
+import { FloorTransitionOverlay } from '@/components/map/FloorTransitionOverlay';
 
 type SearchStatus = 'idle' | 'loading' | 'no-results' | 'has-results';
 
@@ -25,6 +26,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
     const [isLocatingKiosk, setIsLocatingKiosk] = useState(false);
     const [currentMapScale, setCurrentMapScale] = useState(1);
+    const [transitioningToFloor, setTransitioningToFloor] = useState<string | null>(null);
     const mapControllerRef = useRef<ReactZoomPanPinchRef>(null);
 
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -82,38 +84,68 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         staleTime: 1000 * 60 * 5,
     });
 
-    const handlePlaceSelect = useCallback((place: Place | null) => {
-        if (place) {
-            setCurrentFloorPlanId(place.floorPlan.id);
+    const performFloorTransition = (place: Place, action: () => void) => {
+        if (place.floorPlan.id !== currentFloorPlanId) {
+            setTransitioningToFloor(place.floorPlan.name);
+            setTimeout(() => {
+                action();
+                setTransitioningToFloor(null);
+            }, 1500);
+        } else {
+            action();
         }
-        setSelectedPlace(place);
-        setSearchSelectedItem(null);
-        setIsAnimatingPath(false);
-        setIsDetailSheetOpen(!!place);
-    }, []);
+    };
+
+    const handlePlaceSelect = useCallback((place: Place | null) => {
+        if (!place) {
+            setSelectedPlace(null);
+            setIsDetailSheetOpen(false);
+            setIsAnimatingPath(false);
+            return;
+        }
+
+        const selectAction = () => {
+            setCurrentFloorPlanId(place.floorPlan.id);
+            setSelectedPlace(place);
+            setSearchSelectedItem(null);
+            setIsAnimatingPath(false);
+            setIsDetailSheetOpen(true);
+        };
+
+        performFloorTransition(place, selectAction);
+
+    }, [currentFloorPlanId]);
 
     const handleSearchResultSelect = useCallback((place: Place) => {
-        setSelectedPlace(null);
-        setIsDetailSheetOpen(false);
-        setCurrentFloorPlanId(place.floorPlan.id);
-        setSearchSelectedItem(place);
-        setIsAnimatingPath(true);
+        const selectAction = () => {
+            setSelectedPlace(null);
+            setIsDetailSheetOpen(false);
+            setCurrentFloorPlanId(place.floorPlan.id);
+            setSearchSelectedItem(place);
+            setIsAnimatingPath(true);
 
-        if (debouncedSearchTerm && kioskData) {
-            api.logPlaceSelection({
-                searchTerm: debouncedSearchTerm,
-                placeId: place.id,
-                kioskId: kioskData.id,
-            });
-        }
-    }, [kioskData, debouncedSearchTerm]);
+            if (debouncedSearchTerm && kioskData) {
+                api.logPlaceSelection({
+                    searchTerm: debouncedSearchTerm,
+                    placeId: place.id,
+                    kioskId: kioskData.id,
+                });
+            }
+        };
+
+        performFloorTransition(place, selectAction);
+    }, [kioskData, debouncedSearchTerm, currentFloorPlanId]);
 
     const handleShowOnMap = useCallback((place: Place) => {
-        setIsDetailSheetOpen(false);
-        setCurrentFloorPlanId(place.floorPlan.id);
-        setSearchSelectedItem(place);
-        setIsAnimatingPath(true);
-    }, []);
+        const showAction = () => {
+            setIsDetailSheetOpen(false);
+            setCurrentFloorPlanId(place.floorPlan.id);
+            setSearchSelectedItem(place);
+            setIsAnimatingPath(true);
+        };
+
+        performFloorTransition(place, showAction);
+    }, [currentFloorPlanId]);
 
 
     useEffect(() => {
@@ -194,12 +226,25 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     const handleLocateKiosk = () => {
         if (!kioskData) return;
-        setSelectedPlace(null);
-        setSearchSelectedItem(null);
-        setIsAnimatingPath(false);
-        setCurrentFloorPlanId(kioskData.floorPlan.id);
-        setIsLocatingKiosk(true);
-        setTimeout(() => setIsLocatingKiosk(false), 3500);
+
+        const locateAction = () => {
+            setSelectedPlace(null);
+            setSearchSelectedItem(null);
+            setIsAnimatingPath(false);
+            setCurrentFloorPlanId(kioskData.floorPlan.id);
+            setIsLocatingKiosk(true);
+            setTimeout(() => setIsLocatingKiosk(false), 3500);
+        }
+
+        if (kioskData.floorPlan.id !== currentFloorPlanId) {
+            setTransitioningToFloor(kioskData.floorPlan.name);
+            setTimeout(() => {
+                locateAction();
+                setTransitioningToFloor(null);
+            }, 1500);
+        } else {
+            locateAction();
+        }
     };
 
     const handleMapInteraction = useCallback(() => {
@@ -259,6 +304,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                         onLocateKiosk={handleLocateKiosk}
                     />
                 </MapView>
+                <FloorTransitionOverlay isOpen={!!transitioningToFloor} floorName={transitioningToFloor || ''} />
                 <PlaceDetailSheet
                     place={selectedPlace}
                     isOpen={isDetailSheetOpen}
