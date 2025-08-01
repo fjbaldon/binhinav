@@ -108,6 +108,13 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         }
     }, [kioskData, debouncedSearchTerm]);
 
+    const handleShowOnMap = useCallback((place: Place) => {
+        setIsDetailSheetOpen(false);
+        setCurrentFloorPlanId(place.floorPlan.id);
+        setSearchSelectedItem(place);
+        setIsAnimatingPath(true);
+    }, []);
+
 
     useEffect(() => {
         if (isFetchingPlaces && isFilterActive) {
@@ -255,7 +262,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                     place={selectedPlace}
                     isOpen={isDetailSheetOpen}
                     onOpenChange={handleSheetOpenChange}
-                    onPlaceSelect={handlePlaceSelect}
+                    onShowOnMap={handleShowOnMap}
                 />
             </div>
             {isInactive && <AdOverlay onInteraction={resetView} />}

@@ -10,25 +10,23 @@ interface PlaceDetailSheetProps {
     place: Place | null;
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
-    onPlaceSelect: (place: Place) => void;
+    onShowOnMap: (place: Place) => void;
 }
 
 export function PlaceDetailSheet({
     place,
     isOpen,
     onOpenChange,
-    onPlaceSelect,
+    onShowOnMap,
 }: PlaceDetailSheetProps) {
     if (!isOpen || !place) return null;
 
-    const handleSelectOnMapClick = () => {
-        onPlaceSelect(place);
-        onOpenChange(false);
+    const handleShowOnMapClick = () => {
+        onShowOnMap(place);
     };
 
     return (
         <aside className="fixed inset-x-0 bottom-0 z-20 grid w-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-t-2xl bg-background p-0 shadow-lg animate-in slide-in-from-bottom-full duration-300 max-h-[85vh] lg:fixed lg:inset-auto lg:right-12 lg:top-12 lg:max-w-96 lg:rounded-2xl lg:slide-in-from-right-2 lg:max-h-[calc(100vh-6rem)]">
-            {/* Mobile grabber handle */}
             <div className="absolute left-1/2 top-2 h-1.5 w-12 -translate-x-1/2 rounded-full bg-muted-foreground/30 lg:hidden" />
 
             <Button
@@ -41,7 +39,6 @@ export function PlaceDetailSheet({
                 <span className="sr-only">Close</span>
             </Button>
 
-            {/* --- Non-Scrolling Header --- */}
             <div>
                 <div className="relative">
                     {place.coverUrl ? (
@@ -82,7 +79,6 @@ export function PlaceDetailSheet({
                 </div>
             </div>
 
-            {/* --- Scrolling Content Area (About & Hours) --- */}
             <div className="min-h-0">
                 <ScrollArea className="h-full">
                     <div className="px-6 pb-6 pt-2 space-y-4">
@@ -111,9 +107,8 @@ export function PlaceDetailSheet({
                 </ScrollArea>
             </div>
 
-            {/* --- Non-Scrolling Footer (Location & Button) --- */}
             <div className="p-4 border-t bg-background">
-                <Button className="w-full h-14 text-lg justify-between px-6" onClick={handleSelectOnMapClick}>
+                <Button className="w-full h-14 text-lg justify-between px-6" onClick={handleShowOnMapClick}>
                     <div className="flex items-center gap-3">
                         <Building className="h-5 w-5" />
                         <span className="font-semibold">{place.floorPlan.name}</span>
