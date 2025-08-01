@@ -105,35 +105,36 @@ export function MapView({
 
         const timer = setTimeout(() => {
             const viewSize = { width: container.offsetWidth, height: container.offsetHeight };
-            let transform;
+            const isShowingPathFromSearch = searchSelectedItem && isAnimatingPath;
 
-            if (searchSelectedItem && isAnimatingPath) {
-                const kioskPixelCoords = {
-                    x: (kiosk.locationX / 100) * mapData.width,
-                    y: (kiosk.locationY / 100) * mapData.height,
-                };
-                transform = getTransformForBounds(
-                    kioskPixelCoords,
-                    placePixelCoords,
-                    viewSize, 400
-                );
-            }
-            else if (selectedPlace) {
+            if (isShowingPathFromSearch) {
+                if (kiosk.floorPlan.id === floorPlan?.id) {
+                    const kioskPixelCoords = {
+                        x: (kiosk.locationX / 100) * mapData.width,
+                        y: (kiosk.locationY / 100) * mapData.height,
+                    };
+                    const transform = getTransformForBounds(
+                        kioskPixelCoords,
+                        placePixelCoords,
+                        viewSize, 400
+                    );
+                    controller.setTransform(transform.x, transform.y, transform.scale, 300, 'easeOut');
+                } else {
+                    controller.resetTransform(300, 'easeOut');
+                }
+            } else if (selectedPlace) {
                 const zoomScale = 0.6;
-                transform = {
+                const transform = {
                     x: (viewSize.width / 2) - (placePixelCoords.x * zoomScale),
                     y: (viewSize.height / 2) - (placePixelCoords.y * zoomScale),
                     scale: zoomScale,
                 };
-            }
-
-            if (transform) {
                 controller.setTransform(transform.x, transform.y, transform.scale, 300, 'easeOut');
             }
         }, 100);
 
         return () => clearTimeout(timer);
-    }, [selectedPlace, searchSelectedItem, isAnimatingPath, kiosk, mapControllerRef, mapData]);
+    }, [selectedPlace, searchSelectedItem, isAnimatingPath, kiosk, floorPlan, mapControllerRef, mapData]);
 
 
     useEffect(() => {
@@ -185,7 +186,7 @@ export function MapView({
                             />
 
                             {kiosk.floorPlan.id === mapData.id && (
-                                <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} isPulsing={isLocatingKiosk || isAnimatingPath} mapScale={currentScale} />
+                                <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} isPulsing={isLocatingKiosk || (isAnimatingPath && kiosk.floorPlan.id === floorPlan?.id)} mapScale={currentScale} />
                             )}
                             {places.map(place => {
                                 const isDimmed = isFilterActive && highlightedPlaceIds ? !highlightedPlaceIds.has(place.id) : false;
