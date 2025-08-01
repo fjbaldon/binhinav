@@ -50,7 +50,7 @@ export function PlacePin({ place, isSelected, onClick, mapScale, isDimmed, isPul
                 <div
                     className={cn(
                         'relative w-16 h-16 group/pin transition-all duration-200',
-                        isSelected ? 'scale-110' : 'group-hover/pin:scale-105',
+                        isSelected ? 'scale-150' : 'group-hover/pin:scale-105',
                         { 'opacity-40 saturate-50': isDimmed && !isSelected }
                     )}
                 >

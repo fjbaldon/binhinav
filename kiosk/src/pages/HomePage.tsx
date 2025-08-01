@@ -74,7 +74,9 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         queryKey: ['places', debouncedSearchTerm, sortedActiveCategoryIds],
         queryFn: () => api.getPlaces({
             searchTerm: debouncedSearchTerm,
-            categoryIds: sortedActiveCategoryIds,
+            // If a search term exists, it's a global search, so we ignore category filters for the query.
+            // If no search term, we use the category filters.
+            categoryIds: debouncedSearchTerm ? [] : sortedActiveCategoryIds,
             kioskId: kioskData?.id,
         }),
         enabled: !!kioskData?.id && isFilterActive,
@@ -229,7 +231,6 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     const handleSearchChange = (term: string) => {
         setSearchTerm(term);
-        setActiveCategoryIds([]);
         setIsAnimatingPath(false);
     };
 
@@ -273,7 +274,10 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         if (isAnimatingPath) {
             setIsAnimatingPath(false);
         }
-    }, [isAnimatingPath]);
+        if (searchSelectedItem) {
+            setSearchSelectedItem(null);
+        }
+    }, [isAnimatingPath, searchSelectedItem]);
 
     const handleMapTransform = useCallback((state: { scale: number; positionX: number; positionY: number }) => {
         setCurrentMapScale(state.scale);

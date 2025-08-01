@@ -94,35 +94,53 @@ export function MapView({
     useEffect(() => {
         const controller = mapControllerRef.current;
         const container = mapContainerRef.current;
-        if (!controller || !container || !selectedPlace || !mapData) return;
+        const targetPlace = selectedPlace || searchSelectedItem;
 
-        const kioskPixelCoords = {
-            x: (kiosk.locationX / 100) * mapData.width,
-            y: (kiosk.locationY / 100) * mapData.height,
-        };
+        if (!controller || !container || !targetPlace || !mapData) return;
+
         const placePixelCoords = {
-            x: (selectedPlace.locationX / 100) * mapData.width,
-            y: (selectedPlace.locationY / 100) * mapData.height,
+            x: (targetPlace.locationX / 100) * mapData.width,
+            y: (targetPlace.locationY / 100) * mapData.height,
         };
 
         const timer = setTimeout(() => {
             const viewSize = { width: container.offsetWidth, height: container.offsetHeight };
-            const transform = getTransformForBounds(
-                kioskPixelCoords,
-                placePixelCoords,
-                viewSize, 150
-            );
-            controller.setTransform(transform.x, transform.y, transform.scale, 300, 'easeOut');
+            let transform;
+
+            if (searchSelectedItem && isAnimatingPath) {
+                const kioskPixelCoords = {
+                    x: (kiosk.locationX / 100) * mapData.width,
+                    y: (kiosk.locationY / 100) * mapData.height,
+                };
+                transform = getTransformForBounds(
+                    kioskPixelCoords,
+                    placePixelCoords,
+                    viewSize, 400
+                );
+            }
+            else if (selectedPlace) {
+                const zoomScale = 0.6;
+                transform = {
+                    x: (viewSize.width / 2) - (placePixelCoords.x * zoomScale),
+                    y: (viewSize.height / 2) - (placePixelCoords.y * zoomScale),
+                    scale: zoomScale,
+                };
+            }
+
+            if (transform) {
+                controller.setTransform(transform.x, transform.y, transform.scale, 300, 'easeOut');
+            }
         }, 100);
 
         return () => clearTimeout(timer);
-    }, [selectedPlace, kiosk, mapControllerRef, mapData]);
+    }, [selectedPlace, searchSelectedItem, isAnimatingPath, kiosk, mapControllerRef, mapData]);
+
 
     useEffect(() => {
-        if ((isLocatingKiosk || searchSelectedItem) && mapControllerRef.current) {
+        if ((isLocatingKiosk) && mapControllerRef.current) {
             mapControllerRef.current.resetTransform(600, "easeOut");
         }
-    }, [isLocatingKiosk, searchSelectedItem, mapControllerRef]);
+    }, [isLocatingKiosk, mapControllerRef]);
 
     const highlightedPlaceIds = useMemo(() => {
         if (!highlightedPlaces) return null;
@@ -138,7 +156,7 @@ export function MapView({
             ) : (
                 <TransformWrapper
                     ref={mapControllerRef}
-                    key={mapData.id} // This is crucial for re-initializing the component on floor change
+                    key={mapData.id}
                     initialScale={initialTransform.scale}
                     initialPositionX={initialTransform.x}
                     initialPositionY={initialTransform.y}
