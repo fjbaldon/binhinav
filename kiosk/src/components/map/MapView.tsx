@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useLayoutEffect, useMemo } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { getAssetUrl } from '@/api';
 import type { Place, KioskData } from '@/api/types';
