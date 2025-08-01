@@ -7,6 +7,13 @@ import { KioskPin } from './KioskPin';
 import { getTransformForBounds } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
+interface MapData {
+    id: string;
+    imageUrl: string;
+    width: number;
+    height: number;
+}
+
 interface MapViewProps {
     kiosk: KioskData;
     floorPlan: { id: string, imageUrl: string } | undefined;
@@ -31,46 +38,74 @@ export function MapView({
     isLocatingKiosk, isAnimatingPath, onMapInteraction, children, currentScale, onScaleChange
 }: MapViewProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
-    const [mapSize, setMapSize] = useState<{ width: number; height: number } | null>(null);
-    const [initialTransform, setInitialTransform] = useState<{ scale: number; x: number; y: number } | null>(null);
+    const [mapData, setMapData] = useState<MapData | null>(null);
 
     useEffect(() => {
-        setMapSize(null);
-        setInitialTransform(null);
-    }, [floorPlan?.id]);
-
-    useLayoutEffect(() => {
-        if (mapSize && !initialTransform && mapContainerRef.current) {
-            const container = mapContainerRef.current;
-            const PADDING = 48;
-            const viewWidth = container.offsetWidth;
-            const viewHeight = container.offsetHeight;
-
-            if (viewWidth === 0 || viewHeight === 0) return;
-
-            const scaleX = viewWidth / (mapSize.width + PADDING * 2);
-            const scaleY = viewHeight / (mapSize.height + PADDING * 2);
-            const scale = Math.min(scaleX, scaleY);
-
-            const x = (viewWidth - mapSize.width * scale) / 2;
-            const y = (viewHeight - mapSize.height * scale) / 2;
-
-            setInitialTransform({ scale, x, y });
+        if (!floorPlan) {
+            setMapData(null);
+            return;
         }
-    }, [mapSize, initialTransform]);
+
+        // Preload the image to get its dimensions before rendering
+        const img = new window.Image();
+        img.src = getAssetUrl(floorPlan.imageUrl);
+
+        img.onload = () => {
+            // Only update if the floor plan is still the one we want
+            setMapData(prevMapData => {
+                const newMapData = {
+                    id: floorPlan.id,
+                    imageUrl: floorPlan.imageUrl,
+                    width: img.naturalWidth,
+                    height: img.naturalHeight,
+                };
+                // Avoid unnecessary re-renders if data is the same
+                if (JSON.stringify(prevMapData) === JSON.stringify(newMapData)) {
+                    return prevMapData;
+                }
+                return newMapData;
+            });
+        };
+
+        img.onerror = () => {
+            console.error("Failed to load floor plan image:", img.src);
+            setMapData(null); // Or set an error state
+        };
+
+    }, [floorPlan]);
+
+    const initialTransform = useMemo(() => {
+        if (!mapData || !mapContainerRef.current) return null;
+
+        const container = mapContainerRef.current;
+        const PADDING = 48;
+        const viewWidth = container.offsetWidth;
+        const viewHeight = container.offsetHeight;
+
+        if (viewWidth === 0 || viewHeight === 0) return null;
+
+        const scaleX = viewWidth / (mapData.width + PADDING * 2);
+        const scaleY = viewHeight / (mapData.height + PADDING * 2);
+        const scale = Math.min(scaleX, scaleY);
+
+        const x = (viewWidth - mapData.width * scale) / 2;
+        const y = (viewHeight - mapData.height * scale) / 2;
+
+        return { scale, x, y };
+    }, [mapData]);
 
     useEffect(() => {
         const controller = mapControllerRef.current;
         const container = mapContainerRef.current;
-        if (!controller || !container || !selectedPlace || !mapSize) return;
+        if (!controller || !container || !selectedPlace || !mapData) return;
 
         const kioskPixelCoords = {
-            x: (kiosk.locationX / 100) * mapSize.width,
-            y: (kiosk.locationY / 100) * mapSize.height,
+            x: (kiosk.locationX / 100) * mapData.width,
+            y: (kiosk.locationY / 100) * mapData.height,
         };
         const placePixelCoords = {
-            x: (selectedPlace.locationX / 100) * mapSize.width,
-            y: (selectedPlace.locationY / 100) * mapSize.height,
+            x: (selectedPlace.locationX / 100) * mapData.width,
+            y: (selectedPlace.locationY / 100) * mapData.height,
         };
 
         const timer = setTimeout(() => {
@@ -84,7 +119,7 @@ export function MapView({
         }, 100);
 
         return () => clearTimeout(timer);
-    }, [selectedPlace, kiosk, mapControllerRef, mapSize]);
+    }, [selectedPlace, kiosk, mapControllerRef, mapData]);
 
     useEffect(() => {
         if ((isLocatingKiosk || searchSelectedItem) && mapControllerRef.current) {
@@ -92,40 +127,21 @@ export function MapView({
         }
     }, [isLocatingKiosk, searchSelectedItem, mapControllerRef]);
 
-
-    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-        setMapSize({
-            width: e.currentTarget.naturalWidth,
-            height: e.currentTarget.naturalHeight,
-        });
-    };
-
     const highlightedPlaceIds = useMemo(() => {
         if (!highlightedPlaces) return null;
         return new Set(highlightedPlaces.map(p => p.id));
     }, [highlightedPlaces]);
 
-    if (!floorPlan) {
-        return <div className="flex items-center justify-center h-full bg-muted">Select a floor plan to begin.</div>;
-    }
-
     return (
         <div ref={mapContainerRef} className="h-full w-full bg-muted overflow-hidden" data-selected={!!selectedPlace}>
-            <img
-                src={getAssetUrl(floorPlan.imageUrl)}
-                onLoad={handleImageLoad}
-                className="absolute opacity-0 pointer-events-none"
-                alt=""
-            />
-
-            {!initialTransform ? (
+            {!mapData || !initialTransform ? (
                 <div className="flex items-center justify-center h-full w-full">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 </div>
             ) : (
                 <TransformWrapper
                     ref={mapControllerRef}
-                    key={floorPlan.id}
+                    key={mapData.id} // This is crucial for re-initializing the component on floor change
                     initialScale={initialTransform.scale}
                     initialPositionX={initialTransform.x}
                     initialPositionY={initialTransform.y}
@@ -144,16 +160,16 @@ export function MapView({
                     <TransformComponent wrapperClass="!w-full !h-full" contentClass="">
                         <div
                             className="relative"
-                            style={{ width: mapSize!.width, height: mapSize!.height }}
+                            style={{ width: mapData.width, height: mapData.height }}
                             onClick={(e) => { if (e.target === e.currentTarget) { onPlaceSelect(null); } }}
                         >
                             <img
-                                src={getAssetUrl(floorPlan.imageUrl)}
+                                src={getAssetUrl(mapData.imageUrl)}
                                 alt="Floor Plan"
                                 className="pointer-events-none block"
                             />
 
-                            {kiosk.floorPlan.id === floorPlan?.id && (
+                            {kiosk.floorPlan.id === mapData.id && (
                                 <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} isPulsing={isLocatingKiosk || isAnimatingPath} mapScale={currentScale} />
                             )}
                             {places.map(place => {
