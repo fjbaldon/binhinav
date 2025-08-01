@@ -76,7 +76,11 @@ export function Sidebar({
 
             {isFilterActive && (
                 <div className="px-1 animate-in fade-in duration-300">
-                    <Button variant="outline" className="w-full" onClick={onResetSearch}>
+                    <Button
+                        variant="default"
+                        className="w-full h-12 text-md bg-[#1c6d2b] hover:bg-[#1a5a24] text-primary-foreground font-medium"
+                        onClick={onResetSearch}
+                    >
                         <RotateCcw className="mr-2 h-4 w-4" />
                         Start New Search
                     </Button>

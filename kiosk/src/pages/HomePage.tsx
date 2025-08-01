@@ -169,6 +169,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     const handleSearchChange = (term: string) => {
         setSearchTerm(term);
+        setActiveCategoryIds([]);
         setIsAnimatingPath(false);
     };
 
