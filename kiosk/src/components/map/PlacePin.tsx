@@ -25,8 +25,12 @@ const sonarKeyframes = `
   }
 `;
 
+const LABEL_VISIBILITY_THRESHOLD = 0.5;
+
 export function PlacePin({ place, isSelected, onClick, mapScale, isDimmed, isPulsing }: PlacePinProps) {
     const visualScale = 1 / mapScale;
+
+    const isLabelVisible = isSelected || mapScale > LABEL_VISIBILITY_THRESHOLD;
 
     const clipPathId = `logo-clip-${place.id}`;
 
@@ -114,7 +118,7 @@ export function PlacePin({ place, isSelected, onClick, mapScale, isDimmed, isPul
                     <div
                         className={cn(
                             'absolute top-full left-1/2 -translate-x-1/2 mt-2 px-4 py-2 rounded-lg shadow bg-background text-xl font-bold text-foreground whitespace-nowrap transition-all duration-200',
-                            isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                            isLabelVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
                         )}
                     >
                         <p>{place.name}</p>
