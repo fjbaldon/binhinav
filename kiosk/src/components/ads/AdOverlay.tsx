@@ -3,7 +3,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { getActiveAds } from '@/api/kiosk';
 import { getAssetUrl } from '@/api';
-import { Button } from '@/components/ui/button';
+import { Hand } from 'lucide-react';
 
 interface AdOverlayProps {
     onInteraction: () => void;
@@ -26,38 +26,45 @@ export function AdOverlay({ onInteraction }: AdOverlayProps) {
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 z-[60] flex flex-col items-center justify-center animate-in fade-in" // This z-[60] is important
+            className="fixed inset-0 bg-black/80 z-[60] flex flex-col items-center justify-center animate-in fade-in"
             onClick={onInteraction}
         >
-            {/* This is the Viewport. It needs to hide the parts of the filmstrip that are off-screen. */}
+            {/* Informational Branding in Top-Left Corner */}
+            <div className="absolute top-8 left-8 flex items-center gap-4 text-white z-10 pointer-events-none select-none">
+                <img src="/binhinav-logo.svg" alt="Binhinav Logo" className="h-12 w-12 brightness-0 invert" />
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">binhinav</h1>
+                    <p className="text-lg text-white/80">Interactive Directory</p>
+                </div>
+            </div>
+
             <div className="embla w-full h-full overflow-hidden" ref={emblaRef}>
-                {/* This is the Container/Filmstrip. It needs to lay out the slides horizontally. */}
                 <div className="embla__container h-full flex">
                     {ads.map(ad => (
-                        // This is the Slide. It needs a defined width.
-                        <div key={ad.id} className="embla__slide h-full flex-[0_0_100%]">
-                            <div className="w-full h-full flex items-center justify-center p-8">
+                        <div key={ad.id} className="embla__slide h-full flex-[0_0_100%] flex items-center justify-center">
+                            <div className="w-full aspect-video bg-muted/20 rounded-2xl overflow-hidden shadow-2xl">
                                 <img
                                     src={getAssetUrl(ad.imageUrl)}
                                     alt={ad.name}
-                                    className="max-w-full max-h-full object-contain"
+                                    className="w-full h-full object-cover"
                                 />
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
-            <Button
-                variant="secondary"
-                className="absolute bottom-10 h-16 text-xl px-8"
-                // Add stopPropagation to prevent the overlay's onClick from also firing
+
+            {/* Redesigned "Tap to Continue" to match branding style */}
+            <div
+                className="absolute bottom-12 flex items-center gap-4 text-white animate-pulse cursor-pointer select-none z-10"
                 onClick={(e) => {
                     e.stopPropagation();
                     onInteraction();
                 }}
             >
-                Tap to Continue
-            </Button>
+                <Hand className="h-10 w-10" />
+                <span className="text-3xl font-semibold tracking-tight">Tap to Continue</span>
+            </div>
         </div>
     );
 }

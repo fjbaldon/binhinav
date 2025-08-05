@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2, Eye } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Eye, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { DataTable } from "@/components/shared/DataTable";
 
@@ -222,6 +222,10 @@ export default function AdsPage() {
                         <div className="space-y-2">
                             <Label htmlFor="image">Ad Image</Label>
                             <Input id="image" type="file" accept="image/jpeg,image/png,image/gif,image/svg+xml" {...form.register("image")} />
+                            <div className="flex items-start gap-2 text-xs text-muted-foreground p-2 bg-muted/50 rounded-md border mt-2">
+                                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                                <p>For the best display on the kiosk, please upload an image with a 16:9 aspect ratio (e.g., 1920x1080 pixels). Other ratios may be cropped.</p>
+                            </div>
                             {editingAd && <p className="text-sm text-muted-foreground mt-1">Leave blank to keep the current image.</p>}
                             <p className="text-sm text-red-500">{typeof form.formState.errors.image?.message === "string" ? form.formState.errors.image.message : ""}</p>
                         </div>
