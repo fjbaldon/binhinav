@@ -1,4 +1,5 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useEffect, useState } from "react";
 
 interface KioskPinProps {
     x: number;
@@ -6,6 +7,7 @@ interface KioskPinProps {
     name: string;
     isPulsing?: boolean;
     mapScale: number;
+    isLocatingKiosk?: boolean;
 }
 
 const sonarKeyframes = `
@@ -21,13 +23,24 @@ const sonarKeyframes = `
   }
 `;
 
-export function KioskPin({ x, y, name, isPulsing, mapScale }: KioskPinProps) {
+export function KioskPin({ x, y, name, isPulsing, mapScale, isLocatingKiosk }: KioskPinProps) {
     const visualScale = 1 / mapScale;
+    const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+
+    useEffect(() => {
+        if (isLocatingKiosk) {
+            setIsTooltipOpen(true);
+            const timer = setTimeout(() => {
+                setIsTooltipOpen(false);
+            }, 3500);
+            return () => clearTimeout(timer);
+        }
+    }, [isLocatingKiosk]);
 
     return (
         <TooltipProvider>
             <style>{sonarKeyframes}</style>
-            <Tooltip>
+            <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
                 <TooltipTrigger asChild>
                     <div
                         className="absolute cursor-pointer z-10"

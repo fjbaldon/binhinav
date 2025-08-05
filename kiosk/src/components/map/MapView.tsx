@@ -186,7 +186,14 @@ export function MapView({
                             />
 
                             {kiosk.floorPlan.id === mapData.id && (
-                                <KioskPin x={kiosk.locationX} y={kiosk.locationY} name={kiosk.name} isPulsing={isLocatingKiosk || (isAnimatingPath && kiosk.floorPlan.id === floorPlan?.id)} mapScale={currentScale} />
+                                <KioskPin
+                                    x={kiosk.locationX}
+                                    y={kiosk.locationY}
+                                    name={kiosk.name}
+                                    isPulsing={isLocatingKiosk || (isAnimatingPath && kiosk.floorPlan.id === floorPlan?.id)}
+                                    mapScale={currentScale}
+                                    isLocatingKiosk={isLocatingKiosk}
+                                />
                             )}
                             {places.map(place => {
                                 const isDimmed = isFilterActive && highlightedPlaceIds ? !highlightedPlaceIds.has(place.id) : false;
