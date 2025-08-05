@@ -107,7 +107,6 @@ export default function AdsPage() {
         }
     }, [ads, reorderMutation.isPending]);
 
-
     const createMutation = useMutation({
         mutationFn: createAd,
         onSuccess: () => {
@@ -188,7 +187,12 @@ export default function AdsPage() {
             const oldIndex = activeAds.findIndex((ad) => ad.id === active.id);
             const newIndex = activeAds.findIndex((ad) => ad.id === over.id);
             if (oldIndex !== -1 && newIndex !== -1) {
-                const reorderedAds = arrayMove(activeAds, oldIndex, newIndex);
+                let reorderedAds = arrayMove(activeAds, oldIndex, newIndex);
+                reorderedAds = reorderedAds.map((ad, index) => ({
+                    ...ad,
+                    displayOrder: index + 1,
+                }));
+
                 setActiveAds(reorderedAds);
                 reorderMutation.mutate(reorderedAds.map(ad => ad.id));
             }

@@ -27,6 +27,10 @@ export function AdOverlay({ onInteraction }: AdOverlayProps) {
     const imageTimerRef = useRef<number | null>(null);
     const [isExiting, setIsExiting] = useState(false);
 
+    const skipBrokenSlide = useCallback(() => {
+        emblaApi?.scrollNext();
+    }, [emblaApi]);
+
     const handleVideoEnd = useCallback(() => {
         emblaApi?.scrollNext();
     }, [emblaApi]);
@@ -138,6 +142,7 @@ export function AdOverlay({ onInteraction }: AdOverlayProps) {
                                                 playActiveVideo(emblaApi);
                                             }
                                         }}
+                                        onError={skipBrokenSlide}
                                         src={getAssetUrl(ad.fileUrl)}
                                         className="w-full h-full object-cover"
                                         muted
@@ -145,6 +150,7 @@ export function AdOverlay({ onInteraction }: AdOverlayProps) {
                                     />
                                 ) : (
                                     <img
+                                        onError={skipBrokenSlide}
                                         src={getAssetUrl(ad.fileUrl)}
                                         alt={ad.name}
                                         className="w-full h-full object-cover"
