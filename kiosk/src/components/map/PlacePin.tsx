@@ -49,8 +49,8 @@ export function PlacePin({ place, isSelected, onClick, mapScale, isDimmed, isPul
             >
                 <div
                     className={cn(
-                        'relative w-16 h-16 group/pin transition-all duration-200',
-                        isSelected ? 'scale-150' : 'group-hover/pin:scale-105',
+                        'relative w-16 h-16 transition-all duration-200',
+                        isSelected ? 'scale-150' : 'hover:scale-105',
                         { 'opacity-40 saturate-50': isDimmed && !isSelected }
                     )}
                 >
@@ -81,7 +81,7 @@ export function PlacePin({ place, isSelected, onClick, mapScale, isDimmed, isPul
                                 'transition-colors stroke-[4]',
                                 isSelected
                                     ? 'fill-red-100/90 stroke-red-500'
-                                    : 'fill-background stroke-primary/80 group-hover/pin:fill-primary-foreground group-hover/pin:stroke-primary'
+                                    : 'fill-background stroke-primary/80 hover:fill-primary-foreground hover:stroke-primary'
                             )}
                         />
 
@@ -103,7 +103,7 @@ export function PlacePin({ place, isSelected, onClick, mapScale, isDimmed, isPul
                                             'w-12 h-12 transition-colors',
                                             isSelected
                                                 ? 'text-red-600'
-                                                : 'text-primary/90 group-hover/pin:text-primary'
+                                                : 'text-primary/90 hover:text-primary'
                                         )}
                                     />
                                 </div>
@@ -114,7 +114,7 @@ export function PlacePin({ place, isSelected, onClick, mapScale, isDimmed, isPul
                     <div
                         className={cn(
                             'absolute top-full left-1/2 -translate-x-1/2 mt-2 px-4 py-2 rounded-lg shadow bg-background text-xl font-bold text-foreground whitespace-nowrap transition-all duration-200',
-                            isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-95 group-hover/pin:opacity-100 group-hover/pin:scale-100'
+                            isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
                         )}
                     >
                         <p>{place.name}</p>

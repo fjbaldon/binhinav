@@ -8,6 +8,7 @@ interface KioskPinProps {
     isPulsing?: boolean;
     mapScale: number;
     isLocatingKiosk?: boolean;
+    onClick: () => void;
 }
 
 const sonarKeyframes = `
@@ -23,7 +24,7 @@ const sonarKeyframes = `
   }
 `;
 
-export function KioskPin({ x, y, name, isPulsing, mapScale, isLocatingKiosk }: KioskPinProps) {
+export function KioskPin({ x: x, y, name, isPulsing, mapScale, isLocatingKiosk, onClick }: KioskPinProps) {
     const visualScale = 1 / mapScale;
     const [isTooltipOpen, setIsTooltipOpen] = useState(false);
 
@@ -40,10 +41,11 @@ export function KioskPin({ x, y, name, isPulsing, mapScale, isLocatingKiosk }: K
     return (
         <TooltipProvider>
             <style>{sonarKeyframes}</style>
-            <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
+            <Tooltip open={isTooltipOpen}>
                 <TooltipTrigger asChild>
                     <div
                         className="absolute cursor-pointer z-10"
+                        onClick={onClick}
                         style={{
                             left: `${x}%`,
                             top: `${y}%`,
@@ -56,7 +58,7 @@ export function KioskPin({ x, y, name, isPulsing, mapScale, isLocatingKiosk }: K
                                 transform: `scale(${visualScale})`,
                             }}
                         >
-                            <div className="relative w-20 h-20 group/pin">
+                            <div className="relative w-20 h-20">
                                 {isPulsing && (
                                     <>
                                         <div

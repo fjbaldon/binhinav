@@ -349,6 +349,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                     onMapInteraction={handleMapInteraction}
                     currentScale={currentMapScale}
                     onTransform={handleMapTransform}
+                    onKioskSelect={handleLocateKiosk}
                 >
                     <MapControls
                         floorPlans={floorPlans}

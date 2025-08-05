@@ -30,12 +30,14 @@ interface MapViewProps {
     children?: React.ReactNode;
     currentScale: number;
     onTransform: (state: { scale: number; positionX: number; positionY: number }) => void;
+    onKioskSelect: () => void;
 }
 
 export function MapView({
     kiosk, floorPlan, places, highlightedPlaces, isFilterActive,
     selectedPlace, searchSelectedItem, onPlaceSelect, mapControllerRef,
-    isLocatingKiosk, isAnimatingPath, onMapInteraction, children, currentScale, onTransform
+    isLocatingKiosk, isAnimatingPath, onMapInteraction, children, currentScale, onTransform,
+    onKioskSelect
 }: MapViewProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const [mapData, setMapData] = useState<MapData | null>(null);
@@ -193,6 +195,7 @@ export function MapView({
                                     isPulsing={isLocatingKiosk || (isAnimatingPath && kiosk.floorPlan.id === floorPlan?.id)}
                                     mapScale={currentScale}
                                     isLocatingKiosk={isLocatingKiosk}
+                                    onClick={onKioskSelect}
                                 />
                             )}
                             {places.map(place => {
