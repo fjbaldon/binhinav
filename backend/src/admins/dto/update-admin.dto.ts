@@ -1,4 +1,4 @@
-import { IsString, MinLength, IsOptional, IsEmail } from 'class-validator';
+import { IsString, MinLength, IsOptional, IsEmail, IsBoolean } from 'class-validator';
 
 export class UpdateAdminDto {
     @IsString()
@@ -17,4 +17,8 @@ export class UpdateAdminDto {
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
     @IsOptional()
     password?: string;
+
+    @IsBoolean()
+    @IsOptional()
+    isSuperAdmin?: boolean;
 }

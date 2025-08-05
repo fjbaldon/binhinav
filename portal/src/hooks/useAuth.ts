@@ -7,6 +7,7 @@ type User = {
     username: string;
     role: 'admin' | 'merchant';
     name: string;
+    isSuperAdmin?: boolean;
     placeId?: string;
 };
 

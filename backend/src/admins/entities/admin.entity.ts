@@ -18,6 +18,9 @@ export class Admin {
   @Column()
   password: string;
 
+  @Column({ default: false })
+  isSuperAdmin: boolean;
+
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {

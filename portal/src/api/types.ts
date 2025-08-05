@@ -3,6 +3,7 @@ export interface Admin {
     name: string;
     username: string;
     email: string | null;
+    isSuperAdmin: boolean;
 }
 
 export interface Category {
@@ -71,6 +72,7 @@ export interface AdminPayload {
     email?: string | null;
     username?: string;
     password?: string;
+    isSuperAdmin?: boolean;
 }
 
 export interface MerchantPayload {

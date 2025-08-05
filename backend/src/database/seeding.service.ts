@@ -34,6 +34,7 @@ export class SeedingService implements OnModuleInit {
                 email: 'admin@example.com',
                 username: this.configService.get<string>('SEED_ADMIN_USERNAME'),
                 password: this.configService.get<string>('SEED_ADMIN_PASSWORD'),
+                isSuperAdmin: true,
             });
 
             await this.adminRepository.save(newAdmin);

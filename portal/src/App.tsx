@@ -14,6 +14,7 @@ import KiosksPage from './pages/admin/KiosksPage';
 import MerchantsPage from './pages/admin/MerchantsPage';
 import PlacesPage from './pages/admin/PlacesPage';
 import AdsPage from './pages/admin/AdsPage';
+import AdminsPage from './pages/admin/AdminsPage';
 import StoreInformationPage from './pages/merchant/StoreInformationPage';
 import MerchantProfilePage from './pages/merchant/MerchantProfilePage';
 
@@ -32,6 +33,7 @@ function App() {
             <Route path="recent-changes" element={<RecentChangesPage />} />
             <Route path="places" element={<PlacesPage />} />
             <Route path="merchants" element={<MerchantsPage />} />
+            <Route path="admins" element={<AdminsPage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="floor-plans" element={<FloorPlansPage />} />
             <Route path="kiosks" element={<KiosksPage />} />

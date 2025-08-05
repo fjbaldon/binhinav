@@ -3,7 +3,6 @@ import { AdminsService } from 'src/admins/admins.service';
 import { MerchantsService } from 'src/merchants/merchants.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-
 @Injectable()
 export class AuthService {
     constructor(
@@ -35,6 +34,10 @@ export class AuthService {
             role: user.role,
             name: user.name,
         };
+
+        if (user.role === 'admin') {
+            payload.isSuperAdmin = user.isSuperAdmin;
+        }
 
         if (user.role === 'merchant' && user.place) {
             payload.placeId = user.place.id;

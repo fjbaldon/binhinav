@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
-    History, TvMinimal, UserCircle, Building, Users, LayoutDashboard, Shapes, LogOut, Clapperboard, HomeIcon
+    History, TvMinimal, UserCircle, Building, Users, LayoutDashboard, Shapes, LogOut, Clapperboard, HomeIcon, Shield
 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 
@@ -15,6 +15,7 @@ const overviewNavItems = [
 const managementNavItems = [
     { title: "Places", href: "/admin/places", icon: Building },
     { title: "Merchants", href: "/admin/merchants", icon: Users },
+    { title: "Admins", href: "/admin/admins", icon: Shield, superAdminOnly: true },
     { title: "Categories", href: "/admin/categories", icon: Shapes },
     { title: "Floor Plans", href: "/admin/floor-plans", icon: LayoutDashboard },
     { title: "Kiosks", href: "/admin/kiosks", icon: TvMinimal },
@@ -62,7 +63,12 @@ export function AdminLayout() {
 
                     {overviewNavItems.map(renderNavLink)}
                     <Separator className="my-1" />
-                    {managementNavItems.map(renderNavLink)}
+                    {managementNavItems.map(item => {
+                        if (item.superAdminOnly && !user?.isSuperAdmin) {
+                            return null;
+                        }
+                        return renderNavLink(item);
+                    })}
                 </nav>
                 <div className="mt-auto p-4">
                     <nav className="flex flex-col items-start gap-2">
