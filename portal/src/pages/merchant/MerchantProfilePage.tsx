@@ -103,7 +103,7 @@ export default function MerchantProfilePage() {
     return (
         <div>
             <div className="mb-6">
-                <h2 className="text-3xl font-bold tracking-tight">My Profile</h2>
+                <h2 className="text-3xl font-bold tracking-tight">Profile</h2>
                 <p className="text-muted-foreground">Update your personal details and login information.</p>
             </div>
             <Card>
