@@ -19,7 +19,11 @@ export function AdOverlay({ onInteraction }: AdOverlayProps) {
         staleTime: 1000 * 60,
     });
 
-    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+    const [emblaRef, emblaApi] = useEmblaCarousel({
+        loop: true,
+        watchDrag: false,
+    });
+
     const imageTimerRef = useRef<number | null>(null);
     const [isExiting, setIsExiting] = useState(false);
 
@@ -62,31 +66,41 @@ export function AdOverlay({ onInteraction }: AdOverlayProps) {
         }
     }, [ads, playActiveVideo]);
 
-    const handleInteraction = useCallback(() => {
-        if (imageTimerRef.current) clearTimeout(imageTimerRef.current);
-    }, []);
-
-    useEffect(() => {
-        if (!emblaApi || ads.length === 0) return;
-        emblaApi.on('select', handleSelect);
-        emblaApi.on('pointerDown', handleInteraction);
-        handleSelect(emblaApi);
-        return () => {
-            emblaApi.off('select', handleSelect);
-            emblaApi.off('pointerDown', handleInteraction);
-            if (imageTimerRef.current) clearTimeout(imageTimerRef.current);
-        };
-    }, [emblaApi, ads, handleSelect, handleInteraction]);
-
     const handleExit = useCallback(() => {
         if (isExiting) return;
-
         setIsExiting(true);
         setTimeout(() => {
             onInteraction();
         }, 300);
     }, [onInteraction, isExiting]);
 
+    useEffect(() => {
+        if (!emblaApi || ads.length === 0) return;
+
+        const handleVisibilityChange = () => {
+            if (!emblaApi) return;
+            if (document.visibilityState === 'hidden') {
+                if (imageTimerRef.current) clearTimeout(imageTimerRef.current);
+                const activeVideo = emblaApi.slideNodes()[emblaApi.selectedScrollSnap()]?.querySelector('video');
+                activeVideo?.pause();
+            } else if (document.visibilityState === 'visible') {
+                handleSelect(emblaApi);
+            }
+        };
+
+        emblaApi.on('select', handleSelect);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        if (document.visibilityState === 'visible') {
+            handleSelect(emblaApi);
+        }
+
+        return () => {
+            emblaApi.off('select', handleSelect);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (imageTimerRef.current) clearTimeout(imageTimerRef.current);
+        };
+    }, [emblaApi, ads, handleSelect]);
 
     if (isLoading || ads.length === 0) {
         return null;
