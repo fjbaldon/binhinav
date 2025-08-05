@@ -41,15 +41,13 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     const { data: kioskData, isLoading: isLoadingKiosk } = useQuery<KioskData>({
         queryKey: ['kioskData', kioskId],
         queryFn: () => {
-            if (!kioskId) {
-                throw new Error("Kiosk ID is missing");
-            }
+            if (!kioskId) throw new Error("Kiosk ID is missing");
             return api.getKioskData(kioskId);
         },
         enabled: !!kioskId,
-        retry: false,
+        retry: 2,
         refetchOnWindowFocus: false,
-        staleTime: Infinity,
+        refetchInterval: 30000,
     });
 
     useEffect(() => {
@@ -154,12 +152,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
                         <p className="text-base text-muted-foreground">This store is on a different floor.</p>
                     </div>
                 </div>,
-                {
-                    duration: 5000,
-                    classNames: {
-                        toast: 'bg-secondary border-border p-6',
-                    },
-                }
+                { duration: 5000, classNames: { toast: 'bg-secondary border-border p-6' } }
             );
         }
 
@@ -195,17 +188,11 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         performFloorTransition(place, showAction);
     }, [currentFloorPlanId]);
 
-
     useEffect(() => {
-        if (isFetchingPlaces && isFilterActive) {
-            setSearchStatus('loading');
-        } else if (isFilterActive) {
-            setSearchStatus(filteredPlaces && filteredPlaces.length > 0 ? 'has-results' : 'no-results');
-        } else {
-            setSearchStatus('idle');
-        }
+        if (isFetchingPlaces && isFilterActive) setSearchStatus('loading');
+        else if (isFilterActive) setSearchStatus(filteredPlaces && filteredPlaces.length > 0 ? 'has-results' : 'no-results');
+        else setSearchStatus('idle');
     }, [isFetchingPlaces, isFilterActive, filteredPlaces]);
-
 
     useEffect(() => {
         if (isInactive) {
@@ -217,34 +204,26 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     }, [isInactive]);
 
     const currentFloorPlan = useMemo(() => floorPlans.find(fp => fp.id === currentFloorPlanId), [floorPlans, currentFloorPlanId]);
-
-    const pinsToDisplay = useMemo(() => {
-        return allPlaces.filter(p => p.floorPlan.id === currentFloorPlanId);
-    }, [allPlaces, currentFloorPlanId]);
+    const pinsToDisplay = useMemo(() => allPlaces.filter(p => p.floorPlan.id === currentFloorPlanId), [allPlaces, currentFloorPlanId]);
 
     const handleCategoryToggle = (categoryId: string | null) => {
         setSearchTerm('');
         setIsAnimatingPath(false);
         if (categoryId === null) {
             setActiveCategoryIds([]);
-            return;
+        } else {
+            setActiveCategoryIds(prevIds =>
+                prevIds.includes(categoryId)
+                    ? prevIds.filter(id => id !== categoryId)
+                    : [...prevIds, categoryId]
+            );
         }
-        setActiveCategoryIds(prevIds =>
-            prevIds.includes(categoryId)
-                ? prevIds.filter(id => id !== categoryId)
-                : [...prevIds, categoryId]
-        );
     };
 
     const handleCategorySelectFromSearch = (categoryId: string) => {
         setSearchTerm('');
         setIsAnimatingPath(false);
-        setActiveCategoryIds(prevIds => {
-            if (prevIds.includes(categoryId)) {
-                return prevIds;
-            }
-            return [...prevIds, categoryId];
-        });
+        setActiveCategoryIds([categoryId]);
     };
 
     const handleSearchChange = (term: string) => {
@@ -267,7 +246,6 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     const handleLocateKiosk = () => {
         if (!kioskData) return;
-
         const locateAction = () => {
             setSelectedPlace(null);
             setSearchSelectedItem(null);
@@ -289,12 +267,8 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
     };
 
     const handleMapInteraction = useCallback(() => {
-        if (isAnimatingPath) {
-            setIsAnimatingPath(false);
-        }
-        if (searchSelectedItem) {
-            setSearchSelectedItem(null);
-        }
+        if (isAnimatingPath) setIsAnimatingPath(false);
+        if (searchSelectedItem) setSearchSelectedItem(null);
     }, [isAnimatingPath, searchSelectedItem]);
 
     const handleMapTransform = useCallback((state: { scale: number; positionX: number; positionY: number }) => {
@@ -308,11 +282,7 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
         }
     }, [viewState]);
 
-    const searchResultsForSidebar = useMemo(() => {
-        if (!isFilterActive) return [];
-        return filteredPlaces || [];
-    }, [isFilterActive, filteredPlaces]);
-
+    const searchResultsForSidebar = useMemo(() => isFilterActive ? (filteredPlaces || []) : [], [isFilterActive, filteredPlaces]);
     const isSearchMode = searchTerm.length > 0;
 
     if (isLoadingKiosk) return <div className="flex items-center justify-center h-screen text-lg">Initializing Kiosk...</div>;
@@ -320,53 +290,13 @@ export default function HomePage({ kioskId }: { kioskId: string }) {
 
     return (
         <main className="relative h-screen w-screen p-6 flex flex-row gap-6 bg-background overflow-hidden">
-            <Sidebar
-                categories={categories}
-                activeCategoryIds={activeCategoryIds}
-                onCategoryToggle={handleCategoryToggle}
-                onCategorySelectFromSearch={handleCategorySelectFromSearch}
-                searchTerm={searchTerm}
-                onSearchChange={handleSearchChange}
-                searchStatus={searchStatus}
-                searchResults={isSearchMode ? searchResultsForSidebar : (filteredPlaces || [])}
-                onSearchResultClick={handleSearchResultSelect}
-                isFilterActive={isFilterActive}
-                onResetSearch={resetView}
-            />
+            <Sidebar categories={categories} activeCategoryIds={activeCategoryIds} onCategoryToggle={handleCategoryToggle} onCategorySelectFromSearch={handleCategorySelectFromSearch} searchTerm={searchTerm} onSearchChange={handleSearchChange} searchStatus={searchStatus} searchResults={isSearchMode ? searchResultsForSidebar : (filteredPlaces || [])} onSearchResultClick={handleSearchResultSelect} isFilterActive={isFilterActive} onResetSearch={resetView} />
             <div className="relative flex-1 h-full rounded-2xl overflow-hidden group">
-                <MapView
-                    kiosk={kioskData}
-                    floorPlan={currentFloorPlan}
-                    places={pinsToDisplay}
-                    highlightedPlaces={isFilterActive ? (filteredPlaces ?? []) : allPlaces}
-                    isFilterActive={isFilterActive}
-                    selectedPlace={selectedPlace}
-                    searchSelectedItem={searchSelectedItem}
-                    onPlaceSelect={handlePlaceSelect}
-                    mapControllerRef={mapControllerRef}
-                    isLocatingKiosk={isLocatingKiosk}
-                    isAnimatingPath={isAnimatingPath}
-                    onMapInteraction={handleMapInteraction}
-                    currentScale={currentMapScale}
-                    onTransform={handleMapTransform}
-                    onKioskSelect={handleLocateKiosk}
-                >
-                    <MapControls
-                        floorPlans={floorPlans}
-                        currentFloorPlanId={currentFloorPlanId}
-                        onFloorChange={setCurrentFloorPlanId}
-                        kioskFloorId={kioskData.floorPlan.id}
-                        floorResultCounts={floorResultCounts}
-                        onLocateKiosk={handleLocateKiosk}
-                    />
+                <MapView kiosk={kioskData} floorPlan={currentFloorPlan} places={pinsToDisplay} highlightedPlaces={isFilterActive ? (filteredPlaces || []) : allPlaces} isFilterActive={isFilterActive} selectedPlace={selectedPlace} searchSelectedItem={searchSelectedItem} onPlaceSelect={handlePlaceSelect} mapControllerRef={mapControllerRef} isLocatingKiosk={isLocatingKiosk} isAnimatingPath={isAnimatingPath} onMapInteraction={handleMapInteraction} currentScale={currentMapScale} onTransform={handleMapTransform} onKioskSelect={handleLocateKiosk} >
+                    <MapControls floorPlans={floorPlans} currentFloorPlanId={currentFloorPlanId} onFloorChange={setCurrentFloorPlanId} kioskFloorId={kioskData.floorPlan.id} floorResultCounts={floorResultCounts} onLocateKiosk={handleLocateKiosk} />
                 </MapView>
                 <FloorTransitionOverlay isOpen={!!transitioningToFloor} floorName={transitioningToFloor || ''} />
-                <PlaceDetailSheet
-                    place={selectedPlace}
-                    isOpen={isDetailSheetOpen}
-                    onOpenChange={handleSheetOpenChange}
-                    onShowOnMap={handleShowOnMap}
-                />
+                <PlaceDetailSheet place={selectedPlace} isOpen={isDetailSheetOpen} onOpenChange={handleSheetOpenChange} onShowOnMap={handleShowOnMap} />
             </div>
             {isInactive && <AdOverlay onInteraction={resetView} />}
         </main>
