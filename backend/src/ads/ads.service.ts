@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
-import { Ad, AdType } from './entities/ad.entity'; // Import AdType
+import { Ad, AdType } from './entities/ad.entity';
 import { CreateAdDto } from './dto/create-ad.dto';
 import { UpdateAdDto } from './dto/update-ad.dto';
 import { deleteFile } from '../shared/utils/file-helpers';
@@ -134,6 +134,17 @@ export class AdsService {
                     .where(`"displayOrder" > :deletedOrder`, { deletedOrder: adToDelete.displayOrder })
                     .execute();
             }
+        });
+    }
+
+    async reorder(ids: string[]): Promise<void> {
+        await this.entityManager.transaction(async (transactionalEntityManager) => {
+            const adRepository = transactionalEntityManager.getRepository(Ad);
+            await Promise.all(
+                ids.map((id, index) => {
+                    return adRepository.update(id, { displayOrder: index + 1 });
+                })
+            );
         });
     }
 }

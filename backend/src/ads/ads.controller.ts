@@ -19,11 +19,12 @@ import { diskStorage } from 'multer';
 import { AdsService } from './ads.service';
 import { CreateAdDto } from './dto/create-ad.dto';
 import { UpdateAdDto } from './dto/update-ad.dto';
-import { adFileFilter, editFileName } from '../shared/utils/file-helpers'; // Use adFileFilter
+import { adFileFilter, editFileName } from '../shared/utils/file-helpers';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../shared/enums/role.enum';
+import { ReorderAdsDto } from './dto/reorder-ads.dto'; // Import the new DTO
 
 @Controller('ads')
 export class AdsController {
@@ -32,6 +33,14 @@ export class AdsController {
     @Get('active')
     findActiveAds() {
         return this.adsService.findAllActive();
+    }
+    
+    @Patch('reorder')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.Admin)
+    @HttpCode(HttpStatus.OK)
+    reorder(@Body() reorderAdsDto: ReorderAdsDto) {
+        return this.adsService.reorder(reorderAdsDto.ids);
     }
 
     @Post()
