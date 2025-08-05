@@ -145,7 +145,6 @@ export function Sidebar({
                                                             className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
                                                         >
                                                             <DynamicIcon name={category.iconKey} className="mr-4 h-6 w-6 shrink-0 text-primary" />
-                                                            {/* --- THIS IS THE FIX: Added flex-1 container --- */}
                                                             <div className="flex-1 text-left">
                                                                 <span className="font-semibold">{category.name}</span>
                                                             </div>
@@ -200,7 +199,6 @@ export function Sidebar({
                                     className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
                                 >
                                     <Shapes className="mr-4 h-6 w-6 shrink-0" />
-                                    {/* --- THIS IS THE FIX: Added flex-1 container for consistency --- */}
                                     <div className="flex-1 text-left">
                                         <span className={`inline-block transition-transform duration-200 ease-out ${activeCategoryIds.length === 0 ? 'scale-105' : 'scale-100'}`}>
                                             All Categories
@@ -215,7 +213,6 @@ export function Sidebar({
                                         className="w-full h-auto justify-start text-lg py-3 whitespace-normal"
                                     >
                                         <DynamicIcon name={category.iconKey} className="mr-4 h-6 w-6 shrink-0" />
-                                        {/* --- THIS IS THE FIX: Added flex-1 container for consistency --- */}
                                         <div className="flex-1 text-left">
                                             <span className={`inline-block transition-transform duration-200 ease-out ${activeCategoryIds.includes(category.id) ? 'scale-105' : 'scale-100'}`}>
                                                 {category.name}
