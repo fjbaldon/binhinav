@@ -1,4 +1,3 @@
-// portal/src/pages/admin/AdminDashboardPage.tsx
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardData, getSearchTerms, type SearchTermDataPoint } from '@/api/dashboard';
@@ -8,10 +7,12 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pi
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
 
 const CustomBarChartTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -72,6 +73,7 @@ const CustomLegend = (props: any) => {
 const SearchTermsDialog = ({ title, withResults }: { title: string; withResults: boolean; }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [limit, setLimit] = useState(10);
+    const [inputValue, setInputValue] = useState(String(limit));
 
     const { data: terms = [], isLoading } = useQuery({
         queryKey: ['searchTermsDialog', withResults, limit],
@@ -81,6 +83,23 @@ const SearchTermsDialog = ({ title, withResults }: { title: string; withResults:
     });
 
     const maxCount = terms.length > 0 ? terms[0].count : 0;
+
+    const handleApplyLimit = () => {
+        const newLimit = parseInt(inputValue, 10);
+        if (newLimit && newLimit > 0) {
+            setLimit(newLimit);
+            toast.success(`Showing top ${newLimit} results.`);
+        } else {
+            toast.error("Invalid Limit", { description: "Please enter a positive number." });
+            setInputValue(String(limit));
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            setInputValue(String(limit));
+        }
+    }, [isOpen, limit]);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -94,17 +113,18 @@ const SearchTermsDialog = ({ title, withResults }: { title: string; withResults:
                         An extended list of the most frequent search terms.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="flex items-center justify-end py-2">
-                    <Select value={String(limit)} onValueChange={value => setLimit(Number(value))}>
-                        <SelectTrigger className="w-[120px]">
-                            <SelectValue placeholder="Show Top..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="10">Top 10</SelectItem>
-                            <SelectItem value="20">Top 20</SelectItem>
-                            <SelectItem value="30">Top 30</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="flex items-center justify-end gap-2 py-2">
+                    <Label htmlFor="limit-input" className="text-sm text-muted-foreground">Show Top:</Label>
+                    <Input
+                        id="limit-input"
+                        type="number"
+                        min="1"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        className="w-24 h-9"
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleApplyLimit() }}
+                    />
+                    <Button onClick={handleApplyLimit} className="h-9">Apply</Button>
                 </div>
                 <ScrollArea className="h-72 w-full pr-4">
                     {isLoading ? (
@@ -209,7 +229,7 @@ const SearchTermList = ({ title, initialTerms, withResults, emptyText = "No sear
 
 export default function AdminDashboardPage() {
     const [chartColors, setChartColors] = useState<string[]>([]);
-    const NUM_CATEGORIES_IN_CHART = 4; // Show top 4 categories, group the rest into "Other"
+    const NUM_CATEGORIES_IN_CHART = 4;
 
     useEffect(() => {
         document.title = "Dashboard | Binhinav Admin";
