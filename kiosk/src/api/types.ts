@@ -34,7 +34,8 @@ export interface Category {
 export interface Ad {
     id: string;
     name: string;
-    imageUrl: string;
+    type: 'image' | 'video';
+    fileUrl: string;
     isActive: boolean;
-    displayOrder: number;
+    displayOrder: number | null;
 }

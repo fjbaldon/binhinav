@@ -1,4 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, Unique } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+
+export enum AdType {
+    IMAGE = 'image',
+    VIDEO = 'video',
+}
 
 @Entity('ads')
 export class Ad {
@@ -6,14 +11,21 @@ export class Ad {
     id: string;
 
     @Column()
-    name: string; // For admin reference, e.g., "Nike Summer Sale Ad"
+    name: string;
+
+    @Column({
+        type: 'enum',
+        enum: AdType,
+        default: AdType.IMAGE,
+    })
+    type: AdType;
 
     @Column()
-    imageUrl: string; // URL to the ad image
+    fileUrl: string;
 
     @Column({ default: true })
-    isActive: boolean; // Controls whether the ad is shown on kiosks
+    isActive: boolean;
 
     @Column({ type: 'int', nullable: true })
-    displayOrder: number; // To control the sequence of ads, lower numbers first
+    displayOrder: number;
 }

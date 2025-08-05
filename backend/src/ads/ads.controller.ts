@@ -19,7 +19,7 @@ import { diskStorage } from 'multer';
 import { AdsService } from './ads.service';
 import { CreateAdDto } from './dto/create-ad.dto';
 import { UpdateAdDto } from './dto/update-ad.dto';
-import { imageFileFilter, editFileName } from '../shared/utils/file-helpers';
+import { adFileFilter, editFileName } from '../shared/utils/file-helpers'; // Use adFileFilter
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -29,24 +29,21 @@ import { Role } from '../shared/enums/role.enum';
 export class AdsController {
     constructor(private readonly adsService: AdsService) { }
 
-    // --- PUBLIC ENDPOINT FOR KIOSK ---
     @Get('active')
     findActiveAds() {
         return this.adsService.findAllActive();
     }
 
-    // --- ADMIN-ONLY ENDPOINTS ---
-
     @Post()
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.Admin)
     @UseInterceptors(
-        FileInterceptor('image', { // The field name for the image file
+        FileInterceptor('file', {
             storage: diskStorage({
                 destination: './uploads/ads',
                 filename: editFileName,
             }),
-            fileFilter: imageFileFilter,
+            fileFilter: adFileFilter,
         }),
     )
     create(
@@ -54,10 +51,10 @@ export class AdsController {
         @UploadedFile() file: Express.Multer.File,
     ) {
         if (!file) {
-            throw new BadRequestException('Ad image file is required.');
+            throw new BadRequestException('Ad file (image or video) is required.');
         }
-        const imagePath = file.path.replace(/\\/g, '/');
-        return this.adsService.create(createAdDto, imagePath);
+        const filePath = file.path.replace(/\\/g, '/');
+        return this.adsService.create(createAdDto, filePath, file.mimetype);
     }
 
     @Get()
@@ -78,21 +75,22 @@ export class AdsController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.Admin)
     @UseInterceptors(
-        FileInterceptor('image', {
+        FileInterceptor('file', {
             storage: diskStorage({
                 destination: './uploads/ads',
                 filename: editFileName,
             }),
-            fileFilter: imageFileFilter,
+            fileFilter: adFileFilter,
         }),
     )
     update(
         @Param('id', ParseUUIDPipe) id: string,
         @Body() updateAdDto: UpdateAdDto,
-        @UploadedFile() file?: Express.Multer.File, // File is optional on update
+        @UploadedFile() file?: Express.Multer.File,
     ) {
-        const imagePath = file ? file.path.replace(/\\/g, '/') : undefined;
-        return this.adsService.update(id, updateAdDto, imagePath);
+        const filePath = file ? file.path.replace(/\\/g, '/') : undefined;
+        const mimeType = file ? file.mimetype : undefined;
+        return this.adsService.update(id, updateAdDto, filePath, mimeType);
     }
 
     @Delete(':id')

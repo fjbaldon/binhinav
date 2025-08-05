@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2, Eye, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
+import { PlusCircle, Edit, Trash2, Eye, AlertTriangle, Video } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { DataTable } from "@/components/shared/DataTable";
 
@@ -23,7 +23,7 @@ const adSchema = z.object({
     name: z.string().min(2, "Name is required."),
     isActive: z.boolean().default(true),
     displayOrder: z.coerce.number().int().optional(),
-    image: z.any().optional(),
+    file: z.any().optional(),
 });
 
 type AdFormValues = z.infer<typeof adSchema>;
@@ -31,11 +31,11 @@ type AdFormValues = z.infer<typeof adSchema>;
 export default function AdsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingAd, setEditingAd] = useState<Ad | null>(null);
-    const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
+    const [viewingAd, setViewingAd] = useState<Ad | null>(null);
 
     const form = useForm({
         resolver: zodResolver(adSchema),
-        defaultValues: { name: "", isActive: true, displayOrder: undefined, image: undefined },
+        defaultValues: { name: "", isActive: true, displayOrder: undefined, file: undefined },
     });
     const queryClient = useQueryClient();
 
@@ -93,10 +93,10 @@ export default function AdsPage() {
                 name: ad.name,
                 isActive: ad.isActive,
                 displayOrder: ad.displayOrder ?? undefined,
-                image: undefined,
+                file: undefined,
             });
         } else {
-            form.reset({ name: "", isActive: true, displayOrder: undefined, image: undefined });
+            form.reset({ name: "", isActive: true, displayOrder: undefined, file: undefined });
         }
         setIsDialogOpen(true);
     };
@@ -108,12 +108,12 @@ export default function AdsPage() {
         if (data.displayOrder !== undefined && data.displayOrder !== null) {
             formData.append('displayOrder', String(data.displayOrder));
         }
-        if (data.image && data.image[0]) {
-            formData.append('image', data.image[0]);
+        if (data.file && data.file[0]) {
+            formData.append('file', data.file[0]);
         }
 
-        if (!editingAd && (!data.image || !data.image[0])) {
-            form.setError('image', { message: 'Image is required for new ads.' });
+        if (!editingAd && (!data.file || !data.file[0])) {
+            form.setError('file', { message: 'Image or video file is required for new ads.' });
             return;
         }
 
@@ -130,11 +130,18 @@ export default function AdsPage() {
 
     const columns: ColumnDef<Ad>[] = [
         {
-            accessorKey: "imageUrl",
-            header: "Image",
-            cell: ({ row }) => (
-                <img src={getAssetUrl(row.original.imageUrl)} alt={row.original.name} className="h-16 w-28 object-contain rounded-md border" />
-            )
+            accessorKey: "fileUrl",
+            header: "Preview",
+            cell: ({ row }) => {
+                const ad = row.original;
+                return ad.type === 'video' ? (
+                    <div className="h-16 w-28 rounded-md border bg-muted flex items-center justify-center">
+                        <Video className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                ) : (
+                    <img src={getAssetUrl(ad.fileUrl)} alt={ad.name} className="h-16 w-28 object-contain rounded-md border" />
+                )
+            }
         },
         {
             accessorKey: "name",
@@ -160,7 +167,7 @@ export default function AdsPage() {
             header: () => <div className="text-right">Actions</div>,
             cell: ({ row }) => (
                 <div className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => setViewingImageUrl(row.original.imageUrl)} disabled={deleteMutation.isPending}>
+                    <Button variant="ghost" size="icon" onClick={() => setViewingAd(row.original)} disabled={deleteMutation.isPending}>
                         <Eye className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(row.original)} disabled={deleteMutation.isPending}>
@@ -220,14 +227,14 @@ export default function AdsPage() {
                             <p className="text-sm text-red-500">{form.formState.errors.name?.message}</p>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="image">Ad Image</Label>
-                            <Input id="image" type="file" accept="image/jpeg,image/png,image/gif,image/svg+xml" {...form.register("image")} />
+                            <Label htmlFor="file">Ad File (Image or Video)</Label>
+                            <Input id="file" type="file" accept="image/*,video/mp4,video/webm,video/quicktime" {...form.register("file")} />
                             <div className="flex items-start gap-2 text-xs text-muted-foreground p-2 bg-muted/50 rounded-md border mt-2">
                                 <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                                <p>For the best display on the kiosk, please upload an image with a 16:9 aspect ratio (e.g., 1920x1080 pixels). Other ratios may be cropped.</p>
+                                <p>For the best display on the kiosk, please upload a file with a 16:9 aspect ratio (e.g., 1920x1080 pixels).</p>
                             </div>
-                            {editingAd && <p className="text-sm text-muted-foreground mt-1">Leave blank to keep the current image.</p>}
-                            <p className="text-sm text-red-500">{typeof form.formState.errors.image?.message === "string" ? form.formState.errors.image.message : ""}</p>
+                            {editingAd && <p className="text-sm text-muted-foreground mt-1">Leave blank to keep the current file.</p>}
+                            <p className="text-sm text-red-500">{typeof form.formState.errors.file?.message === "string" ? form.formState.errors.file.message : ""}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -265,17 +272,15 @@ export default function AdsPage() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={!!viewingImageUrl} onOpenChange={(isOpen) => !isOpen && setViewingImageUrl(null)}>
+            <Dialog open={!!viewingAd} onOpenChange={(isOpen) => !isOpen && setViewingAd(null)}>
                 <DialogContent className="max-w-4xl p-4">
-                    <DialogHeader>
-                        <DialogTitle>Ad Preview</DialogTitle>
-                    </DialogHeader>
+                    <DialogHeader><DialogTitle>Ad Preview</DialogTitle></DialogHeader>
                     <div className="py-4">
-                        <img
-                            src={getAssetUrl(viewingImageUrl)}
-                            alt="Ad Preview"
-                            className="w-full h-auto max-h-[80vh] object-contain rounded-md"
-                        />
+                        {viewingAd?.type === 'video' ? (
+                            <video src={getAssetUrl(viewingAd.fileUrl)} controls autoPlay className="w-full h-auto max-h-[80vh] object-contain rounded-md" />
+                        ) : viewingAd?.type === 'image' ? (
+                            <img src={getAssetUrl(viewingAd.fileUrl)} alt="Ad Preview" className="w-full h-auto max-h-[80vh] object-contain rounded-md" />
+                        ) : null}
                     </div>
                 </DialogContent>
             </Dialog>

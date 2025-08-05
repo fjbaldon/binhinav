@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
-import { Ad } from './entities/ad.entity';
+import { Ad, AdType } from './entities/ad.entity'; // Import AdType
 import { CreateAdDto } from './dto/create-ad.dto';
 import { UpdateAdDto } from './dto/update-ad.dto';
 import { deleteFile } from '../shared/utils/file-helpers';
@@ -14,16 +14,16 @@ export class AdsService {
     constructor(
         @InjectRepository(Ad)
         private adsRepository: Repository<Ad>,
-        private readonly entityManager: EntityManager, // Inject EntityManager for transactions
+        private readonly entityManager: EntityManager,
     ) { }
 
-    async create(createAdDto: CreateAdDto, imagePath: string): Promise<Ad> {
+    async create(createAdDto: CreateAdDto, filePath: string, mimeType: string): Promise<Ad> {
         return this.entityManager.transaction(async (manager) => {
             const adRepository = manager.getRepository(Ad);
             const { displayOrder, ...rest } = createAdDto;
+            const type = mimeType.startsWith('video') ? AdType.VIDEO : AdType.IMAGE;
 
             if (displayOrder !== null && displayOrder !== undefined) {
-                // If a display order is specified, make room by shifting subsequent ads
                 await adRepository
                     .createQueryBuilder()
                     .update(Ad)
@@ -34,11 +34,11 @@ export class AdsService {
 
             const newAd = adRepository.create({
                 ...rest,
-                imageUrl: imagePath,
+                type,
+                fileUrl: filePath,
                 displayOrder,
             });
 
-            // If no display order was given, place it at the end
             if (displayOrder === null || displayOrder === undefined) {
                 const maxOrderResult = await adRepository
                     .createQueryBuilder('ad')
@@ -51,14 +51,12 @@ export class AdsService {
         });
     }
 
-    // For the admin dashboard to see all ads (active and inactive)
     findAllForAdmin(): Promise<Ad[]> {
         return this.adsRepository.createQueryBuilder('ad')
             .orderBy('ad.displayOrder', 'ASC', 'NULLS LAST')
             .getMany();
     }
 
-    // For the public kiosk to get only the active ads
     findAllActive(): Promise<Ad[]> {
         return this.adsRepository.createQueryBuilder('ad')
             .where('ad.isActive = :isActive', { isActive: true })
@@ -74,7 +72,7 @@ export class AdsService {
         return ad;
     }
 
-    async update(id: string, updateAdDto: UpdateAdDto, newImagePath?: string): Promise<Ad> {
+    async update(id: string, updateAdDto: UpdateAdDto, newFilePath?: string, newMimeType?: string): Promise<Ad> {
         return this.entityManager.transaction(async (manager) => {
             const adRepository = manager.getRepository(Ad);
             const adToUpdate = await adRepository.findOneBy({ id });
@@ -87,17 +85,12 @@ export class AdsService {
             const newOrder = updateAdDto.displayOrder;
 
             if (newOrder !== undefined && newOrder !== null && newOrder !== originalOrder) {
-                // The display order is being changed, we need to shift other ads
                 if (newOrder < originalOrder) {
-                    // Moving up in the list (e.g., from 5 to 2)
-                    // Increment ads from new position up to old position
                     await adRepository.createQueryBuilder().update(Ad)
                         .set({ displayOrder: () => `"displayOrder" + 1` })
                         .where(`"displayOrder" >= :newOrder AND "displayOrder" < :originalOrder`, { newOrder, originalOrder })
                         .execute();
-                } else { // newOrder > originalOrder
-                    // Moving down in the list (e.g., from 2 to 5)
-                    // Decrement ads from old position down to new position
+                } else {
                     await adRepository.createQueryBuilder().update(Ad)
                         .set({ displayOrder: () => `"displayOrder" - 1` })
                         .where(`"displayOrder" > :originalOrder AND "displayOrder" <= :newOrder`, { originalOrder, newOrder })
@@ -105,19 +98,17 @@ export class AdsService {
                 }
             }
 
-            // If a new image is being uploaded, delete the old one
-            if (newImagePath && adToUpdate.imageUrl) {
-                await deleteFile(adToUpdate.imageUrl);
+            if (newFilePath && adToUpdate.fileUrl) {
+                await deleteFile(adToUpdate.fileUrl);
             }
 
             const updatePayload: any = { ...updateAdDto };
-            if (newImagePath) {
-                updatePayload.imageUrl = newImagePath;
+            if (newFilePath) {
+                updatePayload.fileUrl = newFilePath;
+                updatePayload.type = newMimeType?.startsWith('video') ? AdType.VIDEO : AdType.IMAGE;
             }
 
-            // Merge changes into the entity
             Object.assign(adToUpdate, updatePayload);
-
             return adRepository.save(adToUpdate);
         });
     }
@@ -131,18 +122,18 @@ export class AdsService {
                 throw new NotFoundException(`Ad with ID "${id}" not found`);
             }
 
-            // Delete the associated image file from the server
-            if (adToDelete.imageUrl) {
-                await deleteFile(adToDelete.imageUrl);
+            if (adToDelete.fileUrl) {
+                await deleteFile(adToDelete.fileUrl);
             }
 
             await adRepository.remove(adToDelete);
 
-            // Close the gap left by the deleted ad
-            await adRepository.createQueryBuilder().update(Ad)
-                .set({ displayOrder: () => `"displayOrder" - 1` })
-                .where(`"displayOrder" > :deletedOrder`, { deletedOrder: adToDelete.displayOrder })
-                .execute();
+            if (adToDelete.displayOrder) {
+                await adRepository.createQueryBuilder().update(Ad)
+                    .set({ displayOrder: () => `"displayOrder" - 1` })
+                    .where(`"displayOrder" > :deletedOrder`, { deletedOrder: adToDelete.displayOrder })
+                    .execute();
+            }
         });
     }
 }
