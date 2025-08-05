@@ -20,6 +20,9 @@ export class Merchant {
   @Column({ unique: true })
   username: string;
 
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  email: string | null;
+
   @Column()
   password: string;
 

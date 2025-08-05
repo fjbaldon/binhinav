@@ -2,16 +2,14 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { Store, KeyRound, LogOut } from 'lucide-react';
+import { Store, UserCircle, LogOut } from 'lucide-react';
 
-// Main navigation for the merchant panel
 const mainNavItems = [
     { title: "Store Information", href: "/merchant/store-information", icon: Store },
 ];
 
-// Settings/account related navigation
 const settingsNavItems = [
-    { title: "Credentials", href: "/merchant/credentials", icon: KeyRound },
+    { title: "Profile", href: "/merchant/profile", icon: UserCircle },
 ];
 
 export function MerchantLayout() {
@@ -23,7 +21,6 @@ export function MerchantLayout() {
         navigate("/login");
     };
 
-    // Helper to render nav links to avoid repetition
     const renderNavLink = (item: { title: string, href: string, icon: React.ElementType }) => (
         <NavLink
             key={item.href}
@@ -46,7 +43,7 @@ export function MerchantLayout() {
                         <img src="/binhinav-logo.svg" alt="Binhinav Logo" className="w-10 h-10 mr-2" />
                         <div>
                             <h1 className="text-xl font-bold tracking-tight">binhinav</h1>
-                            <p className="text-sm text-muted-foreground">{user?.username || 'Merchant Panel'}</p>
+                            <p className="text-sm text-muted-foreground">{user?.name || user?.username || 'Merchant Panel'}</p>
                         </div>
                     </div>
                     {mainNavItems.map(renderNavLink)}

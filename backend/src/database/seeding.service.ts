@@ -30,6 +30,8 @@ export class SeedingService implements OnModuleInit {
             this.logger.log('No admins found. Seeding initial admin...');
 
             const newAdmin = this.adminRepository.create({
+                name: 'Default Admin',
+                email: 'admin@example.com',
                 username: this.configService.get<string>('SEED_ADMIN_USERNAME'),
                 password: this.configService.get<string>('SEED_ADMIN_PASSWORD'),
             });
@@ -42,7 +44,6 @@ export class SeedingService implements OnModuleInit {
         const categoryCount = await this.categoryRepository.count();
         if (categoryCount === 0) {
             this.logger.log('No categories found. Seeding initial categories...');
-            // iconKeys match the lucide-react names from the frontend
             const defaultCategories = [
                 { name: 'General Merchandise', iconKey: 'Store' },
                 { name: 'Food & Beverage', iconKey: 'Utensils' },

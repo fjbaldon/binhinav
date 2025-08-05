@@ -6,7 +6,7 @@ type User = {
     userId: string;
     username: string;
     role: 'admin' | 'merchant';
-    // Add other properties from your JWT payload, e.g., placeId for merchants
+    name: string;
     placeId?: string;
 };
 
@@ -16,32 +16,36 @@ type AuthState = {
     isAuthenticated: boolean;
     login: (token: string) => Promise<void>;
     logout: () => void;
+    updateUser: (partialUser: Partial<User>) => void;
 };
 
 export const useAuth = create<AuthState>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             token: null,
             user: null,
             isAuthenticated: false,
             login: async (token: string) => {
                 set({ token, isAuthenticated: true });
                 try {
-                    // After setting the token, fetch the user's profile
                     const response = await apiClient.get('/auth/profile');
                     set({ user: response.data });
                 } catch (error) {
                     console.error("Failed to fetch user profile", error);
-                    // If profile fetch fails, log out
-                    get().logout();
+                    set({ token: null, user: null, isAuthenticated: false });
                 }
             },
             logout: () => {
                 set({ token: null, user: null, isAuthenticated: false });
             },
+            updateUser: (partialUser: Partial<User>) => {
+                set((state) => ({
+                    user: state.user ? { ...state.user, ...partialUser } : null,
+                }));
+            },
         }),
         {
-            name: 'auth-storage', // name of the item in the storage (must be unique)
+            name: 'auth-storage',
         }
     )
 );

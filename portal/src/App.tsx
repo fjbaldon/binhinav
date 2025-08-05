@@ -7,7 +7,7 @@ import { MerchantLayout } from './components/layout/MerchantLayout';
 import LoginPage from './pages/LoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import RecentChangesPage from './pages/admin/RecentChangesPage';
-import AdminCredentialsPage from './pages/admin/AdminCredentialsPage';
+import AdminProfilePage from './pages/admin/AdminProfilePage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 import FloorPlansPage from './pages/admin/FloorPlansPage';
 import KiosksPage from './pages/admin/KiosksPage';
@@ -15,7 +15,7 @@ import MerchantsPage from './pages/admin/MerchantsPage';
 import PlacesPage from './pages/admin/PlacesPage';
 import AdsPage from './pages/admin/AdsPage';
 import StoreInformationPage from './pages/merchant/StoreInformationPage';
-import MerchantCredentialsPage from './pages/merchant/MerchantCredentialsPage';
+import MerchantProfilePage from './pages/merchant/MerchantProfilePage';
 
 function App() {
   const { isAuthenticated, user } = useAuth();
@@ -36,7 +36,7 @@ function App() {
             <Route path="floor-plans" element={<FloorPlansPage />} />
             <Route path="kiosks" element={<KiosksPage />} />
             <Route path="ads" element={<AdsPage />} />
-            <Route path="credentials" element={<AdminCredentialsPage />} />
+            <Route path="profile" element={<AdminProfilePage />} />
           </Route>
         </Route>
 
@@ -44,7 +44,7 @@ function App() {
           <Route path="/merchant" element={<MerchantLayout />}>
             <Route index element={<Navigate to="store-information" replace />} />
             <Route path="store-information" element={<StoreInformationPage />} />
-            <Route path="credentials" element={<MerchantCredentialsPage />} />
+            <Route path="profile" element={<MerchantProfilePage />} />
           </Route>
         </Route>
 

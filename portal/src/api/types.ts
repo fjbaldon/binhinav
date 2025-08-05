@@ -1,8 +1,8 @@
-// --- Core Entities ---
-
 export interface Admin {
     id: string;
+    name: string;
     username: string;
+    email: string | null;
 }
 
 export interface Category {
@@ -16,7 +16,6 @@ export interface FloorPlan {
     id: string;
     name: string;
     imageUrl: string;
-    // For displaying usage counts in the table
     places?: Place[];
     kiosks?: Kiosk[];
 }
@@ -25,7 +24,8 @@ export interface Merchant {
     id: string;
     name: string;
     username: string;
-    place?: Place; // Merchants can have an optional place
+    email: string | null;
+    place?: Place;
 }
 
 export interface Place {
@@ -66,10 +66,9 @@ export interface AuditLog {
     timestamp: string;
 }
 
-
-// --- API Payloads (for POST/PATCH requests) ---
-
 export interface AdminPayload {
+    name?: string;
+    email?: string | null;
     username?: string;
     password?: string;
 }
@@ -78,6 +77,7 @@ export interface MerchantPayload {
     name?: string;
     username?: string;
     password?: string;
+    email?: string | null;
 }
 
 export interface PlacePayload {

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
-    History, TvMinimal, KeyRound, Building, Users, LayoutDashboard, Shapes, LogOut, Clapperboard, HomeIcon
+    History, TvMinimal, UserCircle, Building, Users, LayoutDashboard, Shapes, LogOut, Clapperboard, HomeIcon
 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 
@@ -22,7 +22,7 @@ const managementNavItems = [
 ];
 
 const settingsNavItems = [
-    { title: "Credentials", href: "/admin/credentials", icon: KeyRound },
+    { title: "Profile", href: "/admin/profile", icon: UserCircle },
 ];
 
 export function AdminLayout() {
@@ -56,7 +56,7 @@ export function AdminLayout() {
                         <img src="/binhinav-logo.svg" alt="Binhinav Logo" className="w-10 h-10 mr-2" />
                         <div>
                             <h1 className="text-xl font-bold tracking-tight">binhinav</h1>
-                            <p className="text-sm text-muted-foreground">{user?.username || 'Admin Panel'}</p>
+                            <p className="text-sm text-muted-foreground">{user?.name || user?.username || 'Admin Panel'}</p>
                         </div>
                     </div>
 

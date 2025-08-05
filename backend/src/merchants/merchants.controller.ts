@@ -20,6 +20,13 @@ export class MerchantsController {
         return this.merchantsService.findAll();
     }
 
+    @Get('me')
+    @Roles(Role.Merchant)
+    getProfile(@Request() req) {
+        const merchantId = req.user.userId;
+        return this.merchantsService.findOne(merchantId);
+    }
+
     @Patch('me')
     @Roles(Role.Merchant)
     updateProfile(@Request() req, @Body() updateDto: UpdateMerchantDto) {

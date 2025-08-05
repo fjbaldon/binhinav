@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Request, UseGuards } from '@nestjs/common';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { Role } from 'src/shared/enums/role.enum';
@@ -10,6 +10,13 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 @Controller('admins')
 export class AdminsController {
     constructor(private readonly adminsService: AdminsService) { }
+
+    @Get('me')
+    @Roles(Role.Admin)
+    getProfile(@Request() req) {
+        const adminId = req.user.userId;
+        return this.adminsService.findOne(adminId);
+    }
 
     @Patch('me')
     @Roles(Role.Admin)
