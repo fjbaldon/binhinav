@@ -35,6 +35,7 @@ export default function KiosksPage() {
     const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
     const [editingKiosk, setEditingKiosk] = useState<Kiosk | null>(null);
     const [viewingKiosk, setViewingKiosk] = useState<Kiosk | null>(null);
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [tempDetails, setTempDetails] = useState<KioskDetailsFormValues | null>(null);
 
     const form = useForm({ resolver: zodResolver(kioskDetailsSchema) });
@@ -85,6 +86,11 @@ export default function KiosksPage() {
             form.reset({ name: "", floorPlanId: undefined });
         }
         setIsDetailsDialogOpen(true);
+    };
+
+    const handleOpenViewDialog = (kiosk: Kiosk) => {
+        setViewingKiosk(kiosk);
+        setIsViewDialogOpen(true);
     };
 
     const handleDetailsSubmit = (data: KioskDetailsFormValues) => {
@@ -196,7 +202,7 @@ export default function KiosksPage() {
             header: () => <div className="text-right">Actions</div>,
             cell: ({ row }) => (
                 <div className="text-right">
-                    <Button variant="ghost" size="icon" title="View on map" onClick={() => setViewingKiosk(row.original)}><MapPin className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" title="View on map" onClick={() => handleOpenViewDialog(row.original)}><MapPin className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" title="Edit kiosk" onClick={() => handleOpenDetailsDialog(row.original)}><Edit className="h-4 w-4" /></Button>
                     <ConfirmationDialog
                         title="Delete this kiosk?"
@@ -269,8 +275,8 @@ export default function KiosksPage() {
             )}
 
             <ViewLocationDialog
-                isOpen={!!viewingKiosk}
-                onOpenChange={(isOpen) => !isOpen && setViewingKiosk(null)}
+                isOpen={isViewDialogOpen}
+                onOpenChange={setIsViewDialogOpen}
                 item={viewingKiosk}
                 placesOnFloor={placesForViewing}
             />

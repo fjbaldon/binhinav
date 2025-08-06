@@ -48,6 +48,7 @@ export default function PlacesPage() {
     const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
     const [editingPlace, setEditingPlace] = useState<Place | null>(null);
     const [viewingPlace, setViewingPlace] = useState<Place | null>(null);
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [tempDetails, setTempDetails] = useState<PlaceDetailsFormValues | null>(null);
     const [sorting, setSorting] = useState<SortingState>([]);
     const form = useForm({ resolver: zodResolver(placeDetailsSchema) });
@@ -120,6 +121,11 @@ export default function PlacesPage() {
             form.reset({ name: '', floorPlanId: undefined, merchantId: 'none' });
         }
         setIsDetailsDialogOpen(true);
+    };
+
+    const handleOpenViewDialog = (place: Place) => {
+        setViewingPlace(place);
+        setIsViewDialogOpen(true);
     };
 
     const handleDetailsSubmit = (data: PlaceDetailsFormValues) => {
@@ -219,7 +225,7 @@ export default function PlacesPage() {
             header: () => <div className="text-right">Actions</div>,
             cell: ({ row }) => (
                 <div className="text-right">
-                    <Button variant="ghost" size="icon" title="View on map" onClick={() => setViewingPlace(row.original)}><MapPin className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" title="View on map" onClick={() => handleOpenViewDialog(row.original)}><MapPin className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" title="Edit place" onClick={() => handleOpenDetailsDialog(row.original)}><Edit className="h-4 w-4" /></Button>
                     <ConfirmationDialog
                         title="Delete this place?"
@@ -356,8 +362,8 @@ export default function PlacesPage() {
             )}
 
             <ViewLocationDialog
-                isOpen={!!viewingPlace}
-                onOpenChange={(isOpen) => !isOpen && setViewingPlace(null)}
+                isOpen={isViewDialogOpen}
+                onOpenChange={setIsViewDialogOpen}
                 item={viewingPlace}
                 placesOnFloor={placesForViewing}
             />

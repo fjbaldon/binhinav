@@ -73,6 +73,7 @@ export default function AdsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingAd, setEditingAd] = useState<Ad | null>(null);
     const [viewingAd, setViewingAd] = useState<Ad | null>(null);
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [activeAds, setActiveAds] = useState<Ad[]>([]);
     const [draggingAd, setDraggingAd] = useState<Ad | null>(null);
     const tableRef = useRef<HTMLTableElement>(null);
@@ -142,6 +143,11 @@ export default function AdsPage() {
         setIsDialogOpen(true);
     };
 
+    const handleOpenViewDialog = (ad: Ad) => {
+        setViewingAd(ad);
+        setIsViewDialogOpen(true);
+    };
+
     const onSubmit = (data: AdFormValues) => {
         const formData = new FormData();
         formData.append('name', data.name);
@@ -164,7 +170,7 @@ export default function AdsPage() {
         { accessorKey: "fileUrl", header: "Preview", cell: ({ row }) => { const ad = row.original; return ad.type === 'video' ? (<div className="h-16 w-28 rounded-md border bg-muted flex items-center justify-center"><Video className="h-8 w-8 text-muted-foreground" /></div>) : (<img src={getAssetUrl(ad.fileUrl)} alt={ad.name} className="h-16 w-28 object-contain rounded-md border" />) } },
         { accessorKey: "name", header: "Details", cell: ({ row }) => (<div className="align-top"><div className="font-semibold">{row.original.name}</div><div className="text-sm text-muted-foreground">Order: {row.original.displayOrder ?? 'N/A'}</div></div>) },
         { accessorKey: "isActive", header: "Status", cell: ({ row }) => (row.original.isActive ? <Badge className="bg-green-500 hover:bg-green-600">Active</Badge> : <Badge variant="secondary">Inactive</Badge>) },
-        { id: 'actions', header: () => <div className="text-right">Actions</div>, cell: ({ row }) => (<div className="text-right"><Button variant="ghost" size="icon" onClick={() => setViewingAd(row.original)} disabled={deleteMutation.isPending}><Eye className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleOpenDialog(row.original)} disabled={deleteMutation.isPending}><Edit className="h-4 w-4" /></Button><ConfirmationDialog title="Delete this ad?" description="This action cannot be undone and will permanently remove the ad." onConfirm={() => handleDelete(row.original.id)} variant="destructive" confirmText="Delete" triggerButton={<Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}><Trash2 className="h-4 w-4" /></Button>} /></div>) },
+        { id: 'actions', header: () => <div className="text-right">Actions</div>, cell: ({ row }) => (<div className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenViewDialog(row.original)} disabled={deleteMutation.isPending}><Eye className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleOpenDialog(row.original)} disabled={deleteMutation.isPending}><Edit className="h-4 w-4" /></Button><ConfirmationDialog title="Delete this ad?" description="This action cannot be undone and will permanently remove the ad." onConfirm={() => handleDelete(row.original.id)} variant="destructive" confirmText="Delete" triggerButton={<Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}><Trash2 className="h-4 w-4" /></Button>} /></div>) },
     ];
 
     const table = useReactTable({ data: activeAds, columns, getCoreRowModel: getCoreRowModel() });
@@ -305,7 +311,7 @@ export default function AdsPage() {
                     </form>
                 </DialogContent>
             </Dialog>
-            <Dialog open={!!viewingAd} onOpenChange={(isOpen) => !isOpen && setViewingAd(null)}>
+            <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
                 <DialogContent className="max-w-4xl p-4">
                     <DialogHeader><DialogTitle>Ad Preview</DialogTitle></DialogHeader>
                     <div className="py-4">
