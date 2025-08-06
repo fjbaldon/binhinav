@@ -354,7 +354,7 @@ export default function AdminDashboardPage() {
                                                 <XAxis type="number" hide />
                                                 <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={120} />
                                                 <Tooltip content={<CustomBarChartTooltip />} cursor={{ fill: 'transparent' }} />
-                                                <Bar dataKey="count" fill={chartColors[0]} radius={[4, 4, 4, 4]}>
+                                                <Bar dataKey="count" fill={chartColors[0]} radius={[4, 4, 4, 4]} animationDuration={800}>
                                                     <LabelList dataKey="count" position="right" offset={8} className="fill-foreground font-semibold" fontSize={12} />
                                                 </Bar>
                                             </BarChart>
