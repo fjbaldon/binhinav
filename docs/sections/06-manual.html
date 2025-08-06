@@ -1,0 +1,144 @@
+<section id="manual">
+    <h2>User Manual</h2>
+    <p class="section-description">A detailed guide on how to use the Binhinav system, broken down by user role.</p>
+
+    <!-- ADMIN PORTAL MANUAL -->
+    <article id="manual-admin">
+        <h3>Admin Portal: The Command Center</h3>
+        <p>The Admin Portal provides full control over the venue's digital infrastructure. The typical workflow involves
+            setting up the venue's structure first, then managing its day-to-day operations.</p>
+
+        <h4>Initial Venue Setup</h4>
+        <div class="card">
+            <p>Before adding individual stores, the foundational elements of your venue must be configured. This is
+                typically done only once or when major renovations occur.</p>
+            <ol>
+                <li><strong>1. Manage Floor Plans:</strong> Navigate to the "Floor Plans" section. Here you will upload
+                    the 2D map images for each level of your venue (e.g., "Ground Floor", "Level 2"). This is the canvas
+                    on which everything else is placed.</li>
+                <li><strong>2. Create Categories:</strong> Go to the "Categories" section to define the types of places
+                    in your venue (e.g., "Food & Beverage", "Apparel"). Select a distinct icon for each to help visitors
+                    with filtering.</li>
+            </ol>
+            <!-- Screenshot for Floor Plans Page -->
+            <img src="assets/manual-admin-floorplans.png" alt="The Floor Plans management page showing uploaded maps"
+                class="manual-screenshot">
+        </div>
+
+        <h4>Managing Places and Merchants</h4>
+        <div class="card">
+            <p>This is the core operational workflow for adding and managing tenant spaces.</p>
+            <ol>
+                <li><strong>Navigate to "Places" and click "Add New Place".</strong></li>
+                <li><strong>Step 1 - Enter Details:</strong> Provide a name, select the correct Floor Plan, and then
+                    choose how to handle the merchant account:
+                    <ul>
+                        <li><strong>Assign Existing Merchant:</strong> Choose from a list of created merchants who are
+                            not yet assigned to a place.</li>
+                        <li><strong>Create New Merchant:</strong> Select this to create a new merchant account (name,
+                            username, password) that will be automatically linked to this new place.</li>
+                        <li><strong>Leave Unassigned:</strong> Create the place now and assign a merchant later.</li>
+                    </ul>
+                </li>
+                <li><strong>Step 2 - Set Location:</strong> After submitting details, you will be prompted to click on
+                    the floor plan map to place a pin, precisely marking the store's location.</li>
+                <li><strong>Editing:</strong> You can edit any place's details or location at any time from the "Places"
+                    page.</li>
+            </ol>
+            <!-- Visual Guide for Adding a Place -->
+            <div class="visual-guide">
+                <div class="visual-guide-step">
+                    <img src="assets/manual-admin-add-place-step1.png"
+                        alt="Admin portal dialog for entering place details.">
+                    <p><span>1</span> Enter Place Details</p>
+                </div>
+                <div class="visual-guide-step">
+                    <img src="assets/manual-admin-add-place-step2.png"
+                        alt="Admin portal map for setting a place's location.">
+                    <p><span>2</span> Set Location on Map</p>
+                </div>
+            </div>
+        </div>
+
+        <h4>Day-to-Day Operations</h4>
+        <div class="card">
+            <ul>
+                <li><strong>Kiosks:</strong> In the "Kiosks" section, create entries for your physical devices. A unique
+                    **Pairing Key** is generated for each, which is used for the one-time setup on the physical kiosk.
+                </li>
+                <li><strong>Ads:</strong> Manage the promotional images and videos that appear on the kiosk's idle
+                    screen. You can activate/deactivate ads and reorder them via drag-and-drop.</li>
+                <li><strong>Dashboard & Recent Changes:</strong> Regularly check the Dashboard for valuable analytics on
+                    visitor searches and monitor the "Recent Changes" page to see what updates merchants have made to
+                    their listings.</li>
+            </ul>
+        </div>
+    </article>
+
+    <!-- MERCHANT PORTAL MANUAL -->
+    <article id="manual-merchant">
+        <h3>Merchant Portal: Your Digital Storefront</h3>
+        <p>The Merchant Portal is a simple yet powerful tool that gives you direct control over how your business is
+            represented in the directory.</p>
+
+        <h4>Updating Your Store Information</h4>
+        <div class="card">
+            <p>After logging in, you will land on the "Store Information" page. From here, you can manage every aspect
+                of your public listing:</p>
+            <ul>
+                <li><strong>Logo & Cover Photo:</strong> Hover over the images and click the camera icon to upload new
+                    files. A square logo and a wide (16:9) cover photo are recommended.</li>
+                <li><strong>Store Details:</strong> Click the "Edit" button in the main header to change your store's
+                    name or assign it to a category.</li>
+                <li><strong>About & Business Hours:</strong> Use the "Edit" buttons on the corresponding cards to update
+                    your store's description and opening times. This ensures visitors always have the most accurate
+                    information.</li>
+            </ul>
+            <!-- Screenshot for Merchant Portal -->
+            <img src="assets/manual-merchant-dashboard.png"
+                alt="The Merchant Portal dashboard highlighting the editable sections" class="manual-screenshot">
+        </div>
+    </article>
+
+    <!-- KIOSK APPLICATION MANUAL -->
+    <article id="manual-kiosk">
+        <h3>Kiosk Application: The Visitor Experience</h3>
+        <p>The kiosk is the interactive heart of Binhinav, designed for simplicity and ease of use.</p>
+
+        <h4>For the Administrator: One-Time Setup</h4>
+        <div class="card">
+            <p>When a new kiosk device is turned on for the first time, it will be in "Provisioning Mode".</p>
+            <ol>
+                <li>In the Admin Portal, create a new Kiosk entry to generate a 6-character <strong>Pairing
+                        Key</strong>.</li>
+                <li>Enter this key on the kiosk's touchscreen.</li>
+                <li>Once provisioned, the kiosk is permanently linked to your venue and will automatically launch the
+                    main application on startup.</li>
+            </ol>
+            <!-- Screenshot for Kiosk Provisioning -->
+            <img src="assets/manual-kiosk-provisioning.png"
+                alt="The Kiosk provisioning screen where an admin enters a pairing key" class="manual-screenshot">
+        </div>
+
+        <h4>For the Visitor: Finding Your Way</h4>
+        <div class="card">
+            <p>A visitor's journey is designed to be intuitive:</p>
+            <ul>
+                <li><strong>Search & Discover:</strong> Use the prominent search bar to find a specific store, or tap on
+                    a Category button to browse all related locations, which will be highlighted on the map.</li>
+                <li><strong>Explore the Map:</strong> Pan and zoom the 2D map with familiar touch gestures. Tap on any
+                    store's pin to open its details.</li>
+                <li><strong>Get Directions:</strong> When a place is selected from a search or the map, the system will
+                    show its details. Clicking "Show on Map" will intelligently zoom and position the map to show the
+                    location relative to the kiosk.</li>
+                <li><strong>Idle Mode:</strong> If the kiosk is not used for 60 seconds, a beautiful, full-screen
+                    display of advertisements will appear. A simple tap anywhere on the screen instantly returns to the
+                    main map interface.</li>
+            </ul>
+            <!-- Screenshot for Kiosk UI -->
+            <img src="assets/manual-kiosk-ui.png"
+                alt="The main Kiosk UI showing the map, sidebar, and a selected place's details"
+                class="manual-screenshot">
+        </div>
+    </article>
+</section>

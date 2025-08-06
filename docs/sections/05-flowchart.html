@@ -1,0 +1,115 @@
+<section id="flowchart">
+    <h2>System Flowchart</h2>
+    <p class="section-description">The Binhinav ecosystem is comprised of three distinct user flows that work in unison.
+        Below is a detailed breakdown for each user role.</p>
+
+    <!-- Kiosk Visitor Flow -->
+    <article>
+        <h4>1. Kiosk Visitor Flow</h4>
+        <div class="card">
+            <p>This chart illustrates the journey of a visitor using the public-facing interactive kiosk to find their
+                destination.</p>
+            <pre class="mermaid">
+graph TD
+    subgraph "1. Initialization"
+        A[Visitor Approaches Kiosk] --> B{Is Kiosk Provisioned?};
+        B -- No --> B1[Display Provisioning Screen];
+        B1 -- Admin enters key --> B2[Provisioning & App Load];
+        B2 --> C[Show Main Map Interface];
+        B -- Yes --> C;
+    end
+
+    subgraph "2. Main Interaction Loop"
+        C -- "1 min Inactivity" --> D[Display Ad Overlay];
+        D -- "Visitor Taps Screen" --> C;
+        C -- "Visitor Interacts" --> E{Selects Action};
+    end
+
+    subgraph "3. Finding a Destination"
+        E -- "Taps Search Bar" --> F[Input Search Term];
+        F --> G[Display Search Results];
+        G -- "Selects a Place" --> J;
+
+        E -- "Taps Category" --> H[Select Category];
+        H --> I[Highlight Places on Map];
+        I -- "Selects a Place" --> J;
+        
+        E -- "Taps a Pin on Map" --> J[Show Place Details Sheet];
+    end
+    
+    subgraph "4. Navigation"
+        J --> K[Clicks 'Show on Map'];
+        K --> L{Destination on different floor?};
+        L -- Yes --> M[Show Floor Transition];
+        M --> N[Switch Floor & Perform Navigation];
+        L -- No --> N;
+        N --> O((Destination is Focused on Map));
+        O -- "New Interaction" --> C;
+    end
+            </pre>
+        </div>
+    </article>
+
+    <!-- Admin Portal Flow -->
+    <article>
+        <h4>2. Admin Portal Flow</h4>
+        <div class="card">
+            <p>This chart details the high-level workflow for an administrator, from initial setup to ongoing management
+                and monitoring.</p>
+            <pre class="mermaid">
+graph TD
+    subgraph "1. Access"
+        A[Admin Navigates to Portal] --> B[Login Page];
+        B -- Enters Credentials --> C{Authenticate};
+        C -- Success --> D((Dashboard));
+    end
+
+    subgraph "2. Setup & Management"
+        D --> E{Select Management Area};
+        E -- Floor Plans --> F[Upload & Order Floor Plans];
+        F --> E;
+        E -- Categories --> G[Create & Edit Categories];
+        G --> E;
+        E -- Places --> H[Add/Edit Places & Assign Merchants];
+        H --> E;
+        E -- Kiosks & Ads --> I[Manage Kiosks & Ad Rotations];
+        I --> E;
+        E -- Users --> J[Manage Admins & Merchants];
+        J --> E;
+    end
+
+    subgraph "3. Monitoring"
+        D --> K[View Analytics];
+        D --> L[Review Merchant Audit Logs];
+    end
+            </pre>
+        </div>
+    </article>
+
+    <!-- Merchant Portal Flow -->
+    <article>
+        <h4>3. Merchant Portal Flow</h4>
+        <div class="card">
+            <p>This chart shows the simple, focused workflow for a tenant (merchant) managing their own store's
+                information.</p>
+            <pre class="mermaid">
+graph TD
+    subgraph "1. Login"
+        A[Merchant Navigates to Portal] --> B[Login Page];
+        B -- Enters Credentials --> C{Authenticate};
+        C -- Success --> D((Store Information Dashboard));
+    end
+    
+    subgraph "2. Update Information"
+        D --> E{Chooses an action};
+        E -- "Edit Details, Description, or Hours" --> F[Updates Information in Modal];
+        E -- "Upload Logo or Cover" --> G[Uploads New Image];
+        F --> H[Save Changes];
+        G --> H;
+        H -- Success --> I[UI Refreshes with New Data];
+        I --> D;
+    end
+            </pre>
+        </div>
+    </article>
+</section>
