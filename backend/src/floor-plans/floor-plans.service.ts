@@ -40,7 +40,7 @@ export class FloorPlansService {
                         .createQueryBuilder('fp')
                         .select('MAX(fp.displayOrder)', 'maxOrder')
                         .getRawOne();
-                    newFloorPlan.displayOrder = (maxOrderResult.maxOrder || 0) + 1;
+                    newFloorPlan.displayOrder = (maxOrderResult.maxOrder === null ? -1 : maxOrderResult.maxOrder) + 1;
                 }
 
                 return await floorPlanRepository.save(newFloorPlan);
@@ -157,7 +157,7 @@ export class FloorPlansService {
             const floorPlanRepository = transactionalEntityManager.getRepository(FloorPlan);
             await Promise.all(
                 ids.map((id, index) => {
-                    return floorPlanRepository.update(id, { displayOrder: index + 1 });
+                    return floorPlanRepository.update(id, { displayOrder: index });
                 })
             );
         });
