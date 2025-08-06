@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAdminAds, createAd, updateAd, deleteAd, reorderAds } from "@/api/ads";
 import { type Ad } from "@/api/types";
 import { getAssetUrl } from "@/api";
-import { type ColumnDef, useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
+import { type ColumnDef, type Row, useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent, closestCenter, DragOverlay } from '@dnd-kit/core';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -22,7 +22,6 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PlusCircle, Edit, Trash2, Eye, AlertTriangle, GripVertical, Video, Loader2 } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
-import { cn } from "@/lib/utils";
 
 const adSchema = z.object({
     name: z.string().min(2, "Name is required."),
@@ -33,7 +32,7 @@ const adSchema = z.object({
 
 type AdFormValues = z.infer<typeof adSchema>;
 
-const DraggableTableRow = ({ row, reorderMutation }: { row: any, reorderMutation: any }) => {
+const DraggableTableRow = ({ row, reorderMutation }: { row: Row<Ad>, reorderMutation: any }) => {
     const {
         attributes,
         listeners,
@@ -49,19 +48,19 @@ const DraggableTableRow = ({ row, reorderMutation }: { row: any, reorderMutation
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0 : 1,
-        zIndex: isDragging ? 0 : 'auto',
+        opacity: isDragging ? 0.8 : 1,
+        zIndex: isDragging ? 1 : 'auto',
     };
 
     return (
-        <TableRow ref={setNodeRef} style={style} {...attributes} className={cn(isDragging && "bg-muted shadow-lg")}>
+        <TableRow ref={setNodeRef} style={style} {...attributes} data-state={isDragging ? "selected" : ""}>
             <TableCell style={{ width: '60px' }}>
                 <Button variant="ghost" {...listeners} className="cursor-grab" disabled={reorderMutation.isPending}>
                     <GripVertical className="h-5 w-5" />
                 </Button>
             </TableCell>
-            {row.getVisibleCells().map((cell: any) => (
-                <TableCell key={cell.id}>
+            {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </TableCell>
             ))}
@@ -75,9 +74,7 @@ export default function AdsPage() {
     const [viewingAd, setViewingAd] = useState<Ad | null>(null);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [activeAds, setActiveAds] = useState<Ad[]>([]);
-    const [draggingAd, setDraggingAd] = useState<Ad | null>(null);
-    const tableRef = useRef<HTMLTableElement>(null);
-    const [columnWidths, setColumnWidths] = useState<number[]>([]);
+    const [draggingRow, setDraggingRow] = useState<Row<Ad> | null>(null);
 
     const form = useForm({
         resolver: zodResolver(adSchema),
@@ -167,27 +164,25 @@ export default function AdsPage() {
     const handleDelete = (id: string) => deleteMutation.mutate(id);
 
     const columns: ColumnDef<Ad>[] = [
-        { accessorKey: "fileUrl", header: "Preview", cell: ({ row }) => { const ad = row.original; return ad.type === 'video' ? (<div className="h-16 w-28 rounded-md border bg-muted flex items-center justify-center"><Video className="h-8 w-8 text-muted-foreground" /></div>) : (<img src={getAssetUrl(ad.fileUrl)} alt={ad.name} className="h-16 w-28 object-contain rounded-md border" />) } },
+        { accessorKey: "fileUrl", header: "Preview", cell: ({ row }) => { const ad = row.original; return ad.type === 'video' ? (<div className="h-16 w-28 rounded-md border bg-muted flex items-center justify-center"><Video className="h-8 w-8 text-muted-foreground" /></div>) : (<img src={getAssetUrl(ad.fileUrl)} alt={ad.name} className="h-16 w-28 object-cover rounded-md border" />) } },
         { accessorKey: "name", header: "Details", cell: ({ row }) => (<div className="align-top"><div className="font-semibold">{row.original.name}</div><div className="text-sm text-muted-foreground">Order: {row.original.displayOrder ?? 'N/A'}</div></div>) },
         { accessorKey: "isActive", header: "Status", cell: ({ row }) => (row.original.isActive ? <Badge className="bg-green-500 hover:bg-green-600">Active</Badge> : <Badge variant="secondary">Inactive</Badge>) },
         { id: 'actions', header: () => <div className="text-right">Actions</div>, cell: ({ row }) => (<div className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenViewDialog(row.original)} disabled={deleteMutation.isPending}><Eye className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleOpenDialog(row.original)} disabled={deleteMutation.isPending}><Edit className="h-4 w-4" /></Button><ConfirmationDialog title="Delete this ad?" description="This action cannot be undone and will permanently remove the ad." onConfirm={() => handleDelete(row.original.id)} variant="destructive" confirmText="Delete" triggerButton={<Button variant="ghost" size="icon" className="text-red-500" disabled={deleteMutation.isPending}><Trash2 className="h-4 w-4" /></Button>} /></div>) },
     ];
 
     const table = useReactTable({ data: activeAds, columns, getCoreRowModel: getCoreRowModel() });
-    const sensors = useSensors(useSensor(PointerSensor));
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
-        setDraggingAd(activeAds.find(ad => ad.id === active.id) || null);
-        if (tableRef.current) {
-            const headerCells = tableRef.current.querySelectorAll('thead th');
-            const widths = Array.from(headerCells).map(cell => cell.getBoundingClientRect().width);
-            setColumnWidths(widths);
+        const row = table.getRowModel().rows.find(r => r.original.id === active.id);
+        if (row) {
+            setDraggingRow(row);
         }
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
-        setDraggingAd(null);
+        setDraggingRow(null);
         const { active, over } = event;
         if (over && active.id !== over.id) {
             const oldIndex = activeAds.findIndex((ad) => ad.id === active.id);
@@ -206,7 +201,7 @@ export default function AdsPage() {
     };
 
     const handleDragCancel = () => {
-        setDraggingAd(null);
+        setDraggingRow(null);
     };
 
     return (
@@ -234,13 +229,13 @@ export default function AdsPage() {
                             onDragCancel={handleDragCancel}
                             modifiers={[restrictToVerticalAxis]}
                         >
-                            <Table ref={tableRef}>
+                            <Table>
                                 <TableHeader>
                                     {table.getHeaderGroups().map(headerGroup => (
                                         <TableRow key={headerGroup.id}>
                                             <TableHead style={{ width: '60px' }} />
                                             {headerGroup.headers.map(header => (
-                                                <TableHead key={header.id}>{flexRender(header.column.columnDef.header, header.getContext())}</TableHead>
+                                                <TableHead key={header.id} style={{ width: header.getSize() }}>{flexRender(header.column.columnDef.header, header.getContext())}</TableHead>
                                             ))}
                                         </TableRow>
                                     ))}
@@ -254,15 +249,20 @@ export default function AdsPage() {
                                 </TableBody>
                             </Table>
                             <DragOverlay>
-                                {draggingAd ? (
-                                    <Table className="shadow-lg">
+                                {draggingRow ? (
+                                    <Table className="bg-background shadow-lg">
                                         <TableBody>
-                                            <TableRow className="bg-background">
-                                                <TableCell style={{ width: columnWidths[0] }}><Button variant="ghost" className="cursor-grabbing"><GripVertical className="h-5 w-5" /></Button></TableCell>
-                                                <TableCell style={{ width: columnWidths[1] }}>{draggingAd.type === 'video' ? <div className="h-16 w-28 rounded-md border bg-muted flex items-center justify-center"><Video className="h-8 w-8 text-muted-foreground" /></div> : <img src={getAssetUrl(draggingAd.fileUrl)} alt={draggingAd.name} className="h-16 w-28 object-contain rounded-md border" />}</TableCell>
-                                                <TableCell style={{ width: columnWidths[2] }}><div className="align-top"><div className="font-semibold">{draggingAd.name}</div><div className="text-sm text-muted-foreground">Order: {draggingAd.displayOrder ?? 'N/A'}</div></div></TableCell>
-                                                <TableCell style={{ width: columnWidths[3] }}>{draggingAd.isActive ? <Badge className="bg-green-500 hover:bg-green-600">Active</Badge> : <Badge variant="secondary">Inactive</Badge>}</TableCell>
-                                                <TableCell style={{ width: columnWidths[4] }} className="text-right"><div className="text-right"><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button><Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="text-red-500"><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                                            <TableRow>
+                                                <TableCell style={{ width: '60px' }}>
+                                                    <Button variant="ghost" className="cursor-grabbing">
+                                                        <GripVertical className="h-5 w-5" />
+                                                    </Button>
+                                                </TableCell>
+                                                {draggingRow.getVisibleCells().map(cell => (
+                                                    <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                ))}
                                             </TableRow>
                                         </TableBody>
                                     </Table>

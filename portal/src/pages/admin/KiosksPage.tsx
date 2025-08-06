@@ -191,7 +191,7 @@ export default function KiosksPage() {
             cell: ({ row }) => (
                 row.original.floorPlan ? (
                     <div className="flex items-center gap-3">
-                        <img src={getAssetUrl(row.original.floorPlan.imageUrl)} alt={row.original.floorPlan.name} className="h-10 w-16 object-cover rounded-md border" />
+                        <img src={getAssetUrl(row.original.floorPlan.imageUrl)} alt={row.original.floorPlan.name} className="h-10 w-16 object-contain rounded-md border" />
                         <span>{row.original.floorPlan.name}</span>
                     </div>
                 ) : ('N/A')

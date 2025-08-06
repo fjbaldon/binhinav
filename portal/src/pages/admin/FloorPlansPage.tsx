@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getFloorPlans, createFloorPlan, updateFloorPlan, deleteFloorPlan, reorderFloorPlans } from "@/api/floor-plans";
 import { type FloorPlan } from "@/api/types";
 import { getAssetUrl } from "@/api";
-import { type ColumnDef, useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
+import { type ColumnDef, type Row, useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent, closestCenter, DragOverlay } from '@dnd-kit/core';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -29,7 +29,7 @@ const floorPlanSchema = z.object({
 
 type FloorPlanFormValues = z.infer<typeof floorPlanSchema>;
 
-const DraggableTableRow = ({ row, reorderMutation }: { row: any, reorderMutation: any }) => {
+const DraggableTableRow = ({ row, reorderMutation }: { row: Row<FloorPlan>, reorderMutation: any }) => {
     const {
         attributes,
         listeners,
@@ -56,8 +56,8 @@ const DraggableTableRow = ({ row, reorderMutation }: { row: any, reorderMutation
                     <GripVertical className="h-5 w-5" />
                 </Button>
             </TableCell>
-            {row.getVisibleCells().map((cell: any) => (
-                <TableCell key={cell.id}>
+            {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </TableCell>
             ))}
@@ -71,9 +71,7 @@ export default function FloorPlansPage() {
     const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [activeFloorPlans, setActiveFloorPlans] = useState<FloorPlan[]>([]);
-    const [draggingFloorPlan, setDraggingFloorPlan] = useState<FloorPlan | null>(null);
-    const tableRef = useRef<HTMLTableElement>(null);
-    const [columnWidths, setColumnWidths] = useState<number[]>([]);
+    const [draggingRow, setDraggingRow] = useState<Row<FloorPlan> | null>(null);
 
     const form = useForm({
         resolver: zodResolver(floorPlanSchema),
@@ -215,22 +213,23 @@ export default function FloorPlansPage() {
 
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
-        setDraggingFloorPlan(activeFloorPlans.find(fp => fp.id === active.id) || null);
-        if (tableRef.current) {
-            const headerCells = tableRef.current.querySelectorAll('thead th');
-            const widths = Array.from(headerCells).map(cell => cell.getBoundingClientRect().width);
-            setColumnWidths(widths);
+        const row = table.getRowModel().rows.find(r => r.original.id === active.id);
+        if (row) {
+            setDraggingRow(row);
         }
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
-        setDraggingFloorPlan(null);
+        setDraggingRow(null);
         const { active, over } = event;
         if (over && active.id !== over.id) {
             const oldIndex = activeFloorPlans.findIndex((fp) => fp.id === active.id);
             const newIndex = activeFloorPlans.findIndex((fp) => fp.id === over.id);
             if (oldIndex !== -1 && newIndex !== -1) {
                 const reordered = arrayMove(activeFloorPlans, oldIndex, newIndex);
+                reordered.forEach((fp, index) => {
+                    fp.displayOrder = index;
+                });
                 setActiveFloorPlans(reordered);
                 reorderMutation.mutate(reordered.map(fp => fp.id));
             }
@@ -238,7 +237,7 @@ export default function FloorPlansPage() {
     };
 
     const handleDragCancel = () => {
-        setDraggingFloorPlan(null);
+        setDraggingRow(null);
     };
 
     return (
@@ -260,9 +259,9 @@ export default function FloorPlansPage() {
                     {isError && <p className="text-destructive">Failed to load floor plans.</p>}
                     {!isLoading && !isError && (
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel} modifiers={[restrictToVerticalAxis]}>
-                            <Table ref={tableRef}>
+                            <Table>
                                 <TableHeader>
-                                    {table.getHeaderGroups().map(headerGroup => (<TableRow key={headerGroup.id}><TableHead style={{ width: '60px' }} />{headerGroup.headers.map(header => (<TableHead key={header.id}>{flexRender(header.column.columnDef.header, header.getContext())}</TableHead>))}</TableRow>))}
+                                    {table.getHeaderGroups().map(headerGroup => (<TableRow key={headerGroup.id}><TableHead style={{ width: '60px' }} />{headerGroup.headers.map(header => (<TableHead key={header.id} style={{ width: header.getSize() }}>{flexRender(header.column.columnDef.header, header.getContext())}</TableHead>))}</TableRow>))}
                                 </TableHeader>
                                 <TableBody>
                                     <SortableContext items={activeFloorPlans.map(fp => fp.id)} strategy={verticalListSortingStrategy}>
@@ -271,8 +270,23 @@ export default function FloorPlansPage() {
                                 </TableBody>
                             </Table>
                             <DragOverlay>
-                                {draggingFloorPlan ? (
-                                    <Table className="bg-background shadow-lg"><TableBody><TableRow><TableCell style={{ width: columnWidths[0] }}><Button variant="ghost" className="cursor-grabbing"><GripVertical className="h-5 w-5" /></Button></TableCell><TableCell style={{ width: columnWidths[1] }}><img src={getAssetUrl(draggingFloorPlan.imageUrl)} alt={draggingFloorPlan.name} className="h-16 w-24 object-contain rounded-md border" /></TableCell><TableCell style={{ width: columnWidths[2] }}><div className="font-medium">{draggingFloorPlan.name}</div></TableCell><TableCell style={{ width: columnWidths[3] }}><div className="text-center font-mono text-muted-foreground">{draggingFloorPlan.displayOrder ?? 'N/A'}</div></TableCell><TableCell style={{ width: columnWidths[4] }}>...</TableCell><TableCell style={{ width: columnWidths[5] }}>...</TableCell></TableRow></TableBody></Table>
+                                {draggingRow ? (
+                                    <Table className="bg-background shadow-lg">
+                                        <TableBody>
+                                            <TableRow>
+                                                <TableCell style={{ width: '60px' }}>
+                                                    <Button variant="ghost" className="cursor-grabbing">
+                                                        <GripVertical className="h-5 w-5" />
+                                                    </Button>
+                                                </TableCell>
+                                                {draggingRow.getVisibleCells().map(cell => (
+                                                    <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        </TableBody>
+                                    </Table>
                                 ) : null}
                             </DragOverlay>
                         </DndContext>
@@ -292,7 +306,7 @@ export default function FloorPlansPage() {
                             <Label htmlFor="displayOrder">Display Order</Label>
 
                             <Input id="name" {...form.register("name")} placeholder="e.g., Ground Floor" />
-                            <Input id="displayOrder" type="number" {...form.register("displayOrder")} placeholder="Optional, e.g., 1" />
+                            <Input id="displayOrder" type="number" {...form.register("displayOrder")} placeholder="Optional, e.g., 0" />
 
                             <p className="text-sm text-red-500 min-h-[1rem] -mt-1">{form.formState.errors.name?.message}</p>
                             <p className="text-sm min-h-[1rem] -mt-1">

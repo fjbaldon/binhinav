@@ -189,7 +189,7 @@ export default function PlacesPage() {
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
                         {row.original.logoUrl ? (
-                            <img src={getAssetUrl(row.original.logoUrl)} alt={row.original.name} className="h-full w-full object-cover rounded-md" />
+                            <img src={getAssetUrl(row.original.logoUrl)} alt={row.original.name} className="h-full w-full object-contain rounded-md" />
                         ) : (
                             <Building2 className="h-5 w-5 text-muted-foreground" />
                         )}
