@@ -1,18 +1,5 @@
 import {
-    Controller,
-    Get,
-    Post,
-    Body,
-    Patch,
-    Param,
-    Delete,
-    UseGuards,
-    ParseUUIDPipe,
-    HttpCode,
-    HttpStatus,
-    UseInterceptors,
-    UploadedFile,
-    BadRequestException,
+    Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseUUIDPipe, HttpCode, HttpStatus, UseInterceptors, UploadedFile, BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -24,6 +11,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Role } from 'src/shared/enums/role.enum';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { imageFileFilter, editFileName } from '../shared/utils/file-helpers';
+import { ReorderFloorPlansDto } from './dto/reorder-floor-plans.dto';
 
 @Controller('floor-plans')
 export class FloorPlansController {
@@ -52,6 +40,14 @@ export class FloorPlansController {
         return this.floorPlansService.create(createFloorPlanDto, imagePath);
     }
 
+    @Patch('reorder')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.Admin)
+    @HttpCode(HttpStatus.OK)
+    reorder(@Body() reorderFloorPlansDto: ReorderFloorPlansDto) {
+        return this.floorPlansService.reorder(reorderFloorPlansDto.ids);
+    }
+
     @Get()
     findAll() {
         return this.floorPlansService.findAll();
@@ -66,7 +62,7 @@ export class FloorPlansController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.Admin)
     @UseInterceptors(
-        FileInterceptor('image', { // Intercept the 'image' field from the form-data
+        FileInterceptor('image', {
             storage: diskStorage({
                 destination: './uploads/floor-plans',
                 filename: editFileName,
@@ -77,13 +73,9 @@ export class FloorPlansController {
     update(
         @Param('id', ParseUUIDPipe) id: string,
         @Body() updateFloorPlanDto: UpdateFloorPlanDto,
-        // The @UploadedFile decorator injects the file object. It's optional for updates.
         @UploadedFile() file?: Express.Multer.File,
     ) {
-        // If a file was uploaded, get its path. Otherwise, it's undefined.
         const imagePath = file ? file.path.replace(/\\/g, '/') : undefined;
-
-        // Pass everything to the service, which contains the logic to handle the update.
         return this.floorPlansService.update(id, updateFloorPlanDto, imagePath);
     }
 

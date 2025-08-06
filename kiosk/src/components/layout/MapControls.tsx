@@ -16,14 +16,12 @@ interface MapControlsProps {
 export function MapControls({ floorPlans, currentFloorPlanId, onFloorChange, kioskFloorId, floorResultCounts = {}, onLocateKiosk }: MapControlsProps) {
     const { zoomIn, zoomOut } = useControls();
 
-    const sortedFloorPlans = [...floorPlans].sort((a, b) => b.name.localeCompare(a.name));
-
     const actionButtonClasses = "w-14 h-14 rounded-lg transition-transform duration-100 hover:scale-110 active:scale-95";
 
     return (
         <div className="absolute top-6 right-6 bottom-6 flex flex-col items-end justify-between z-10 pointer-events-none">
             <div className="bg-background/80 backdrop-blur-sm rounded-2xl shadow-lg p-2 flex flex-col gap-2 pointer-events-auto">
-                {sortedFloorPlans.map(fp => {
+                {floorPlans.map(fp => {
                     const resultCount = floorResultCounts[fp.id];
                     const isActive = currentFloorPlanId === fp.id;
                     return (

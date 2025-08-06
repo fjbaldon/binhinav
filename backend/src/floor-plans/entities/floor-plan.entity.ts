@@ -8,10 +8,13 @@ export class FloorPlan {
   id: string;
 
   @Column({ unique: true })
-  name: string; // e.g., "Ground Floor", "Level 1", "0", "1"
+  name: string;
 
   @Column()
-  imageUrl: string; // URL to the high-definition image
+  imageUrl: string;
+
+  @Column({ type: 'int', nullable: true })
+  displayOrder: number;
 
   @OneToMany(() => Place, (place) => place.floorPlan)
   places: Place[];

@@ -17,6 +17,7 @@ export interface FloorPlan {
     id: string;
     name: string;
     imageUrl: string;
+    displayOrder: number;
     places?: Place[];
     kiosks?: Kiosk[];
 }
