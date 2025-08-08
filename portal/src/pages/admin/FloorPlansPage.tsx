@@ -136,7 +136,8 @@ export default function FloorPlansPage() {
         },
         onError: (error: any) => {
             if (error.response?.status === 401) return;
-            toast.error("Failed to delete floor plan.");
+            const description = error.response?.data?.message || "An unknown error occurred.";
+            toast.error("Deletion Failed", { description: description });
         }
     });
 

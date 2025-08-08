@@ -128,10 +128,20 @@ export class FloorPlansService {
     async remove(id: string): Promise<void> {
         await this.entityManager.transaction(async (manager) => {
             const floorPlanRepository = manager.getRepository(FloorPlan);
-            const floorPlanToDelete = await floorPlanRepository.findOneBy({ id });
+
+            const floorPlanToDelete = await floorPlanRepository.findOne({
+                where: { id },
+                relations: ['places', 'kiosks'],
+            });
 
             if (!floorPlanToDelete) {
                 throw new NotFoundException(`FloorPlan with ID "${id}" not found`);
+            }
+
+            if (floorPlanToDelete.places.length > 0 || floorPlanToDelete.kiosks.length > 0) {
+                throw new ConflictException(
+                    `Cannot delete Floor Plan "${floorPlanToDelete.name}" because it is still in use by ${floorPlanToDelete.places.length} place(s) and ${floorPlanToDelete.kiosks.length} kiosk(s).`,
+                );
             }
 
             if (floorPlanToDelete.imageUrl) {
